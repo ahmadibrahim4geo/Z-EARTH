@@ -4,7 +4,7 @@
         Title="Options &amp; GIS Settings"
         Height="650" Width="680"
         WindowStartupLocation="CenterOwner"
-        ResizeMode="NoResize"
+        ResizeMode="CanResize" MinWidth="640" MinHeight="580"
         Background="{StaticResource Brush.Window.Background}"
         Foreground="{StaticResource Brush.Text.Primary}"
         FontFamily="Segoe UI">
@@ -198,6 +198,13 @@
                         <CheckBox x:Name="LongitudeLinesCheck" Content="Show longitude lines (meridians)" Margin="16,4,0,4" Foreground="{StaticResource Brush.Text.Primary}"/>
                         <CheckBox x:Name="LatitudeLinesCheck" Content="Show latitude lines (parallels)" Margin="16,4,0,4" Foreground="{StaticResource Brush.Text.Primary}"/>
                         <CheckBox x:Name="GraticuleLabelsCheck" Content="Show coordinate labels" Margin="16,4,0,4" Foreground="{StaticResource Brush.Text.Primary}"/>
+                        <TextBlock Text="Grid coordinate labels (independent from status-bar Format Units)" FontWeight="SemiBold" Margin="16,8,0,4" Foreground="{DynamicResource Brush.Text.Primary}"/>
+                        <ComboBox x:Name="GridLabelFormatCombo" Height="30" Margin="16,0,0,12" Background="{DynamicResource Brush.Control.Background}" Foreground="{DynamicResource Brush.Text.Primary}">
+                            <ComboBoxItem Content="Degrees, minutes, seconds (DMS)" Tag="DMS"/>
+                            <ComboBoxItem Content="Degrees and decimal minutes (DM)" Tag="DM"/>
+                            <ComboBoxItem Content="Decimal degrees (DD)" Tag="DD"/>
+                            <ComboBoxItem Content="Whole degrees only" Tag="Degrees"/>
+                        </ComboBox>
                         <CheckBox x:Name="KeyParallelsCheck" Content="Show major geographic lines &amp; points with names" Margin="16,4,0,8" Foreground="{StaticResource Brush.Text.Primary}"/>
 
                         <TextBlock Text="Includes Equator, Greenwich/Prime Meridian, International Date Line, Tropics, Polar Circles, both Poles, and Grid Origin 0°/0°. Major lines override coincident regular lines."
