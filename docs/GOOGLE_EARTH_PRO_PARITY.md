@@ -6,7 +6,7 @@
 
 ## REA engineering evidence boundary
 
-The developer's reverse-engineering workspace `rea/` is **explicitly excluded** from Git by root `.gitignore`. The named `ahmadibrahim4geo/REA` repository is not accessible from the connected GitHub account at review time. Therefore **no REA source was inspected or copied in this change**. If it is supplied later, treat it as behavioral test/reference material, review legal permissions and isolate proprietary logic/assets. Do not assume that reverse-engineered source creates permission to copy Google Earth binaries, server endpoints, tiles or algorithms. Focus on independent implementations using properly licensed .NET/CesiumJS/GDAL/PROJ.
+**Identified the correct upstream:** [morluto/rea](https://github.com/morluto/rea), MIT-licensed **Reverse Engineer Anything** (REA), a local MCP/CLI analysis tool. The developer previously configured it at `D:\\My Software\\Zearth\\rea` and root `.gitignore` deliberately excludes `/rea/`; it is **not** `ahmadibrahim4geo/REA`. Official REA README, desktop-app inspection, .NET inspection and responsible-use docs were reviewed. The **local REA installation, any Google Earth Pro binary or runtime observation, and their local evidence have NOT been accessed in this cloud GitHub review**. Use [the agent's REA local workflow](../.github/skills/zearth-rea-parity/SKILL.md) on the user's authorized Windows machine, respecting the REA disclaimer and application licenses. No REA executable, third-party app binary or proprietary extracted code is copied into the Z EARTH repository.
 
 ## Feature contracts, implementation phases and truthful status
 

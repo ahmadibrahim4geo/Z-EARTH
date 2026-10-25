@@ -55,7 +55,7 @@ Newly cloned agents must not conflate T2 with T3/T4. Follow [release evidence ch
 
 Our project targets the useful **Google Earth Pro Desktop** workflows (saved camera scenes and ordered My Places, Temporary Places, KML/KMZ, name/coordinate search, 3D terrain, profiles, measurement, drawing, themes, imagery). The [detailed parity matrix](docs/GOOGLE_EARTH_PRO_PARITY.md) separates implemented fixes from still-planned features. Unlike the previous draft, profile elevation is never *fabricated* from sine waves; the current chart is clearly labelled **stored path vertex Z** until true active-DEM sampling is implemented.
 
-**REA source availability:** the developer's `rea/` folder is gitignored and no matching connected repository was found. No proprietary Google Earth binaries or extracted code are bundled.
+**REA tool:** [morluto/rea](https://github.com/morluto/rea) is the existing MIT-licensed local reverse-engineering **analysis tool**, not Google Earth Pro source. The user's `D:\\My Software\\Zearth\\rea` workspace stays outside tracked Z EARTH. We reviewed REA docs but have **not run REA on the user's local Google Earth Pro installation**; refer to [REA task skill](.github/skills/zearth-rea-parity/SKILL.md). No proprietary Google Earth binaries or extracted code are bundled.
 
 ## Current limitations
 
