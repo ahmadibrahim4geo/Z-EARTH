@@ -2063,7 +2063,8 @@ namespace ZEarth.App.ViewModels
                 _projectService.CurrentProject.SceneMode = CurrentSceneMode;
                 if (await _projectService.SaveAsync())
                 {
-                    // An explicit project save commits imported roots as permanent My Places.
+                    // Project save retains Temporary Places as their own project folder.
+                    // Promotion to permanent My Places remains an explicit user action.
                     _pendingSessionItems.Clear();
                 }
                 UpdateWindowTitle();
@@ -3080,7 +3081,7 @@ namespace ZEarth.App.ViewModels
                 var dlg = new OpenFileDialog
                 {
                     Filter = "GIS Vector Files (*.geojson;*.json;*.shp;*.gpkg)|*.geojson;*.json;*.shp;*.gpkg|GeoJSON (*.geojson;*.json)|*.geojson;*.json|ESRI Shapefile (*.shp)|*.shp|OGC GeoPackage (*.gpkg)|*.gpkg|All Files (*.*)|*.*",
-                    Title = "Import GIS Vector Layer into My Places"
+                    Title = "Import GIS Vector Layer into Temporary Places"
                 };
 
                 if (dlg.ShowDialog() == true)
@@ -3122,10 +3123,16 @@ namespace ZEarth.App.ViewModels
                             importFolder.Children.Add(feat);
                         }
 
-                        MyPlaces.Add(importFolder);
-                        _pendingSessionItems.Add(importFolder);
+                        // Import all external datasets into the same Temporary Places
+                        // folder used for KML/KMZ; retain source CRS metadata and
+                        // allow deliberate promotion to My Places.
+                        TemporaryPlaces.Add(importFolder);
+                        _temporarySessionService.SaveSession(TemporaryPlaces);
+                        _projectService.IsModified = true;
+                        SelectedPlace = importFolder;
                         UpdatePlacesOnGlobe();
                         OnPropertyChanged(nameof(MyPlaces));
+                        OnPropertyChanged(nameof(TemporaryPlaces));
 
                         if (result.MinLon <= result.MaxLon && result.MinLat <= result.MaxLat)
                         {
