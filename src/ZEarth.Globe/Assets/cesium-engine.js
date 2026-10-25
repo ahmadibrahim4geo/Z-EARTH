@@ -3823,6 +3823,37 @@
           respondSuccess({ stopped: SwipeManager.stop() });
           break;
         }
+        case 'device.requestLocation': {
+          if (!navigator.geolocation) {
+            respond('failed', null, 'This Windows/WebView2 runtime does not expose geolocation.');
+            break;
+          }
+          respondAccepted({ waitingForUserPermission: true });
+          navigator.geolocation.getCurrentPosition(
+            pos => {
+              const lat = pos.coords.latitude;
+              const lon = pos.coords.longitude;
+              const accuracy = pos.coords.accuracy;
+              if (!Number.isFinite(lat) || !Number.isFinite(lon) ||
+                  lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+                respond('failed', null, 'Device returned invalid latitude/longitude.');
+                return;
+              }
+              // Only on a user-requested fix; never persist, broadcast to providers
+              // or equate the device fix with camera/scene center.
+              sendHostMessage({
+                event: 'device.locationFix', latitude: lat, longitude: lon,
+                accuracyM: Number.isFinite(accuracy) ? accuracy : null,
+                timestampUtc: new Date(pos.timestamp).toISOString(),
+                source: 'device-permission'
+              });
+              respondSuccess({ acquired: true });
+            },
+            err => respond('failed', null, err?.message || 'Location denied or unavailable.'),
+            { enableHighAccuracy: true, maximumAge: 0, timeout: 12000 }
+          );
+          break;
+        }
         case 'environment.setSunlight': {
           const enabled = EnvironmentManager.setSunlight(data.payload);
           respondSuccess({ enabled });
