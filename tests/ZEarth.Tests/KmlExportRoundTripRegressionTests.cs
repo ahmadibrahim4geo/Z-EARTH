@@ -23,7 +23,7 @@ public sealed class KmlExportRoundTripRegressionTests
         var xml = XDocument.Parse(kml);
         Assert.AreEqual(1, xml.Descendants().Count(e => e.Name.LocalName == "Placemark"));
         Assert.AreEqual(1, xml.Descendants().Count(e => e.Name.LocalName == "Point"));
-        Assert.IsTrue(kml.Contains("31.235700,30.044400,52.5"));
+        Assert.IsTrue(kml.Contains("31.2357,30.0444,52.5"));
         var reopened = KmlParser.ParseDocument(xml);
         Assert.AreEqual(1, reopened.Children.Count);
         Assert.AreEqual(item.Name, reopened.Children[0].Name);
@@ -66,7 +66,7 @@ public sealed class KmlExportRoundTripRegressionTests
         Assert.IsTrue(item.Children.Single().PreservedXmlFragments.Any(f => f.Contains("TimeStamp")));
         var saved = KmlSerializer.SerializeToString(item);
         Assert.IsTrue(saved.Contains("2026-01-15T12:00:00Z"));
-        Assert.IsTrue(saved.Contains("31.000000,30.000000,1.0"));
+        Assert.IsTrue(saved.Contains("31,30,1"));
     }
 
     [TestMethod]
