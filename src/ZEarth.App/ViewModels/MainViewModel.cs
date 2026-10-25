@@ -830,6 +830,7 @@ namespace ZEarth.App.ViewModels
 
         public ICommand ToggleBordersCommand { get; }
         public ICommand ToggleGraticulesCommand { get; }
+        public ICommand GridOptionsCommand { get; }
         public ICommand ToggleTerrainCommand { get; }
         public ICommand SelectBasemapCommand { get; }
         public ICommand HistoricalImageryCommand { get; }
@@ -1292,6 +1293,7 @@ namespace ZEarth.App.ViewModels
             // Layer & Terrain Commands (Sprint 7)
             ToggleBordersCommand = new RelayCommand(() => IsBordersVisible = !IsBordersVisible);
             ToggleGraticulesCommand = new RelayCommand(() => IsGraticulesVisible = !IsGraticulesVisible);
+            GridOptionsCommand = new RelayCommand(() => ExecuteShowOptions(true));
             ToggleTerrainCommand = AsyncCommand(ExecuteToggleTerrainAsync, "Toggle terrain");
             SelectBasemapCommand = new RelayCommand(p =>
             {
@@ -3343,10 +3345,12 @@ namespace ZEarth.App.ViewModels
             dlg.ShowDialog();
         }
 
-        public void ExecuteShowOptions()
+        public void ExecuteShowOptions() => ExecuteShowOptions(false);
+
+        private void ExecuteShowOptions(bool openGridTab)
         {
             var wasTerrainEnabled = IsTerrainEnabled;
-            var dlg = new Views.OptionsDialog(_globeBridge)
+            var dlg = new Views.OptionsDialog(_globeBridge, openGridTab)
             {
                 Owner = Application.Current?.MainWindow
             };
