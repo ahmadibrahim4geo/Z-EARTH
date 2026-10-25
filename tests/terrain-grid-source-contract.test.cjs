@@ -18,7 +18,7 @@ test('grid uses dynamic independent intervals, antimeridian windows and tested z
   assert.match(js, /ZEarthGraticuleGeometry\.visibleUtmSegments\(bounds\)/);
   assert.match(js, /const candidates = \[0\.05, 0\.1, 0\.25/);
   assert.match(js, /clampToGround: true/);
-  assert.match(js, /showZoneLabels &&/); // no permanent equator labels
+  assert.match(js, /const showZoneLabels = this\.config\.showLabels/); // no permanent equator labels
   const xaml = read('src/ZEarth.App/Views/OptionsDialog.xaml');
   assert.match(xaml, /x:Name="LongitudeIntervalInput"/);
   assert.match(xaml, /x:Name="LatitudeIntervalInput"/);
