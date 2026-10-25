@@ -2279,7 +2279,8 @@ namespace ZEarth.App.ViewModels
         {
             var dlg = new SaveFileDialog
             {
-                Filter = "Z EARTH Project (*.zearth)|*.zearth|Z EARTH JSON (*.zproj)|*.zproj",
+                // ProjectService writes a .zearth ZIP+SQLite bundle, never plain JSON.
+                Filter = "Z EARTH Project (*.zearth)|*.zearth",
                 DefaultExt = ".zearth",
                 Title = "Save Z EARTH Project As"
             };
