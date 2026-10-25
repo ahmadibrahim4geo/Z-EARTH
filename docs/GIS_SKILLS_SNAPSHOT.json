@@ -1,15 +1,26 @@
 {
   "schema_version": 1,
   "source_repository": "ahmadibrahim4geo/GIS-Development-Skills",
-  "source_commit": "fa05f322424747a3a58b04fcb744c6868df7d759",
+  "source_commit": "ef26b76a134b89e950b616e30326df91bd226b43",
+  "source_ref": "feature/prompt-intent-orchestrator-20261025",
+  "source_review_pr": "https://github.com/ahmadibrahim4geo/GIS-Development-Skills/pull/20",
+  "source_review_status_at_pin": "open (not merged into upstream main)",
   "source_license": "MIT for original GIS Development Skills authored content; third-party sources retain their own licenses",
-  "scope": "Pinned generic GIS SKILL.md files and reference catalog/document files only; project-local ZEarth and CesiumJS skills are maintained independently",
-  "skill_count": 19,
-  "reference_count": 51,
+  "scope": "Pinned source-matched GIS SKILL.md and references, excluding generated source repository-manifest.json; local Z EARTH/CesiumJS specialists remain independent",
+  "skill_count": 21,
+  "reference_count": 54,
   "files": [
     {
       "path": ".github/references/agent-decision-tree.md",
-      "git_blob_sha": "e3fbe7274a4071dd8e3da09ab5054bebf5fa5213"
+      "git_blob_sha": "42a011644a47d9177d78035cff1e9b4e832ddc3c"
+    },
+    {
+      "path": ".github/references/agent-development-journal-guide.md",
+      "git_blob_sha": "5a19a13de76c9e14227582113ddbffcc3ede63d1"
+    },
+    {
+      "path": ".github/references/agent-memory-skill-references.md",
+      "git_blob_sha": "50d7b1b23a697cb8493c4d30b356a52393e49ce7"
     },
     {
       "path": ".github/references/ahmad-ibrahim-gis-case-studies.md",
@@ -81,7 +92,7 @@
     },
     {
       "path": ".github/references/free-first-policy.md",
-      "git_blob_sha": "9a8b2544823949ca7c530d466008b67b707c9e4b"
+      "git_blob_sha": "8764a09bdb47b2e45d34fb1d0374c89982120c23"
     },
     {
       "path": ".github/references/free-geospatial-apis.json",
@@ -148,6 +159,10 @@
       "git_blob_sha": "43245804df0ef693142b43457916095257abcdb6"
     },
     {
+      "path": ".github/references/intent-orchestration-workflow.md",
+      "git_blob_sha": "f7a80fa5bd4f6183c5966039732145eb04416940"
+    },
+    {
       "path": ".github/references/kml-kmz-symbol-preservation.md",
       "git_blob_sha": "7f77f90a96aa3b55231a72fa1a06d8a93dc3cbe6"
     },
@@ -212,6 +227,10 @@
       "git_blob_sha": "eb2a3d32967d8eb62f1e7b423b6da6a379dad458"
     },
     {
+      "path": ".github/skills/agent-development-journal/SKILL.md",
+      "git_blob_sha": "a4418f8c673c90ec66959011fcdf4554959fb5df"
+    },
+    {
       "path": ".github/skills/arcgis-toolbox-engineering/SKILL.md",
       "git_blob_sha": "a1ddd9d33ac99d28db104464f08aa7e3f0a4a0af"
     },
@@ -221,7 +240,7 @@
     },
     {
       "path": ".github/skills/geospatial-ai-agents/SKILL.md",
-      "git_blob_sha": "ce72bf29568df528692b302ab0a237103d0bf81d"
+      "git_blob_sha": "d1cc610351eef10441cbe89cc4f05f53ccd37f5f"
     },
     {
       "path": ".github/skills/geospatial-api-integration/SKILL.md",
@@ -253,7 +272,7 @@
     },
     {
       "path": ".github/skills/gis-development/SKILL.md",
-      "git_blob_sha": "f19ec38dc37d56a442a6d5b906281458280de5ff"
+      "git_blob_sha": "1c8685a0b82307e88eb83a8b06e796ae702b28f6"
     },
     {
       "path": ".github/skills/gis-device-context/SKILL.md",
@@ -270,6 +289,10 @@
     {
       "path": ".github/skills/kml-kmz-engineering/SKILL.md",
       "git_blob_sha": "4dd908650eadfd8b250275d05574e05e89019bea"
+    },
+    {
+      "path": ".github/skills/prompt-intent-orchestrator/SKILL.md",
+      "git_blob_sha": "11810e4a7297a74875e0a4d6ab8a394e9d25810f"
     },
     {
       "path": ".github/skills/qgis-plugin-development/SKILL.md",
