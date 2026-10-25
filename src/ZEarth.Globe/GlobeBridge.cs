@@ -757,14 +757,14 @@ namespace ZEarth.Globe
         public Task<bool> SetCompassModeAsync(string mode) =>
             SendRequestAsync("compass.setMode", new { mode });
 
-        public Task<bool> SetSunlightAsync(bool enabled, double timeHours = 12.0) =>
-            SendRequestAsync("environment.setSunlight", new { enabled, timeHours });
+        public Task<bool> SetSunlightAsync(bool enabled, double timeHours = 12.0, string? dateUtc = null) =>
+            SendRequestAsync("environment.setSunlight", new { enabled, timeHours, dateUtc });
 
         public Task<bool> SetAtmosphereAsync(bool enabled) =>
             SendRequestAsync("environment.setAtmosphere", new { enabled });
 
-        public Task<bool> SetTimeOfDayAsync(double timeHours) =>
-            SendRequestAsync("environment.setTimeOfDay", new { timeHours });
+        public Task<bool> SetTimeOfDayAsync(double timeHours, string? dateUtc = null) =>
+            SendRequestAsync("environment.setTimeOfDay", new { timeHours, dateUtc });
 
         public Task<bool> SetMapCrsAsync(int epsgCode, string name, bool isProjected, string unit) =>
             SendRequestAsync("crs.setMapCrs", new { epsg = epsgCode, name, isProjected, unit });
