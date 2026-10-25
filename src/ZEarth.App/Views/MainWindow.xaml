@@ -552,7 +552,7 @@
                                             <TextBlock Text="Show Grid" FontSize="11" Foreground="{Binding GridToggleBrush}" Margin="0,3,0,0"/>
                                         </StackPanel>
                                     </Button>
-                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding OptionsCommand}" ToolTip="Configure grid labels, key parallels and UTM zones">
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding GridOptionsCommand}" ToolTip="Configure named parallels, independent lat/lon intervals, UTM zones and coordinate label format">
                                         <StackPanel HorizontalAlignment="Center">
                                             <TextBlock Text="⚙" FontSize="20" Foreground="{DynamicResource Brush.Text.Secondary}" HorizontalAlignment="Center"/>
                                             <TextBlock Text="Grid Options" FontSize="11" Margin="0,3,0,0"/>
