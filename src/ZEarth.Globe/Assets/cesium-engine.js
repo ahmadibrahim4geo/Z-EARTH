@@ -894,8 +894,8 @@
           if (!activeIonToken) {
             throw new Error('Cesium ion token is required for Cesium World Terrain');
           }
-          if (Cesium.createWorldTerrainAsync) {
-            const tp = await Cesium.createWorldTerrainAsync({
+          if (Cesium.CesiumTerrainProvider?.fromIonAssetId) {
+            const tp = await Cesium.CesiumTerrainProvider.fromIonAssetId(1, {
               requestWaterMask: true,
               requestVertexNormals: true
             });
@@ -2261,7 +2261,6 @@
         this.addParallel(-66.5635, keyLineColor, 1.8, 'Antarctic Circle 66.56° S', names, centerLon);
         this.addMeridian(0, primeColor, 2.5, 'Greenwich / Prime Meridian 0°', names, centerLat);
         this.addMeridian(180, primeColor, 2, 'International Date Line 180°', names, centerLat);
-        this.addMeridian(-180, primeColor, 2, '', false);
         this.addKeyPoint(0, 89.999, 'North Pole 90° N', keyLineColor);
         this.addKeyPoint(0, -89.999, 'South Pole 90° S', keyLineColor);
         this.addKeyPoint(0, 0, 'Grid Origin 0°, 0°', equatorColor);
@@ -2300,7 +2299,13 @@
         const segments = window.ZEarthGraticuleGeometry.visibleUtmSegments(bounds);
         const showZoneLabels = this.config.showLabels && lonSpan <= 45 && latSpan <= 36;
         for (const segment of segments) {
-          if (longitudeWindows.some(w => segment.west >= w.west && segment.west <= w.east)) {
+          // Never draw an extra UTM boundary over a major or ordinary meridian.
+          const isMajor = this.config.showKeyParallels &&
+            (Math.abs(segment.west) < 1e-6 || Math.abs(Math.abs(segment.west) - 180) < 1e-6);
+          const regularOverlap = this.config.showLongitudeLines &&
+            Math.abs(segment.west / lonInterval - Math.round(segment.west / lonInterval)) < 1e-7;
+          if (!isMajor && !regularOverlap &&
+              longitudeWindows.some(w => segment.west >= w.west && segment.west <= w.east)) {
             this.addMeridian(segment.west, utmColor, 1.2, '', false, centerLat,
               segment.south, segment.north);
           }
@@ -2313,7 +2318,15 @@
           const labelLat = Math.max(segment.south + 0.001,
             Math.min(segment.north - 0.001, centerLat));
           this.dataSource.entities.add({
-            position: Cesium.Cartesian3.fromDegrees(labelLon, labelLat),
+            position: new Cesium.CallbackProperty(() => {
+              const center = getScreenCenterGround();
+              const longitude = center.valid ? center.longitude : labelLon;
+              const latitude = center.valid ? center.latitude : labelLat;
+              return Cesium.Cartesian3.fromDegrees(
+                Math.max(segment.west + 0.001, Math.min(segment.east - 0.001, longitude)),
+                Math.max(segment.south + 0.001, Math.min(segment.north - 0.001, latitude))
+              );
+            }, false),
             label: {
               text: 'UTM ' + segment.zone + (labelLat >= 0 ? 'N' : 'S'),
               font: 'bold 11px Segoe UI, sans-serif',
@@ -2348,7 +2361,10 @@
       if (showLabel && label) {
         [Number.isFinite(preferredLon) ? preferredLon : 0].forEach(labelLon => {
           this.dataSource.entities.add({
-            position: Cesium.Cartesian3.fromDegrees(labelLon, lat),
+            position: new Cesium.CallbackProperty(() => {
+              const center = getScreenCenterGround();
+              return Cesium.Cartesian3.fromDegrees(center.valid ? center.longitude : labelLon, lat);
+            }, false),
             label: {
               text: label,
               font: '11px Segoe UI, sans-serif',
@@ -2383,7 +2399,11 @@
       if (showLabel && label) {
         [Number.isFinite(preferredLat) ? preferredLat : 0].forEach(labelLat => {
           this.dataSource.entities.add({
-            position: Cesium.Cartesian3.fromDegrees(lon, labelLat),
+            position: new Cesium.CallbackProperty(() => {
+              const center = getScreenCenterGround();
+              return Cesium.Cartesian3.fromDegrees(lon,
+                center.valid ? Math.max(south, Math.min(north, center.latitude)) : labelLat);
+            }, false),
             label: {
               text: label,
               font: '11px Segoe UI, sans-serif',
@@ -2954,6 +2974,28 @@
     }
   };
 
+  // Draggable sunlight HUD, independent from globe camera gestures.
+  const sunlightHud = document.getElementById('sunlight-hud');
+  const sunlightHeader = sunlightHud?.querySelector('.sunlight-header');
+  if (sunlightHud && sunlightHeader) {
+    let origin = null;
+    sunlightHeader.addEventListener('pointerdown', event => {
+      if (event.button !== 0 || event.target.closest('button,input')) return;
+      const bounds = sunlightHud.getBoundingClientRect();
+      origin = { dx: event.clientX - bounds.left, dy: event.clientY - bounds.top };
+      sunlightHeader.setPointerCapture(event.pointerId);
+    });
+    sunlightHeader.addEventListener('pointermove', event => {
+      if (!origin) return;
+      const bounds = (sunlightHud.offsetParent || document.body).getBoundingClientRect();
+      sunlightHud.style.left = Math.max(0, Math.min(Math.max(0, bounds.width - sunlightHud.offsetWidth),
+        event.clientX - bounds.left - origin.dx)) + 'px';
+      sunlightHud.style.top = Math.max(0, Math.min(Math.max(0, bounds.height - sunlightHud.offsetHeight),
+        event.clientY - bounds.top - origin.dy)) + 'px';
+    });
+    sunlightHeader.addEventListener('pointerup', () => { origin = null; });
+    sunlightHeader.addEventListener('pointercancel', () => { origin = null; });
+  }
   document.getElementById('sunlight-slider')?.addEventListener('input', e => EnvironmentManager.setTimeOfDay(Number(e.target.value)));
   document.querySelectorAll('.sunlight-preset-btn').forEach(button =>
     button.addEventListener('click', () => EnvironmentManager.setTimeOfDay(Number(button.dataset.time))));

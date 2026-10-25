@@ -425,6 +425,7 @@ namespace ZEarth.App.ViewModels
             {
                 if (SetProperty(ref _sunlightDateUtc, value?.Date))
                 {
+                    _sunlightTimeCustomized = true;
                     if (IsSunlightEnabled)
                         _ = _globeBridge.SetTimeOfDayAsync(_timeOfDayHours,
                             _sunlightDateUtc?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
@@ -432,7 +433,8 @@ namespace ZEarth.App.ViewModels
             }
         }
 
-        private double _timeOfDayHours = 12.0; // Known stable noon default; date and UTC hours remain user-selectable.
+        private double _timeOfDayHours = DateTime.UtcNow.TimeOfDay.TotalHours; // Start at real UTC, not noon.
+        private bool _sunlightTimeCustomized;
         public double TimeOfDayHours
         {
             get => _timeOfDayHours;
@@ -441,6 +443,7 @@ namespace ZEarth.App.ViewModels
                 var clamped = Math.Max(0.0, Math.Min(24.0, value));
                 if (SetProperty(ref _timeOfDayHours, Math.Round(clamped, 2)))
                 {
+                    _sunlightTimeCustomized = true;
                     UpdateTimeOfDayDisplay();
                     if (IsSunlightEnabled)
                     {
@@ -451,7 +454,7 @@ namespace ZEarth.App.ViewModels
             }
         }
 
-        private string _timeOfDayDisplay = "12:00 PM (UTC)";
+        private string _timeOfDayDisplay = DateTime.UtcNow.ToString("hh:mm tt", CultureInfo.InvariantCulture) + " (UTC)";
         public string TimeOfDayDisplay
         {
             get => _timeOfDayDisplay;
@@ -1515,6 +1518,15 @@ namespace ZEarth.App.ViewModels
         private async Task ExecuteToggleSunlightAsync()
         {
             var desired = !IsSunlightEnabled;
+            if (desired && !_sunlightTimeCustomized)
+            {
+                var now = DateTime.UtcNow;
+                _sunlightDateUtc = now.Date;
+                _timeOfDayHours = now.TimeOfDay.TotalHours;
+                OnPropertyChanged(nameof(SunlightDateUtc));
+                OnPropertyChanged(nameof(TimeOfDayHours));
+                UpdateTimeOfDayDisplay();
+            }
             if (await _globeBridge.SetSunlightAsync(desired, _timeOfDayHours,
                 SunlightDateUtc?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)))
                 IsSunlightEnabled = desired;

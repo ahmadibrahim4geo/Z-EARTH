@@ -194,7 +194,7 @@
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="14">
                     <StackPanel>
                         <TextBlock Text="Geographic Coordinate Grid" FontWeight="Bold" FontSize="13" Foreground="{DynamicResource Brush.Accent}" Margin="0,0,0,8"/>
-                        <CheckBox x:Name="GraticulesCheck" Content="Enable geographic grid" Margin="0,4" Foreground="{DynamicResource Brush.Text.Primary}"/>
+                        <CheckBox x:Name="KeyParallelsCheck" Content="Major Geographic Reference Lines &amp; Points (Equator, Tropics, Polar Circles, Greenwich, Date Line, Poles)" IsChecked="True" Margin="0,4,0,10" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text.Primary}"/>
                         <CheckBox x:Name="LongitudeLinesCheck" Content="Show longitude lines (meridians)" Margin="16,4,0,4" Foreground="{DynamicResource Brush.Text.Primary}"/>
                         <CheckBox x:Name="LatitudeLinesCheck" Content="Show latitude lines (parallels)" Margin="16,4,0,4" Foreground="{DynamicResource Brush.Text.Primary}"/>
                         <CheckBox x:Name="GraticuleLabelsCheck" Content="Show coordinate labels" Margin="16,4,0,4" Foreground="{DynamicResource Brush.Text.Primary}"/>
@@ -205,7 +205,6 @@
                             <ComboBoxItem Content="Decimal degrees (DD)" Tag="DD"/>
                             <ComboBoxItem Content="Whole degrees only" Tag="Degrees"/>
                         </ComboBox>
-                        <CheckBox x:Name="KeyParallelsCheck" Content="Show major geographic lines &amp; points with names" Margin="16,4,0,8" Foreground="{DynamicResource Brush.Text.Primary}"/>
 
                         <TextBlock Text="Includes Equator, Greenwich/Prime Meridian, International Date Line, Tropics, Polar Circles, both Poles, and Grid Origin 0°/0°. Major lines override coincident regular lines."
                                    TextWrapping="Wrap" FontSize="11" Foreground="{DynamicResource Brush.Text.Secondary}" Margin="16,0,0,14"/>

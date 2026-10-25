@@ -49,7 +49,6 @@ namespace ZEarth.App.Views
             // Theme & Language
             SelectComboByTag(ThemeCombo, settings.Theme);
             SelectComboByTag(LanguageCombo, settings.Language);
-            GraticulesCheck.IsChecked = settings.ShowGraticules;
             GraticuleLabelsCheck.IsChecked = settings.ShowGraticuleLabels;
             SelectComboByTag(GridLabelFormatCombo, settings.GridLabelFormat);
             KeyParallelsCheck.IsChecked = settings.ShowKeyParallels;
@@ -133,7 +132,6 @@ namespace ZEarth.App.Views
             settings.CustomTerrainUrl = string.IsNullOrWhiteSpace(CustomTerrainUrlBox.Text) ? null : CustomTerrainUrlBox.Text.Trim();
             settings.Theme = GetSelectedTag(ThemeCombo, "Dark");
             settings.Language = GetSelectedTag(LanguageCombo, "en");
-            settings.ShowGraticules = GraticulesCheck.IsChecked == true;
             settings.ShowGraticuleLabels = GraticuleLabelsCheck.IsChecked == true;
             settings.GridLabelFormat = GetSelectedTag(GridLabelFormatCombo, "DMS");
             settings.ShowKeyParallels = KeyParallelsCheck.IsChecked == true;
