@@ -50,6 +50,15 @@ namespace ZEarth.Domain.Kml
             var docElem = new XElement(KmlNs + "Document",
                 new XElement(KmlNs + "name", root.Name));
 
+            // A selected Placemark/Path/Polygon is exported as a KML Document
+            // containing that feature. It must not become an empty Document.
+            if (root.ItemType != PlaceItemType.Folder)
+            {
+                docElem.Add(SerializePlacemark(root));
+                kmlRoot.Add(docElem);
+                return new XDocument(new XDeclaration("1.0", "UTF-8", "yes"), kmlRoot);
+            }
+
             // Write any top-level preserved elements from root
             foreach (var frag in root.PreservedXmlFragments)
             {
