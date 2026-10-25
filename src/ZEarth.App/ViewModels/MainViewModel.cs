@@ -252,7 +252,7 @@ namespace ZEarth.App.ViewModels
                     OnPropertyChanged(nameof(GridToggleBrush));
                     SettingsService.Instance.Settings.ShowGraticules = value;
                     SettingsService.Instance.Save();
-                    _ = _globeBridge.SetGraticulesVisibleAsync(value);
+                    // The ribbon command awaits the globe; no unobserved fire-and-forget state change.
                 }
             }
         }
@@ -452,6 +452,7 @@ namespace ZEarth.App.ViewModels
         }
 
         private double _verticalExaggeration = 1.0;
+        private int _exaggerationRevision;
         public double VerticalExaggeration
         {
             get => _verticalExaggeration;
@@ -461,12 +462,30 @@ namespace ZEarth.App.ViewModels
                 if (SetProperty(ref _verticalExaggeration, Math.Round(clamped, 2)))
                 {
                     OnPropertyChanged(nameof(VerticalExaggerationDisplay));
-                    _ = _globeBridge.SetTerrainExaggerationAsync(_verticalExaggeration);
+                    // Slider changes are debounced; acknowledge only a real active terrain.
+                    _ = ApplyVerticalExaggerationAsync(++_exaggerationRevision);
                 }
             }
         }
 
         public string VerticalExaggerationDisplay => $"{_verticalExaggeration:0.0}x";
+
+        private async Task ApplyVerticalExaggerationAsync(int revision)
+        {
+            await Task.Delay(120); // Avoid a WebView2 request for every slider tick.
+            if (revision != _exaggerationRevision) return;
+            if (!IsTerrainEnabled)
+            {
+                StatusMessage = $"Exaggeration {_verticalExaggeration:0.0}x selected; load a DEM to apply it.";
+                return;
+            }
+            var requested = _verticalExaggeration;
+            var ok = await _globeBridge.SetTerrainExaggerationAsync(requested);
+            if (revision == _exaggerationRevision)
+                StatusMessage = ok
+                    ? $"Terrain exaggeration applied: {requested:0.0}x (verify visible relief)."
+                    : "Terrain exaggeration was not acknowledged by the 3D engine.";
+        }
 
         private string _terrainProviderType = "WGS84 Smooth Ellipsoid (Offline)";
         public string TerrainProviderType
@@ -1318,7 +1337,19 @@ namespace ZEarth.App.ViewModels
 
             // Layer & Terrain Commands (Sprint 7)
             ToggleBordersCommand = new RelayCommand(() => IsBordersVisible = !IsBordersVisible);
-            ToggleGraticulesCommand = new RelayCommand(() => IsGraticulesVisible = !IsGraticulesVisible);
+            ToggleGraticulesCommand = AsyncCommand(async () =>
+            {
+                var target = !IsGraticulesVisible;
+                if (await _globeBridge.SetGraticulesVisibleAsync(target))
+                {
+                    IsGraticulesVisible = target;
+                    StatusMessage = target ? "Coordinate grid enabled." : "Coordinate grid hidden.";
+                }
+                else
+                {
+                    StatusMessage = "The 3D engine did not acknowledge the coordinate grid toggle.";
+                }
+            }, "Toggle coordinate grid");
             GridOptionsCommand = new RelayCommand(() => ExecuteShowOptions(true));
             ToggleTerrainCommand = AsyncCommand(ExecuteToggleTerrainAsync, "Toggle terrain");
             SelectBasemapCommand = new RelayCommand(p =>
@@ -3502,6 +3533,8 @@ namespace ZEarth.App.ViewModels
 
             SyncTerrainSettingsDisplay(updateEnabledState: false);
             UpdateTerrainStatusDisplay();
+            if (IsTerrainEnabled && !await _globeBridge.SetTerrainExaggerationAsync(_verticalExaggeration))
+                StatusMessage = "Terrain loaded, but vertical exaggeration was not acknowledged.";
         }
 
         private bool _terrainRequestInProgress;
