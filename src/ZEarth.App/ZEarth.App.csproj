@@ -28,6 +28,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2903.40" />
+    <PackageReference Include="MaxRev.Gdal.Core" Version="3.13.3.583" GeneratePathProperty="true" />
     <PackageReference Include="System.Drawing.Common" Version="10.0.13" />
   </ItemGroup>
 
@@ -36,6 +37,15 @@
     <Content Include="Assets\**\*">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+  </ItemGroup>
+
+  <!-- Ship the actual PROJ authority database with the portable app.
+       This is needed for the complete offline geographic/projected/vertical CRS catalog. -->
+  <ItemGroup Condition="'$(PkgMaxRev_Gdal_Core)' != ''">
+    <Content Include="$(PkgMaxRev_Gdal_Core)\**\proj.db"
+             Link="maxrev.gdal.core.libshared\proj.db"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest"/>
   </ItemGroup>
 
 </Project>

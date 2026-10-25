@@ -338,13 +338,23 @@ namespace ZEarth.Domain.Crs
                     candidates.Add(Path.Combine(folder, "proj.db"));
             }
             candidates.Add(Path.Combine(AppContext.BaseDirectory, "proj.db"));
+            candidates.Add(Path.Combine(AppContext.BaseDirectory, "maxrev.gdal.core.libshared", "proj.db"));
             candidates.Add(Path.Combine(AppContext.BaseDirectory, "share", "proj", "proj.db"));
             candidates.Add(Path.Combine(AppContext.BaseDirectory, "runtimes", "win-x64", "native", "share", "proj", "proj.db"));
             foreach (var file in candidates)
                 if (File.Exists(file)) return file;
             try
             {
-                return Directory.EnumerateFiles(AppContext.BaseDirectory, "proj.db", SearchOption.AllDirectories).FirstOrDefault();
+                var deployed = Directory.EnumerateFiles(AppContext.BaseDirectory, "proj.db", SearchOption.AllDirectories).FirstOrDefault();
+                if (deployed != null) return deployed;
+                // NuGet development/test fallback only; deployed EXEs must carry their own proj.db.
+                var nugetRoot = Environment.GetEnvironmentVariable("NUGET_PACKAGES");
+                if (string.IsNullOrWhiteSpace(nugetRoot))
+                    nugetRoot = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".nuget", "packages");
+                var corePackage = Path.Combine(nugetRoot, "maxrev.gdal.core");
+                return Directory.Exists(corePackage)
+                    ? Directory.EnumerateFiles(corePackage, "proj.db", SearchOption.AllDirectories).FirstOrDefault()
+                    : null;
             }
             catch (Exception ex)
             {
