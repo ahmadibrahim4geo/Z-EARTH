@@ -74,8 +74,8 @@ namespace ZEarth.App
 
             // Parse CLI flags for automated acceptance testing and screenshots (AC-026, Requirement 11)
             string? capturePath = null;
-            string themeArg = "dark";
-            string langArg = "en";
+            string? themeArg = null;
+            string? langArg = null;
             string modeArg = "3d";
             string terrainArg = "ellipsoid";
             double exaggerationArg = 1.0;
@@ -181,8 +181,15 @@ namespace ZEarth.App
                 }
 
                 // Apply initial Theme & Language
-                ThemeService.Instance.SetTheme(themeArg == "light" ? AppTheme.Light : AppTheme.Dark);
-                LocalizationService.Instance.SetLanguage(langArg);
+                var preferences = SettingsService.Instance.Settings;
+                // Explicit CLI values override saved preferences for this run only.
+                // First launch continues to default to English and neutral dark.
+                var initialTheme = themeArg ?? preferences.Theme;
+                var initialLanguage = langArg ?? preferences.Language ?? "en";
+                ThemeService.Instance.SetTheme(
+                    string.Equals(initialTheme, "light", StringComparison.OrdinalIgnoreCase)
+                        ? AppTheme.Light : AppTheme.Dark);
+                LocalizationService.Instance.SetLanguage(initialLanguage);
 
                 // Instantiate Main ViewModel and Window
                 var mainViewModel = new MainViewModel(projectService, globeBridge);

@@ -340,6 +340,10 @@ namespace ZEarth.App.Views
                         );
 
                         var appSettings = SettingsService.Instance.Settings;
+                        if (appSettings.ShowBorders &&
+                            !await ViewModel.GlobeBridge.SetBordersVisibleAsync(true))
+                            LoggerService.Instance.LogWarning("Saved political borders overlay was not acknowledged.");
+
                         await ViewModel.GlobeBridge.SetGraticulesConfigAsync(
                             appSettings.ShowGraticules,
                             appSettings.ShowGraticuleLabels,
@@ -374,8 +378,27 @@ namespace ZEarth.App.Views
                     LoggerService.Instance.LogError($"CesiumJS Web Error/Warning: {msg}");
                 };
 
+                // Prevent a navigated/embedded untrusted page from invoking native
+                // WPF commands through WebMessageReceived.
+                GlobeWebView.CoreWebView2.NavigationStarting += (_, args) =>
+                {
+                    if (WebViewTrustPolicy.IsTrustedGlobeDocument(args.Uri)) return;
+                    args.Cancel = true;
+                    LoggerService.Instance.LogWarning("Blocked untrusted globe navigation.");
+                };
+                GlobeWebView.CoreWebView2.NewWindowRequested += (_, args) =>
+                {
+                    args.Handled = true; // never launch popups from KML/remote content
+                    LoggerService.Instance.LogWarning("Blocked popup from embedded globe.");
+                };
+
                 GlobeWebView.CoreWebView2.WebMessageReceived += (s, args) =>
                 {
+                    if (!WebViewTrustPolicy.IsTrustedGlobeDocument(args.Source))
+                    {
+                        LoggerService.Instance.LogWarning("Rejected WebView2 message from untrusted source.");
+                        return;
+                    }
                     string msg;
                     try
                     {

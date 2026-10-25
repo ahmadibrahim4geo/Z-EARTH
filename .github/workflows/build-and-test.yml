@@ -29,7 +29,7 @@ jobs:
           node --check src/ZEarth.Globe/Assets/historical-timeline.js
           node --check src/ZEarth.Globe/Assets/graticule-labels.js
           node --check src/ZEarth.Globe/Assets/graticule-geometry.js
-          node --test tests/rectangle-geometry.test.cjs tests/measurement-hud-contract.test.cjs tests/historical-timeline.test.cjs tests/graticule-labels.test.cjs tests/graticule-geometry.test.cjs tests/terrain-grid-source-contract.test.cjs tests/branding-ui-contracts.test.cjs
+          node --test tests/rectangle-geometry.test.cjs tests/measurement-hud-contract.test.cjs tests/historical-timeline.test.cjs tests/graticule-labels.test.cjs tests/graticule-geometry.test.cjs tests/terrain-grid-source-contract.test.cjs tests/repo-command-contract.test.cjs tests/branding-ui-contracts.test.cjs
 
   windows-build-test:
     runs-on: windows-latest

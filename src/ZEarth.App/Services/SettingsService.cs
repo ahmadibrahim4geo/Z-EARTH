@@ -26,7 +26,8 @@ public class AppSettingsModel
     public double LongitudeIntervalDegrees { get; set; } = 0.0;
     public double LatitudeIntervalDegrees { get; set; } = 0.0;
     public bool ShowUtmZones { get; set; } = false;
-    public bool ShowBorders { get; set; } = true;
+    // Offline-first: enabling Esri hosted borders is an explicit user choice.
+    public bool ShowBorders { get; set; } = false;
 
     // Coordinate & Status Bar Readouts (Addendum 02)
     public bool ShowCenterReadout { get; set; } = true;
@@ -130,9 +131,10 @@ public sealed class SettingsService
     {
         try
         {
-            SyncFromDomain();
-            var json = JsonSerializer.Serialize(Settings, new JsonSerializerOptions { WriteIndented = true });
-            File.WriteAllText(_settingsPath, json);
+            // Settings is the authoritative edited model. Implicit domain synchronization used
+            // to overwrite freshly selected Options values with stale singleton state.
+            // Domain-origin changes must explicitly synchronize into the model at their source.
+            AppSettingsStore.Save(_settingsPath, Settings);
             LoggerService.Instance.LogInfo($"Saved user settings to {_settingsPath}");
         }
         catch (Exception ex)
@@ -177,5 +179,26 @@ public sealed class SettingsService
         Settings.SnapMidpoints = SnappingSettings.Instance.SnapToMidpoints;
         Settings.SnapEdges = SnappingSettings.Instance.SnapToEdges;
         Settings.SnapIntersections = SnappingSettings.Instance.SnapToIntersections;
+    }
+}
+
+/// <summary>
+/// Explicit, testable persistence boundary: only the supplied settings model
+/// is serialized, never unrelated singleton/domain state.
+/// </summary>
+public static class AppSettingsStore
+{
+    public static void Save(string path, AppSettingsModel settings)
+    {
+        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Settings path required", nameof(path));
+        ArgumentNullException.ThrowIfNull(settings);
+        var folder = Path.GetDirectoryName(Path.GetFullPath(path))
+                     ?? throw new IOException("No settings directory");
+        Directory.CreateDirectory(folder);
+        var json = JsonSerializer.Serialize(settings, new JsonSerializerOptions { WriteIndented = true });
+        var temp = path + ".tmp";
+        File.WriteAllText(temp, json);
+        // Same-directory replacement retains the last valid file if writing fails.
+        File.Move(temp, path, overwrite: true);
     }
 }

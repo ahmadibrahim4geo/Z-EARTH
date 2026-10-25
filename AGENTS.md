@@ -48,5 +48,8 @@ The last command alone writes the single `dist/Z EARTH-Preview/` directory only 
 ## Native terrain and coordinate-grid acceptance
 Before claiming fixes to DEM, vertical exaggeration, geographic grid, named parallels or UTM, follow [the detailed acceptance scenarios](docs/TERRAIN_GRID_ACCEPTANCE.md). `node --test`, GitHub Actions and WPF mock tests prove only T1/T2; verify numeric DEM tiles, visible mountain relief at 1x/3x, latitude/longitude labels and UTM overlays on Windows WebView2 with hardware GPU before declaring T3. Keep raw provider failure reasons and do not claim flat ellipsoid has elevation.
 
+## Cross-layer audit before feature sign-off
+Run `node --test tests/repo-command-contract.test.cjs`, `dotnet test`, and the native Windows checklists. Read [the source/command audit](docs/CODE_AUDIT_2026-10-25.md) for ownership, settings persistence, WebView2 trust boundaries and honest T0–T4 evidence. A green CI build is not proof of 3D globe UI behavior.
+
 ## Must-not-do
 Do not introduce hardcoded API keys or plaintext persistent tokens; do not relabel a provider as `Ready` without attempting a verified request. Do not launch paid or unlicensed APIs as default. Do not silently migrate user files, delete saved places, publish multiple Preview copies, or assert no errors without checking logs and real GIS outputs. Keep `.github/skills/zearth-*` and `.github/skills/cesiumjs-*` intact unless a specific correction is proven.

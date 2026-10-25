@@ -3689,37 +3689,70 @@
         }
         case 'layers.add': {
           const res = ImageryManager.addCustomLayer(data.payload?.layer || data.payload);
-          respondSuccess(res);
+          if (res?.success === false) respond('failed', res, res.error || 'Could not add imagery layer');
+          else respondSuccess(res);
           break;
         }
         case 'layers.addRasterOverlay': {
           const added = RasterOverlayManager.add(data.payload);
-          respondSuccess({ added, id: data.payload?.id });
+          if (!added) respond('failed', { added: false }, 'Raster overlay could not be added');
+          else respondSuccess({ added: true, id: data.payload?.id });
           break;
         }
         case 'layers.removeRasterOverlay': {
           const removed = RasterOverlayManager.remove(data.payload?.id);
-          respondSuccess({ removed, id: data.payload?.id });
+          if (!removed) respond('failed', { removed: false }, 'Raster overlay was not found');
+          else respondSuccess({ removed: true, id: data.payload?.id });
           break;
         }
         case 'layers.remove': {
           const ok = ImageryManager.removeLayer(data.payload?.id);
-          respondSuccess({ removed: ok, id: data.payload?.id });
+          if (!ok) respond('failed', { removed: false }, 'Layer was not found');
+          else respondSuccess({ removed: true, id: data.payload?.id });
           break;
         }
         case 'layers.setVisibility': {
           const ok = ImageryManager.setLayerVisibility(data.payload?.id, data.payload?.visible);
-          respondSuccess({ updated: ok, id: data.payload?.id, visible: data.payload?.visible });
+          if (!ok) respond('failed', { updated: false }, 'Cannot change visibility: layer was not found');
+          else respondSuccess({ updated: true, id: data.payload?.id, visible: data.payload?.visible });
           break;
         }
         case 'layers.setOpacity': {
           const ok = ImageryManager.setLayerOpacity(data.payload?.id, data.payload?.opacity);
-          respondSuccess({ updated: ok, id: data.payload?.id, opacity: data.payload?.opacity });
+          if (!ok) respond('failed', { updated: false }, 'Cannot change opacity: layer was not found');
+          else respondSuccess({ updated: true, id: data.payload?.id, opacity: data.payload?.opacity });
           break;
         }
         case 'layers.reorder': {
           const ok = ImageryManager.reorderLayer(data.payload?.id, data.payload?.direction);
-          respondSuccess({ reordered: ok, id: data.payload?.id });
+          if (!ok) respond('failed', { reordered: false }, 'Cannot reorder: layer was not found');
+          else respondSuccess({ reordered: true, id: data.payload?.id });
+          break;
+        }
+        case 'layers.setBorders': {
+          // Independent opt-in Esri reference overlay, not the hybrid satellite
+          // labels: hiding boundaries must never hide the selected base map.
+          const id = 'zearth-country-borders';
+          const show = data.payload?.visible === true;
+          let result = { success: true };
+          if (show) {
+            if (ImageryManager.overlayLayers.has(id)) {
+              result.success = ImageryManager.setLayerVisibility(id, true);
+            } else {
+              result = ImageryManager.addCustomLayer({
+                id,
+                name: 'Esri World Boundaries & Places',
+                type: 'RasterTile',
+                url: 'https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
+                attribution: 'Esri World Boundaries and Places — © Esri and data contributors',
+                maximumLevel: 19
+              });
+            }
+          } else {
+            ImageryManager.removeLayer(id);
+          }
+          if (result.success === false) respond('failed', null, result.error || 'Boundary overlay unavailable');
+          else respondSuccess({ bordersVisible: show, source: 'Esri World Boundaries and Places' });
           break;
         }
         case 'layers.setGraticules': {
