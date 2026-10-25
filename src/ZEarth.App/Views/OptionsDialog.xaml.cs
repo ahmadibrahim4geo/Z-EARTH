@@ -49,6 +49,7 @@ namespace ZEarth.App.Views
             SelectComboByTag(LanguageCombo, settings.Language);
             GraticulesCheck.IsChecked = settings.ShowGraticules;
             GraticuleLabelsCheck.IsChecked = settings.ShowGraticuleLabels;
+            SelectComboByTag(GridLabelFormatCombo, settings.GridLabelFormat);
             KeyParallelsCheck.IsChecked = settings.ShowKeyParallels;
             LongitudeLinesCheck.IsChecked = settings.ShowLongitudeLines;
             LatitudeLinesCheck.IsChecked = settings.ShowLatitudeLines;
@@ -115,6 +116,7 @@ namespace ZEarth.App.Views
             settings.Language = GetSelectedTag(LanguageCombo, "en");
             settings.ShowGraticules = GraticulesCheck.IsChecked == true;
             settings.ShowGraticuleLabels = GraticuleLabelsCheck.IsChecked == true;
+            settings.GridLabelFormat = GetSelectedTag(GridLabelFormatCombo, "DMS");
             settings.ShowKeyParallels = KeyParallelsCheck.IsChecked == true;
             settings.ShowLongitudeLines = LongitudeLinesCheck.IsChecked == true;
             settings.ShowLatitudeLines = LatitudeLinesCheck.IsChecked == true;
@@ -149,7 +151,8 @@ namespace ZEarth.App.Views
                     settings.ShowLongitudeLines,
                     settings.ShowLatitudeLines,
                     settings.LongitudeIntervalDegrees,
-                    settings.LatitudeIntervalDegrees);
+                    settings.LatitudeIntervalDegrees,
+                    settings.GridLabelFormat);
                 await _globeBridge.SetCreditsConfigAsync(
                     settings.CreditsDisplayMode,
                     settings.ShowOptionalProviderLogos);
