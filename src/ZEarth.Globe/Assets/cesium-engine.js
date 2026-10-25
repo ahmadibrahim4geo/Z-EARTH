@@ -1437,21 +1437,15 @@
 
     getRectanglePositions: function (edge) {
       if (!edge || !this.vertices.length) return [];
-      const first = Cesium.Cartographic.fromCartesian(this.vertices[0]);
-      const second = Cesium.Cartographic.fromCartesian(edge);
-      if (!first || !second) return [];
-      const w1 = Cesium.Math.toDegrees(first.longitude);
-      const w2 = Cesium.Math.toDegrees(second.longitude);
-      const s1 = Cesium.Math.toDegrees(first.latitude);
-      const s2 = Cesium.Math.toDegrees(second.latitude);
-      // First release: do not silently create a wrong polygon over the dateline.
-      if (Math.abs(w2 - w1) >= 180 || Math.abs(w2 - w1) < 1e-9 ||
-          Math.abs(s2 - s1) < 1e-9) return [];
-      const west = Math.min(w1, w2), east = Math.max(w1, w2);
-      const south = Math.min(s1, s2), north = Math.max(s1, s2);
-      return Cesium.Cartesian3.fromDegreesArray([
-        west, south, east, south, east, north, west, north
-      ]);
+      const start = Cesium.Cartographic.fromCartesian(this.vertices[0]);
+      const finish = Cesium.Cartographic.fromCartesian(edge);
+      if (!start || !finish) return [];
+      const lon1 = Cesium.Math.toDegrees(start.longitude);
+      const lon2 = Cesium.Math.toDegrees(finish.longitude);
+      const lat1 = Cesium.Math.toDegrees(start.latitude);
+      const lat2 = Cesium.Math.toDegrees(finish.latitude);
+      const degrees = globalThis.ZEarthGeometry?.rectangleCorners(lon1, lat1, lon2, lat2);
+      return degrees ? Cesium.Cartesian3.fromDegreesArray(degrees) : [];
     },
 
     start: function (type, styleOptions) {

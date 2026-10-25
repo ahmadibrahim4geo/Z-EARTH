@@ -43,7 +43,7 @@ New-Item -ItemType Directory -Force -Path $assetsTarget | Out-Null
 Copy-Item (Join-Path $assetsSource "*") -Destination $assetsTarget -Recurse -Force
 
 foreach ($required in @(
-    "Z EARTH.exe", "Assets/cesium-engine.js", "Assets/cesium/Cesium.js", "Assets/index.html"
+    "Z EARTH.exe", "Assets/cesium-engine.js", "Assets/rectangle-geometry.js", "Assets/cesium/Cesium.js", "Assets/index.html"
 )) {
     if (-not (Test-Path (Join-Path $staging $required))) {
         throw "Staging incomplete: $required is missing; Preview not replaced."

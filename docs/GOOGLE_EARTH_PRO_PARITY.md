@@ -37,7 +37,7 @@ The developer's reverse-engineering workspace `rea/` is **explicitly excluded** 
 
 **P2 / scientific 3D terrain:** GEBCO_2026 15-arc-second DEM land+seafloor, proper source vertical datum and NoData, quantized-mesh or validated compatible Cesium terrain, local serving/caching, single active terrain source, true profile sampling and chart docking. Avoid equating GEBCO WMS visualization with elevation data. GEBCO is free public-domain data *with disclaimer and requested citation*; imagery and hosted tile services have their own terms.
 
-**P3 / GIS drawing & measuring:** Draw rectangle/ellipse/circle/polygon/paths with stable geometry model; numbered vertices; snapping; undo/redo; UTM and arbitrary EPSG transforms; measured precision and export; robust latitude/poles/dateline rules.
+**P3 / GIS drawing & measuring:** Two-click angular rectangle drawing is now implemented with standalone Node math regression tests (rejects dateline spans pending split-polygon support); draw ellipse/circle/polygon/paths with stable geometry model; numbered vertices; snapping; undo/redo; UTM and arbitrary EPSG transforms; measured precision and export; robust latitude/poles/dateline rules.
 
 **P4 / presentation & release:** Fully bilingual UI, high-contrast neutral dark/light including title bar, meaningful basemap icons, refined three-mode compass, responsive pane layout; repeatable portable build and evidence-based Windows acceptance.
 
