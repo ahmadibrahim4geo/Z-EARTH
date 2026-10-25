@@ -36,6 +36,9 @@ This is a **project-local adapter**. Read it when modifying the Historical Image
 | World Gazetteer labels | `../../references/world-gazetteer-reference-layer.md`: standalone Reference Layers toggle, viewport/zoom priority, Arabic/English labels; never overwrite KML icons |
 | Tours / camera navigation | `zearth-camera-navigation` + Cesium viewer/time skills: WPF command → bridge acknowledgment → JS effect → persistent state |
 | Elevation profile | Real numeric DEM samples and correct Z datum + NoData; no fake profile heights or assumption that rendered imagery is a DEM |
+| Terrain + vertical exaggeration | `cesiumjs-terrain-environment` + `zearth-globe-bridge`: verify both DEM root and current viewport tile, distinguish ellipsoid fallback, apply an acknowledged multiplier only to loaded numeric terrain, visually compare terrain in native Windows 3D |
+| Geographic grid / major parallels | `gis-cartography-symbology` + `coordinate-reference-systems`: separate key lines, lat/lon intervals and labels, ground-clamped terrain and adaptive camera updates; expose true independent options |
+| UTM zone overlay | `coordinate-reference-systems` + `zearth-verification`: respect UTM latitude extent, exceptional Norway/Svalbard bounds and date line, label the visible zone near the camera instead of permanently at the Equator |
 | Overlays | Safe KML/KMZ raster bundle paths, georeferencing, alpha, zoom-aware loading and authorized tile provider |
 
 ## Engineering and evidence gates

@@ -65,3 +65,6 @@ The previous `HistoricalImageryDialog.ShowDialog()` was blocking. The ribbon now
 5. Never replace the single `Z EARTH-Preview` until the functional gates pass. Prevent lost Places and credentials in logs.
 
 **Scope note:** This document is a prioritized engineering acceptance specification. It does not imply that all P1–P4 features have been implemented or tested.
+
+## Terrain and geographic grid native acceptance
+See [TERRAIN_GRID_ACCEPTANCE.md](TERRAIN_GRID_ACCEPTANCE.md). Current JavaScript and WPF source supports DEM requests and UTM overlay logic, but a passing Node test or CI build is **not** native 3D confirmation. Terrain factor changes are meaningful only with real DEM data, and reference grid labels must be checked visually at multiple scales and viewpoints.

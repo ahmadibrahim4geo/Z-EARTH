@@ -857,6 +857,8 @@
         try {
           // Do not report Terrain as active until a real elevation tile has passed through
           // the host proxy and decoded successfully.
+          // Root tile is needed for mesh startup; viewport tile proves regional DEM data.
+          await this.loadTerrariumTile(0, 0, 0);
           const probe = await this.verifyViewportTerrainTile();
           const demProvider = new Cesium.CustomHeightmapTerrainProvider({
             width: this.gridSize,
