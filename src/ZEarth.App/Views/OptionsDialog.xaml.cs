@@ -12,11 +12,12 @@ namespace ZEarth.App.Views
     {
         private readonly GlobeBridge? _globeBridge;
 
-        public OptionsDialog(GlobeBridge? globeBridge = null)
+        public OptionsDialog(GlobeBridge? globeBridge = null, bool openGridTab = false)
         {
             InitializeComponent();
             _globeBridge = globeBridge;
             LoadSettings();
+            if (openGridTab) SettingsTabs.SelectedIndex = 4;
         }
 
         private void LoadSettings()
