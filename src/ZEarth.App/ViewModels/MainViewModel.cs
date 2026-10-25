@@ -453,6 +453,7 @@ namespace ZEarth.App.ViewModels
 
         private double _verticalExaggeration = 1.0;
         private int _exaggerationRevision;
+        private string _latestTerrainProbe = "No verified geographic DEM samples recorded.";
         public double VerticalExaggeration
         {
             get => _verticalExaggeration;
@@ -998,6 +999,31 @@ namespace ZEarth.App.ViewModels
                 // Never block the raising thread on the UI thread (RC-4).
                 RunOnUi(update);
             };
+            _globeBridge.TerrainChanged += (s, info) =>
+            {
+                var summary = "Provider activated; no numeric DEM probe reported by this source.";
+                try
+                {
+                    using var doc = JsonDocument.Parse(info);
+                    if (doc.RootElement.TryGetProperty("probe", out var probe) &&
+                        probe.TryGetProperty("level", out var level) &&
+                        probe.TryGetProperty("x", out var x) &&
+                        probe.TryGetProperty("y", out var y) &&
+                        probe.TryGetProperty("sampleCount", out var count) &&
+                        probe.TryGetProperty("minimumElevationM", out var minimum) &&
+                        probe.TryGetProperty("maximumElevationM", out var maximum))
+                    {
+                        summary = $"DEM z{level.GetInt32()}/{x.GetInt32()}/{y.GetInt32()}, " +
+                                  $"{count.GetInt32()} heights, range {minimum.GetDouble():0.0} to {maximum.GetDouble():0.0} m";
+                    }
+                }
+                catch (Exception ex) when (ex is JsonException or FormatException or InvalidOperationException)
+                {
+                    summary = "Terrain activated; diagnostic sample could not be parsed.";
+                }
+                _latestTerrainProbe = summary;
+                LoggerService.Instance.LogInfo("Terrain numerical verification: " + summary);
+            };
             _globeBridge.TerrainFallbackOccurred += (s, info) =>
             {
                 Application.Current?.Dispatcher?.Invoke(() =>
@@ -1015,6 +1041,7 @@ namespace ZEarth.App.ViewModels
                     }
                     catch (JsonException) { }
                     StatusMessage = $"Terrain OFF — {message}";
+                    _latestTerrainProbe = "No active numerical DEM: " + message;
                     LoggerService.Instance.LogWarning($"Terrain reverted to ellipsoid: {message}");
                 });
             };
@@ -3746,6 +3773,7 @@ namespace ZEarth.App.ViewModels
                            $"Current Camera: {CurrentCamera}\n" +
                            $"History Stack Depth: {_cameraHistory.Count} states\n" +
                            $"Project Path: {projectPath}\n" +
+                           $"Terrain diagnostic: {_latestTerrainProbe}\n" +
                            $"Places Count: {MyPlaces.Count} root items\n" +
                            $"Logs Count: {LoggerService.Instance.MemoryLogs.Count} entries\n" +
                            "REA Integration: optional external tooling (not configured)";
