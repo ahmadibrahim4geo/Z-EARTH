@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-"""Validate locally vendored GIS skills and Windows app file shapes, no extra deps."""
+"""Offline integrity audit of pinned GIS Agent Skills and Z EARTH's XAML; no network."""
+import hashlib
+import json
 import re
 import sys
 import xml.etree.ElementTree as ET
@@ -7,47 +9,128 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SKILLS = ROOT / ".github" / "skills"
-CORE = (
-    "gis-development", "gis-desktop-application-development",
-    "geospatial-web-mapping", "coordinate-reference-systems",
-    "geospatial-data-processing", "geospatial-api-integration",
-    "kml-kmz-engineering", "remote-sensing-pipelines",
-)
-errors = []
-for skill in CORE:
-    doc = SKILLS / skill / "SKILL.md"
-    if not doc.is_file():
-        errors.append("Missing core imported skill: " + str(doc.relative_to(ROOT)))
+SNAPSHOT = ROOT / "docs" / "GIS_SKILLS_SNAPSHOT.json"
+ADAPTER = SKILLS / "zearth-google-earth-pro-workflows" / "SKILL.md"
+PINNED_SKILL_COUNT = 19
+PINNED_REFERENCE_COUNT = 51
 
-for doc in SKILLS.glob("*/SKILL.md"):
-    text = doc.read_text(encoding="utf-8")
-    if not text.startswith("---\n"):
-        errors.append("Missing YAML frontmatter: " + str(doc.relative_to(ROOT)))
-    if doc.parent.name in CORE and "name: " + doc.parent.name not in text:
-        errors.append("Invalid skill name: " + str(doc.relative_to(ROOT)))
-    # Imported generic skill docs must resolve their direct relative reference links.
-    if doc.parent.name in CORE or doc.parent.name in {
-        "arcgis-toolbox-engineering", "qgis-plugin-development",
-        "global-mapper-development", "terrain-hydrology-lidar",
-        "spatial-databases", "geospatial-ai-agents",
-        "geospatial-data-catalogs", "geospatial-data-discovery",
-    }:
-        for link in re.findall(r"\]\(([^)]+)\)", text):
-            link = link.split("#", 1)[0]
-            if link.startswith("../") and not (doc.parent / link).resolve().is_file():
-                errors.append("{} broken local skill link: {}".format(doc.relative_to(ROOT), link))
 
-for doc in (ROOT / "src").rglob("*.xaml"):
-    try:
-        ET.parse(doc)
-    except ET.ParseError as exc:
-        errors.append("Invalid XML/XAML {}: {}".format(doc.relative_to(ROOT), exc))
+def git_blob_sha(path: Path) -> str:
+    raw = path.read_bytes()
+    head = ("blob " + str(len(raw)) + "\0").encode("ascii")
+    return hashlib.sha1(head + raw).hexdigest()
 
-for expected in ("AGENTS.md", "README.md", "README.ar.md", "docs/GIS_SKILLS_INTEGRATION.md"):
-    if not (ROOT / expected).is_file():
-        errors.append("Missing fresh-checkout guide: " + expected)
 
-if errors:
-    print("\n".join("ERROR: " + x for x in errors))
-    sys.exit(1)
-print("Skill and XML inspection passed; does NOT validate WPF runtime bindings or WebView2.")
+def links_in(text: str):
+    # Markdown local file links. Remote links and fragment-only anchors are not local files.
+    for link in re.findall(r"\]\(([^)]+)\)", text):
+        target = link.split("#", 1)[0].strip()
+        if not target or target.startswith(("#", "//")):
+            continue
+        if re.match(r"^[A-Za-z][A-Za-z0-9+.-]*:", target):
+            continue
+        # Paths with query strings are not supported for local skills.
+        yield target.replace("%20", " ")
+
+
+def main():
+    errors = []
+    if not SNAPSHOT.is_file():
+        errors.append("Missing pinned GIS snapshot manifest")
+        manifest = {}
+    else:
+        try:
+            manifest = json.loads(SNAPSHOT.read_text(encoding="utf-8"))
+        except (ValueError, OSError) as exc:
+            errors.append("Invalid snapshot manifest: " + str(exc))
+            manifest = {}
+
+    rows = manifest.get("files", [])
+    if manifest.get("skill_count") != PINNED_SKILL_COUNT:
+        errors.append("Expected 19 pinned upstream GIS skills")
+    if manifest.get("reference_count") != PINNED_REFERENCE_COUNT:
+        errors.append("Expected 51 pinned GIS reference/catalog files")
+    if len(rows) != PINNED_SKILL_COUNT + PINNED_REFERENCE_COUNT:
+        errors.append("Unexpected pinned snapshot inventory size")
+    if not re.fullmatch(r"[a-f0-9]{40}", manifest.get("source_commit", "")):
+        errors.append("Invalid upstream source commit in manifest")
+    if manifest.get("source_repository") != "ahmadibrahim4geo/GIS-Development-Skills":
+        errors.append("Unexpected skill snapshot origin")
+
+    seen = set()
+    pinned = []
+    for row in rows:
+        path_text = row.get("path", "") if isinstance(row, dict) else ""
+        digest = row.get("git_blob_sha", "") if isinstance(row, dict) else ""
+        rel = Path(path_text)
+        skill = bool(re.fullmatch(r"\.github/skills/[^/]+/SKILL\.md", rel.as_posix()))
+        ref = rel.as_posix().startswith(".github/references/")
+        if not (skill or ref) or path_text in seen:
+            errors.append("Invalid/duplicate snapshot entry: " + repr(path_text))
+            continue
+        seen.add(path_text)
+        full = (ROOT / rel).resolve()
+        if not full.is_relative_to(ROOT) or not full.is_file():
+            errors.append("Missing or unsafe pinned file: " + path_text)
+            continue
+        if not re.fullmatch(r"[a-f0-9]{40}", digest) or git_blob_sha(full) != digest:
+            errors.append("Pinned source checksum mismatch: " + path_text)
+        if skill:
+            pinned.append(full)
+
+    for path in pinned + [ADAPTER]:
+        if not path.is_file():
+            errors.append("Missing source or Z EARTH routing skill: " + str(path))
+            continue
+        text = path.read_text(encoding="utf-8")
+        if not text.startswith("---\n"):
+            errors.append("Missing YAML frontmatter: " + str(path.relative_to(ROOT)))
+        if not re.search(r"(?m)^name:\s*" + re.escape(path.parent.name) + r"\s*$", text):
+            errors.append("Wrong skill name: " + str(path.relative_to(ROOT)))
+        for link in links_in(text):
+            target = (path.parent / link).resolve()
+            if not target.is_relative_to(ROOT) or not target.is_file():
+                errors.append("Broken skill link: {} -> {}".format(path.relative_to(ROOT), link))
+
+    for rel in (
+        ".github/references/google-earth-pro-engineering.md",
+        ".github/references/historical-imagery-timeline.md",
+        ".github/references/google-kml-kmz-compatibility.md",
+        ".github/references/world-gazetteer-reference-layer.md",
+    ):
+        doc = ROOT / rel
+        if not doc.is_file():
+            errors.append("Missing essential Earth/KML/Gazetteer guidance: " + rel)
+            continue
+        for link in links_in(doc.read_text(encoding="utf-8")):
+            target = (doc.parent / link).resolve()
+            if not target.is_relative_to(ROOT) or not target.is_file():
+                errors.append("Broken Earth reference link: {} -> {}".format(rel, link))
+
+    for doc in (ROOT / "src").rglob("*.xaml"):
+        try:
+            ET.parse(doc)
+        except ET.ParseError as exc:
+            errors.append("Invalid XML/XAML {}: {}".format(doc.relative_to(ROOT), exc))
+
+    for expected in (
+        "AGENTS.md", "README.md", "README.ar.md",
+        "docs/GIS_SKILLS_INTEGRATION.md", "docs/HISTORICAL_IMAGERY_TIMELINE.md",
+    ):
+        if not (ROOT / expected).is_file():
+            errors.append("Missing fresh-checkout guide: " + expected)
+
+    agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8") if (ROOT / "AGENTS.md").is_file() else ""
+    if "zearth-google-earth-pro-workflows" not in agents or "GIS_SKILLS_SNAPSHOT.json" not in agents:
+        errors.append("AGENTS.md must route to pinned source and Z EARTH Earth adapter")
+    if errors:
+        print("\n".join("ERROR: " + item for item in errors))
+        return 1
+    print("PASS: {} pinned upstream GIS skills, {} references, Earth adapter and XAML checked.".format(
+        PINNED_SKILL_COUNT, PINNED_REFERENCE_COUNT))
+    print("WARNING: documentation integrity is NOT proof of native WPF/WebView2/Wayback runtime behavior.")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
