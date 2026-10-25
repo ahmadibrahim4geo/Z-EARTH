@@ -66,6 +66,9 @@ namespace ZEarth.Domain.Kml
                 ParseContainerElements(doc.Root, rootFolder);
             }
 
+            // Original Style/StyleMap XML remains preserved; apply only a
+            // display projection of the common KML symbol rules.
+            KmlStyleResolver.Apply(rootFolder);
             return rootFolder;
         }
 
