@@ -4,6 +4,7 @@ using System.Linq;
 using System.IO;
 using Microsoft.Data.Sqlite;
 using ZEarth.Domain.Gis;
+using OSGeo.OSR;
 
 namespace ZEarth.Domain.Crs
 {
@@ -324,7 +325,14 @@ namespace ZEarth.Domain.Crs
         // PROJ is shipped by the GDAL runtime in supported Windows builds. The
         // catalog is read offline and cached; if missing, the caller can visibly
         // identify the limited curated fallback rather than fabricating CRS entries.
-        private static readonly Lazy<IReadOnlyList<CrsDefinition>> ProjCatalog = new(LoadProjCatalog);
+        private static readonly Lazy<IReadOnlyList<CrsDefinition>> ProjCatalog = new(() =>
+        {
+            var sqliteRecords = LoadProjCatalog();
+            // GDAL already ships the authoritative PROJ API and may configure its
+            // database at a native path not visible below AppContext.BaseDirectory.
+            // Use its official CRS enumeration in that case.
+            return sqliteRecords.Count >= 1000 ? sqliteRecords : LoadGdalCrsCatalog();
+        });
         public int ProjCatalogCount => ProjCatalog.Value.Count;
 
         private static string? LocateProjDatabase()
@@ -451,6 +459,56 @@ namespace ZEarth.Domain.Crs
             {
                 System.Diagnostics.Debug.WriteLine("PROJ CRS catalog unavailable: " + ex.Message);
                 results.Clear(); // never pass off partial data as a full catalog
+            }
+            return results;
+        }
+
+        private static IReadOnlyList<CrsDefinition> LoadGdalCrsCatalog()
+        {
+            var results = new List<CrsDefinition>();
+            try
+            {
+                GdalConfiguration.EnsureInitialized();
+                if (!GdalConfiguration.IsAvailable) return results;
+                int count;
+                CRSInfoList catalog = Osr.GetCRSInfoListFromDatabase("EPSG", out count);
+                if (catalog == null) return results;
+
+                var seen = new HashSet<int>();
+                for (int i = 0; i < count; i++)
+                {
+                    CRSInfo info = catalog[i];
+                    if (info == null || !int.TryParse(info.code, out var code) || code <= 0 || !seen.Add(code))
+                        continue;
+                    var deprecated = info.deprecated.ToString() ?? "";
+                    if (deprecated == "1" || deprecated.Equals("true", StringComparison.OrdinalIgnoreCase)) continue;
+
+                    var kind = info.type.ToString() ?? "";
+                    var projected = kind.Contains("PROJECTED", StringComparison.OrdinalIgnoreCase);
+                    var vertical = kind.Contains("VERTICAL", StringComparison.OrdinalIgnoreCase);
+                    var geographic = kind.Contains("GEOGRAPHIC", StringComparison.OrdinalIgnoreCase);
+                    if (!projected && !vertical && !geographic) continue;
+
+                    var name = info.name ?? "EPSG:" + code;
+                    var area = info.area_name ?? "World";
+                    var prefix = vertical ? "Vertical Coordinate Systems" :
+                        projected ? "Projected Coordinate Systems" : "Geographic Coordinate Systems";
+                    var areaFolder = projected && name.Contains("UTM zone", StringComparison.OrdinalIgnoreCase)
+                        ? "World/UTM Zone Series" : AreaFolder(area);
+                    results.Add(new CrsDefinition(code, name, area, projected,
+                        geographic ? "degree" : "See EPSG definition", prefix + "/" + areaFolder)
+                    {
+                        IsVerticalOnly = vertical,
+                        Datum = "See EPSG definition",
+                        Ellipsoid = "See EPSG definition",
+                        ProjectionMethod = info.projection_method ?? ""
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("GDAL CRS enumeration unavailable: " + ex.Message);
+                results.Clear();
             }
             return results;
         }
