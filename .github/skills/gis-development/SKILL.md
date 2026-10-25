@@ -8,7 +8,9 @@ license: MIT
 
 **Free-first:** use [no-cost policy](../../references/free-first-policy.md). Disclose commercial host/API limits and offer verified free alternatives; never silently require payment.
 
-**Free examples:** [DEM slope](../../examples/terrain-slope/README.md) and [STAC selection](../../examples/stac-offline/README.md) run offline. [License evidence](../../references/upstream-license-audit.md) is not proof of native GIS compatibility.
+**Offline examples:** [DEM slope](../../examples/terrain-slope/README.md) and [STAC](../../examples/stac-offline/README.md). [License evidence](../../references/upstream-license-audit.md) is not native-run proof.
+
+**Intake:** [Plan and approve free-form requests](../prompt-intent-orchestrator/SKILL.md) before GIS routing.
 
 **Load selectively:** determine target, environment, data and risk; then use [decision tree](../../references/agent-decision-tree.md) and only needed specialists. Rendering does not substitute for spatial analysis.
 
@@ -49,4 +51,4 @@ license: MIT
 6. **Evidence:** complete [the acceptance report](../../templates/GIS_ACCEPTANCE_REPORT.md) and check it with [the evidence validator](../../scripts/validate_evidence.py). Record T0–T4 honestly; generic syntax checks or UI mockups are **not** native GIS execution.
 7. **References:** [projects](../../references/project-catalog.json), [APIs](../../references/free-geospatial-apis.json), [data](../../references/geospatial-data-repositories.json) are discovery leads only. Verify licenses, access and provenance before use.
 
-**Archived full guidance:** [original core](../../references/gis-development-full-guidance.md); consult [antipatterns](../../references/gis-antipatterns.md) and [examples](../../examples/README.md) only as needed.
+**More:** [full guide](../../references/gis-development-full-guidance.md) · [antipatterns](../../references/gis-antipatterns.md) · [examples](../../examples/README.md).
