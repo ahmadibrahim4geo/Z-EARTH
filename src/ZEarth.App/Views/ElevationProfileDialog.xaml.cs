@@ -36,24 +36,9 @@ namespace ZEarth.App.Views
             _samples.Clear();
             var list = rawPoints?.ToList() ?? new List<CoordinatePoint>();
 
+            // Do NOT fabricate a mock Cairo terrain profile: invalid path means no data.
             if (list.Count < 2)
-            {
-                // Generate a realistic synthetic terrain sample along Nile Valley to Cairo Plateau
-                double baseLon = 31.2357;
-                double baseLat = 30.0444;
-                double dist = 0.0;
-                for (int i = 0; i <= 60; i++)
-                {
-                    double t = i / 60.0;
-                    double lon = baseLon + (t * 0.15);
-                    double lat = baseLat + (t * 0.10);
-                    // Topographic profile with Mokattam hills & plateau rise
-                    double elev = 25.0 + (Math.Sin(t * Math.PI * 3.0) * 18.0) + (Math.Pow(t, 2) * 140.0) + (Math.Cos(t * 12.0) * 6.0);
-                    dist += (i == 0 ? 0.0 : 350.0 + (i * 15.0));
-                    _samples.Add(new ProfileSample(dist, Math.Max(0.0, elev), lon, lat));
-                }
                 return;
-            }
 
             // Real points: interpolate along segments
             double accumDist = 0.0;
@@ -67,19 +52,27 @@ namespace ZEarth.App.Views
                     accumDist += segDist;
                 }
 
-                double elev = pt.Altitude;
-                if (elev <= 0)
+                if (!double.IsFinite(pt.Altitude) ||
+                    !double.IsFinite(pt.Longitude) || !double.IsFinite(pt.Latitude) ||
+                    pt.Latitude < -90 || pt.Latitude > 90 || pt.Longitude < -180 || pt.Longitude > 180)
                 {
-                    // If no explicit altitude in coordinates, provide base terrain approximation
-                    elev = 50.0 + (Math.Abs(Math.Sin(pt.Latitude * 10.0)) * 40.0);
+                    _samples.Clear();
+                    return;
                 }
-                _samples.Add(new ProfileSample(accumDist, elev, pt.Longitude, pt.Latitude));
+                // Use only stored vertex altitude. 0 and negative Z may be valid!
+                // This is NOT sampled terrain; the chart explicitly says "Vertex Z".
+                _samples.Add(new ProfileSample(accumDist, pt.Altitude, pt.Longitude, pt.Latitude));
             }
         }
 
         private void ComputeStatisticsAndDraw()
         {
-            if (_samples.Count == 0) return;
+            if (_samples.Count < 2)
+            {
+                HoverInfoText.Text = "No valid elevation samples. Select a path with stored Z values. " +
+                    "The active DEM is not sampled by this viewer yet.";
+                return;
+            }
 
             double totalDist = _samples.Last().DistanceMeters;
             double minElev = _samples.Min(s => s.ElevationMeters);
@@ -311,6 +304,13 @@ namespace ZEarth.App.Views
 
         private void OnExportCsvClick(object sender, RoutedEventArgs e)
         {
+            if (_samples.Count < 2)
+            {
+                MessageBox.Show("No valid path vertex heights to export.", "Elevation Profile",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
             var dlg = new SaveFileDialog
             {
                 Filter = "CSV File (*.csv)|*.csv|All Files (*.*)|*.*",
@@ -321,7 +321,7 @@ namespace ZEarth.App.Views
             if (dlg.ShowDialog() == true)
             {
                 var sb = new StringBuilder();
-                sb.AppendLine("Distance_Meters,Elevation_Meters,Longitude,Latitude");
+                sb.AppendLine("Distance_Meters,Stored_Vertex_Z_Meters,Longitude,Latitude");
                 foreach (var s in _samples)
                 {
                     sb.AppendLine(string.Format(CultureInfo.InvariantCulture, "{0:F2},{1:F2},{2:F6},{3:F6}",

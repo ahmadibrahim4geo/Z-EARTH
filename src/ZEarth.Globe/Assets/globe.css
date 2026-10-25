@@ -962,7 +962,7 @@ body.light-theme .engine-badge {
   left: 50%;
   transform: translateX(-50%);
   background: rgba(30, 32, 35, 0.95);
-  border: 1px solid rgba(34, 168, 222, 0.7);
+  border: 1px solid rgba(160, 164, 170, 0.7);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
   border-radius: 8px;
   padding: 10px 18px;
@@ -976,6 +976,9 @@ body.light-theme .engine-badge {
 }
 
 .measure-header-row {
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -985,7 +988,7 @@ body.light-theme .engine-badge {
 .measure-title {
   font-size: 13px;
   font-weight: 700;
-  color: #22A8DE;
+  color: #f1f5f9;
 }
 
 .measure-unit-select {

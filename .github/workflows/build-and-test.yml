@@ -22,8 +22,11 @@ jobs:
           node-version: '22'
       - name: Verify bundled GIS skills and XAML markup
         run: python scripts/validate-agent-skills.py
-      - name: Parse Cesium command JavaScript
-        run: node --check src/ZEarth.Globe/Assets/cesium-engine.js
+      - name: Parse Cesium command JavaScript and test drawn rectangle geometry
+        run: |
+          node --check src/ZEarth.Globe/Assets/cesium-engine.js
+          node --check src/ZEarth.Globe/Assets/rectangle-geometry.js
+          node --test tests/rectangle-geometry.test.cjs tests/measurement-hud-contract.test.cjs
 
   windows-build-test:
     runs-on: windows-latest

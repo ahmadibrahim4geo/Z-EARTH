@@ -118,7 +118,7 @@
   const ImageryManager = {
     baseLayers: {},
     overlayLayers: new Map(),
-    activeBasemap: 'esri-hybrid',
+    activeBasemap: 'offline-vector',
     showHybridLabels: true,
     graticuleLayer: null,
     hybridLabelsLayer: null,
@@ -162,8 +162,12 @@
           maximumLevel: 2,
           credit: 'Natural Earth II (Tom Patterson & Public Domain)'
         }).then((neProvider) => {
+          // Replace a provisional local grid only after Natural Earth TMS is ready.
+          // Preserve the currently selected basemap; a late load cannot steal focus.
+          const provisional = this.baseLayers['offline-vector']?.layer;
           const neLayer = viewer.imageryLayers.addImageryProvider(neProvider);
           neLayer.show = (this.activeBasemap === 'offline-vector');
+          if (provisional) viewer.imageryLayers.remove(provisional, true);
           this.baseLayers['offline-vector'] = {
             id: 'offline-vector',
             name: 'Natural Earth II (Offline Cartographic)',
@@ -321,8 +325,9 @@
         attribution: 'Source: Esri, Maxar, Earthstar Geographics, CNES/Airbus DS, USDA, USGS, AeroGRID, IGN, and GIS User Community'
       };
 
-      // Default: activate Esri Hybrid
-      this.setBasemap('esri-hybrid');
+      // Free-first offline default: never initiate online Esri imagery requests
+      // until the desktop user explicitly opts into an online basemap.
+      this.setBasemap('offline-vector');
     },
 
     addFallbackGridLayer() {
@@ -366,7 +371,7 @@
     },
 
     setBasemap(id) {
-      if (!id) id = 'esri-hybrid';
+      if (!id) id = 'offline-vector';
       id = String(id).trim().toLowerCase();
       if (id === 'offline' || id === 'naturalearth') id = 'offline-vector';
       if (id === 'osm' || id === 'openstreetmap') id = 'osm-standard';
@@ -374,7 +379,7 @@
 
       if (!this.baseLayers[id]) {
         console.warn('[ImageryManager] Unknown basemap requested:', id);
-        id = ('esri-hybrid' in this.baseLayers) ? 'esri-hybrid' : 'offline-vector';
+        id = 'offline-vector';
       }
       this.activeBasemap = id;
 
@@ -1413,7 +1418,7 @@
 
   // 4.6. Interactive Drawing Engine with Snapping Integration (ZE-040, ZE-041, ZE-045)
   const DrawingManager = {
-    activeMode: null, // 'point' | 'path' | 'polygon'
+    activeMode: null, // 'point' | 'path' | 'polygon' | 'rectangle' | 'circle'
     vertices: [],
     tempPoints: [],
     previewEntity: null,
@@ -1428,6 +1433,19 @@
         pos = viewer.camera.pickEllipsoid(screenPos, viewer.scene.globe.ellipsoid);
       }
       return pos;
+    },
+
+    getRectanglePositions: function (edge) {
+      if (!edge || !this.vertices.length) return [];
+      const start = Cesium.Cartographic.fromCartesian(this.vertices[0]);
+      const finish = Cesium.Cartographic.fromCartesian(edge);
+      if (!start || !finish) return [];
+      const lon1 = Cesium.Math.toDegrees(start.longitude);
+      const lon2 = Cesium.Math.toDegrees(finish.longitude);
+      const lat1 = Cesium.Math.toDegrees(start.latitude);
+      const lat2 = Cesium.Math.toDegrees(finish.latitude);
+      const degrees = globalThis.ZEarthGeometry?.rectangleCorners(lon1, lat1, lon2, lat2);
+      return degrees ? Cesium.Cartesian3.fromDegreesArray(degrees) : [];
     },
 
     start: function (type, styleOptions) {
@@ -1517,6 +1535,12 @@
         });
         this.tempPoints.push(ptEnt);
 
+        // Two diagonal corners completely define a geographic rectangle.
+        if (this.activeMode === 'rectangle' && this.vertices.length === 2) {
+          this.finish();
+          return;
+        }
+
         if (this.vertices.length === 1) {
           if (this.activeMode === 'path') {
             this.previewEntity = viewer.entities.add({
@@ -1534,6 +1558,19 @@
                 outline: true,
                 outlineColor: Cesium.Color.fromCssColorString(this.style.color || '#22A8DE'),
                 outlineWidth: 2
+              }
+            });
+          } else if (this.activeMode === 'rectangle') {
+            this.previewEntity = viewer.entities.add({
+              polygon: {
+                hierarchy: new Cesium.CallbackProperty(() => {
+                  const corners = this.getRectanglePositions(currentMousePos);
+                  return new Cesium.PolygonHierarchy(corners);
+                }, false),
+                material: Cesium.Color.fromCssColorString(this.style.color || '#22A8DE').withAlpha(this.style.opacity || 0.4),
+                outline: true,
+                outlineColor: Cesium.Color.fromCssColorString(this.style.color || '#22A8DE'),
+                heightReference: Cesium.HeightReference.CLAMP_TO_GROUND
               }
             });
           } else if (this.activeMode === 'circle') {
@@ -1592,7 +1629,17 @@
         return;
       }
 
-      const coords = this.vertices.map((cart) => {
+      // Rectangle is persisted as an ordinary 4-corner polygon plus a shapeKind marker.
+      // A flat 2D bbox polygon cannot cross the antimeridian in this initial tool;
+      // reject rather than creating a scientifically incorrect spanning polygon.
+      const finalVertices = this.activeMode === 'rectangle'
+        ? this.getRectanglePositions(this.vertices[1]) : this.vertices;
+      if (finalVertices.length < 2) {
+        this.cancel();
+        return;
+      }
+
+      const coords = finalVertices.map((cart) => {
         const carto = Cesium.Cartographic.fromCartesian(cart);
         return {
           longitude: Cesium.Math.toDegrees(carto.longitude),
@@ -1614,7 +1661,8 @@
       } else {
         sendHostMessage({
           event: 'draw.completed',
-          geometryType: this.activeMode,
+          geometryType: this.activeMode === 'rectangle' ? 'polygon' : this.activeMode,
+          shapeKind: this.activeMode === 'rectangle' ? 'rectangle' : undefined,
           coordinates: coords,
           color: this.style.color
         });
@@ -1930,9 +1978,9 @@
         const pt = viewer.entities.add({
           position: cartesian,
           point: {
-            pixelSize: 8,
-            color: Cesium.Color.fromCssColorString('#38bdf8'),
-            outlineColor: Cesium.Color.WHITE,
+            pixelSize: 22,
+            color: Cesium.Color.fromCssColorString('#334155'),
+            outlineColor: Cesium.Color.fromCssColorString('#b8c5d1'),
             outlineWidth: 2,
             heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
             disableDepthTestDistance: 0
@@ -1944,7 +1992,9 @@
             outlineColor: Cesium.Color.BLACK,
             outlineWidth: 2,
             style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+            horizontalOrigin: Cesium.HorizontalOrigin.CENTER,
             verticalOrigin: Cesium.VerticalOrigin.CENTER,
+            pixelOffset: new Cesium.Cartesian2(0, 0),
             heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
             disableDepthTestDistance: 0
           }
@@ -2866,6 +2916,42 @@
   });
 
   // Bind HUD measurement action buttons
+  // Keep measurement results visible without covering the area the user is tracing.
+  // Header-only pointer dragging; ignore controls and clamp inside the WebView viewport.
+  (function enableMovableMeasurementHud() {
+    const hud = document.getElementById('measurement-hud');
+    const handle = document.getElementById('measure-drag-handle');
+    if (!hud || !handle) return;
+    let drag = null;
+    handle.addEventListener('pointerdown', event => {
+      if (event.button !== 0 || event.target.closest('select, button, input')) return;
+      const rect = hud.getBoundingClientRect();
+      hud.style.position = 'fixed';
+      hud.style.left = rect.left + 'px';
+      hud.style.top = rect.top + 'px';
+      hud.style.transform = 'none';
+      drag = { id: event.pointerId, x: event.clientX, y: event.clientY, left: rect.left, top: rect.top };
+      handle.setPointerCapture(event.pointerId);
+      handle.style.cursor = 'grabbing';
+      event.preventDefault();
+    });
+    handle.addEventListener('pointermove', event => {
+      if (!drag || event.pointerId !== drag.id) return;
+      const newLeft = drag.left + event.clientX - drag.x;
+      const newTop = drag.top + event.clientY - drag.y;
+      hud.style.left = Math.max(0, Math.min(window.innerWidth - hud.offsetWidth, newLeft)) + 'px';
+      hud.style.top = Math.max(0, Math.min(window.innerHeight - hud.offsetHeight, newTop)) + 'px';
+    });
+    const release = event => {
+      if (!drag || event.pointerId !== drag.id) return;
+      drag = null;
+      handle.style.cursor = 'grab';
+      if (handle.hasPointerCapture(event.pointerId)) handle.releasePointerCapture(event.pointerId);
+    };
+    handle.addEventListener('pointerup', release);
+    handle.addEventListener('pointercancel', release);
+  })();
+
   document.getElementById('btn-measure-finish')?.addEventListener('click', () => MeasurementManager.finish());
   document.getElementById('btn-measure-clear')?.addEventListener('click', () => MeasurementManager.clear());
 

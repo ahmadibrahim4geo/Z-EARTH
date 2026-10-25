@@ -229,7 +229,7 @@
 
     <!-- Active Measurement Floating HUD (ZE-046, ZE-047, U-01) -->
     <div id="measurement-hud" class="measurement-hud">
-      <div class="measure-header-row">
+      <div class="measure-header-row" id="measure-drag-handle" role="group" aria-label="Drag this header to move the measurement panel">
         <div class="measure-title" id="measure-title">📏 Geodesic Distance Measurement</div>
         <select id="measure-unit-select" class="measure-unit-select" title="Select display unit">
           <option value="AutoMetric">Auto Metric (m / km)</option>
@@ -255,6 +255,7 @@
 
   <!-- CesiumJS Runtime & Viewport Engine -->
   <script src="cesium/Cesium.js"></script>
-  <script src="cesium-engine.js"></script>
+  <script src="rectangle-geometry.js"></script>
+<script src="cesium-engine.js"></script>
 </body>
 </html>
