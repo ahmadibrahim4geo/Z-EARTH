@@ -156,7 +156,7 @@ public sealed class KmlExportRoundTripRegressionTests
             var second = new PlaceItem("Second", PlaceItemType.Folder);
             second.KmzResourcesBase64["files/icon.png"] = Convert.ToBase64String(new byte[] { 2 });
             conflict.AddChild(second);
-            Assert.ThrowsExactly<InvalidDataException>(() => KmzService.CreatePackage(output, conflict));
+            Assert.ThrowsException<InvalidDataException>(() => KmzService.CreatePackage(output, conflict));
             CollectionAssert.AreEqual(before, File.ReadAllBytes(output));
         }
         finally { Directory.Delete(folder, true); }
