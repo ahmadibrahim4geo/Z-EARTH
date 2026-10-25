@@ -19,6 +19,13 @@ Read `../../references/ahmad-ibrahim-gis-case-studies.md` and the real code in:
 - [GeologicalCrossSectionToolbox](https://github.com/ahmadibrahim4geo/GeologicalCrossSectionToolbox): `GeologicalCrossSectionToolbox.pyt`, `geo_cross_section_engine.py`, `Data_Test/`.
 - For CRS accuracy, load `../coordinate-reference-systems/SKILL.md`; for free imagery/climate/DEM and the current 39-service API catalog read `../geospatial-data-discovery/SKILL.md` and `../geospatial-api-integration/SKILL.md`.
 
+## Official Esri examples, loaded selectively
+
+- [Esri/arcpy](https://github.com/Esri/arcpy) publishes release-specific Python package distributions and debugger guidance. Use [the offline environment checker](../../references/esri-python-environment-compatibility.md), without automatically installing or upgrading packages.
+- [ArcGIS Pro SDK snippets](https://github.com/Esri/arcgis-pro-sdk-snippets) are C# samples for Editing, Map Exploration, Layouts, Geodatabase and QueuedTask; they are not Python toolboxes or a standalone runtime.
+- [Developer Support](https://github.com/Esri/developer-support) provides platform-specific proof-of-concept solutions; verify example age and dependencies.
+- [Large network analysis tools](https://github.com/Esri/large-network-analysis-tools) demonstrate chunking/parallel OD analysis; [CAD/BIM scripts](https://github.com/Esri/cad-bim-scripts) include Civil 3D workflows; [elevation GP](https://github.com/Esri/elevation-gp-python) demonstrates viewshed/profile publishing. Record host/extension/credit requirements before adoption.
+
 ## Engineering procedure
 
 1. **Establish versions precisely.** ArcMap 10.x and Pro 2.x/3.x have different Python runtimes and map APIs. Confirm Python executable and ArcPy version in each installation; do not infer ArcMap support from successful Python 3 source checks.
