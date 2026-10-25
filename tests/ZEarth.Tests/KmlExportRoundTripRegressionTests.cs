@@ -7,6 +7,7 @@ using System.Xml.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using ZEarth.Domain;
 using ZEarth.Domain.Kml;
+using ZEarth.Domain.Persistence;
 
 namespace ZEarth.Tests;
 
@@ -104,6 +105,39 @@ public sealed class KmlExportRoundTripRegressionTests
             Assert.IsTrue(text.Contains("#original"));
         }
         finally { Directory.Delete(folder, true); }
+    }
+
+    [TestMethod]
+    public void ZearthAuthoritativeSqliteSaveOpenPreservesImportedAssetsAndKmlTimes()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "zearth-sqlite-kmz-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dir);
+        try
+        {
+            var project = ProjectDocument.CreateDefault();
+            var imported = new PlaceItem("Imported KMZ", PlaceItemType.Folder);
+            var timePoint = new PlaceItem("Historic view", PlaceItemType.Placemark, 30.0444, 31.2357, 42)
+            {
+                TimeSpanBegin = "2020-01-01",
+                TimeSpanEnd = "2021-01-01",
+                IsProtected = false
+            };
+            imported.AddChild(timePoint);
+            imported.KmzResourcesBase64["files/logo.png"] =
+                Convert.ToBase64String(new byte[] { 7, 19, 25, 38 });
+            project.MyPlaces.Add(imported);
+            var database = Path.Combine(dir, "project.db");
+            SqliteProjectStorage.SaveToDatabase(project, database);
+            var loaded = SqliteProjectStorage.LoadFromDatabase(database);
+            var reopened = loaded.MyPlaces.Single(x => x.Name == "Imported KMZ");
+            CollectionAssert.AreEqual(new byte[] { 7, 19, 25, 38 },
+                Convert.FromBase64String(reopened.KmzResourcesBase64["files/logo.png"]));
+            Assert.AreEqual("2020-01-01", reopened.Children.Single().TimeSpanBegin);
+            Assert.AreEqual("2021-01-01", reopened.Children.Single().TimeSpanEnd);
+            Assert.IsTrue(loaded.MyPlaces.Any(x => x.Name == "Temporary Places" && x.IsProtected),
+                "Protected system folders stay protected after Save As / Open");
+        }
+        finally { Directory.Delete(dir, true); }
     }
 
     [TestMethod]
