@@ -34,6 +34,10 @@ Use when the deliverable is a web GIS map, browser-based spatial tool or mapping
 
 See the [Global Mapper / Blue Marble reference](../../references/blue-marble-global-mapper.md) for forked Cesium 3D Tiles Tools and an older Cesium Terrain Builder. They are independent utilities, not the proprietary Global Mapper renderer. Check terrain tiling scheme, NoData, dataset licensing, 3D Tiles metadata/transform and server support before using in CesiumJS or MapLibre.
 
+## Earth timeline and Google Earth Pro behavior
+
+For browser or embedded-Cesium globe UIs, consult [Google Earth Pro patterns](../../references/google-earth-pro-engineering.md) and [Historical Imagery Timeline](../../references/historical-imagery-timeline.md). Keep imagery timeline controls docked/nonblocking; query scene availability per AOI; display actual acquisition/mosaic dates and provider licensing; cancel stale requests and never blank the globe on missing imagery. Compare mode shares camera/bounds, not two independently drifting map viewpoints. This is a design reference only, not a claim of live implementation.
+
 ## Earth View: globe-to-modal architecture
 
 Review [Earth View](../../references/earth-view-architecture.md) for typed base/overlay imagery provider registries, WMS 1.3.0 EPSG:4326 BBOX axis order, temporal images, camera controls and regional zoom/view-state restoration. Avoid copying code without an upstream license; do not infer displayed date is the satellite acquisition date or assume optional AI controls are visible.

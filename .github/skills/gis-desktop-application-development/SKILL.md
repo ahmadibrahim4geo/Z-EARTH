@@ -27,6 +27,25 @@ Read [Earth View architecture](../../references/earth-view-architecture.md) for 
 - Scientific data and API access: `../geospatial-data-discovery/SKILL.md`
 - Real MIRSAD Desktop development experience: `../../references/ahmad-ibrahim-gis-case-studies.md`
 - GIS backend and I/O: `../../references/geospatial-foundations.md`
+- Imported KML/KMZ exact styles, asset bundles, ExtendedData and hierarchy: [KML/KMZ Engineering](../kml-kmz-engineering/SKILL.md) and [Google interoperability contract](../../references/google-kml-kmz-compatibility.md). In Earth/Explorer-style desktop apps, keep imported user styles and Temporary/My Places separate; geometry-only conversion is not faithful rendering.
+
+## Google Earth Pro patterns and historical imagery (reference only)
+
+When implementing a globe explorer inspired by Google Earth Pro (such as ZEarth), load [Google Earth Pro engineering patterns](../../references/google-earth-pro-engineering.md) and, for dated satellite imagery, the [Historical Imagery Timeline contract](../../references/historical-imagery-timeline.md). These are independent implementation specifications derived from historical blog observations plus current Google/KML guidance, not reusable Google Earth source or permission to embed Google imagery.
+
+- Keep time navigation in a small nonblocking dock/overlay, not a full-map modal; retain Cesium camera, layers, terrain and user map.
+- Show **actual acquired or mosaicked scene dates**, footprints and provider credits; next/previous only visit available scenes, with explicit missing/offline/error states.
+- Preserve separate Temporary Places and My Places trees, multi-select/move/undo, NetworkLink/Region/LOD lazy loading and imported KML/KMZ style fidelity.
+- Sample elevation profiles only from declared DEMs (including vertical datum) and synchronize chart crosshair with map. For tours, preserve camera interpolation/stop and source gx:Tour nodes even where playback is unavailable.
+- Do not claim a WPF/GlobeBridge/CesiumJS implementation exists until T3 GUI integration and T4 packaged Windows tests, including a timeline-open/globe-visible test.
+
+## Gazetteer and reference place-name layers
+
+A Google-Earth-style desktop product should offer **Reference Layers > World Gazetteer** as an optional scale-aware place-name overlay **independent of the Search Bar**. Implement the [World Gazetteer label/search contract](../../references/world-gazetteer-reference-layer.md) using local GeoNames data by default, with language-specific Arabic/English names, priority/decluttering, viewport/3D-horizon culling, and persistent user toggle. Never make a remote request on every camera tick; do not overwrite imported KML/KMZ icon styling or save transient labels to My Places. Prototype: [offline viewport labels](../../examples/gazetteer/README.md). Runtime WPF/Cesium integration must be separately verified.
+
+## Esri samples: reference, not a hidden standalone engine
+
+[Esri .NET mapping samples](https://github.com/Esri/arcgis-maps-sdk-dotnet-samples) and [Pro SDK snippets](https://github.com/Esri/arcgis-pro-sdk-snippets) can inform UI patterns. First decide whether the host is ArcGIS Pro, separately licensed ArcGIS Maps SDK, or an independent WPF/Cesium app. Pro SDK add-ins cannot be transplanted into standalone Desktop executables. Keep optional Esri REST/services adapters isolated with explicit rights; see [license matrix](../../references/esri-open-source-integration.md).
 
 ## Implementation workflow
 
