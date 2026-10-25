@@ -12,3 +12,6 @@ description: Use this skill when implementing the sidebar, context menus, native
 
 ## Output
 Report changes, exact tests/results, potential data loss, security, licensing, remaining limitations, and the next backlog task.
+
+## Explorer acceptance — no decorative controls
+Verify `ClearSearchCommand` really empties search query/results/selection and prevents in-flight geocoder data from repopulating. Confirm Search/My Places `GridSplitter` and uncapped `TreeView` work in the real WPF window at multiple DPIs, sidebar docking/collapse, long Arabic names and both themes. Toolbar `WrapPanel` must keep Export Selected, Export All, Delete discoverable even when narrow. Run `ExplorerUiContractTests` but require native T3 screenshots and mouse-drag observations before claiming layout done. One-shot device location needs consent, correct WGS84 axis order and actual Windows permission testing. See [acceptance matrix](../../../docs/KML_EXPLORER_ACCEPTANCE_2026-10-25.md).
