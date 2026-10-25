@@ -185,7 +185,7 @@ namespace ZEarth.App
                 // Explicit CLI values override saved preferences for this run only.
                 // First launch continues to default to English and neutral dark.
                 var initialTheme = themeArg ?? preferences.Theme;
-                var initialLanguage = langArg ?? preferences.Language;
+                var initialLanguage = langArg ?? preferences.Language ?? "en";
                 ThemeService.Instance.SetTheme(
                     string.Equals(initialTheme, "light", StringComparison.OrdinalIgnoreCase)
                         ? AppTheme.Light : AppTheme.Dark);

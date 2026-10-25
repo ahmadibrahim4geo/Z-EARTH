@@ -51,3 +51,16 @@ test('option-save applies updated values to domain before persistence', () => {
   assert.doesNotMatch(saveMethod, /SyncFromDomain\(/);
   assert.match(vm, /ApplyGlobeThemeFromOptionsAsync/);
 });
+
+test('all failing mutations return actual failed bridge responses', () => {
+  for (const action of ['layers.add', 'layers.setVisibility', 'layers.setOpacity', 'layers.reorder', 'layers.setBorders']) {
+    assert.match(js, new RegExp("case '" + action.replace('.', '\\.') + "':"));
+  }
+  assert.match(js, /if \(!ok\) respond\('failed'/);
+  assert.match(js, /if \(res\?\.success === false\) respond\('failed'/);
+});
+
+test('saved scenes await globe mode and basemap acknowledgements', () => {
+  assert.match(vm, /if \(!await _globeBridge\.SetSceneModeAsync\(sm\)\)/);
+  assert.match(vm, /if \(!await _globeBridge\.SetBasemapAsync\(bmapId\)\)/);
+});

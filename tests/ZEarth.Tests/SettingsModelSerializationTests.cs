@@ -8,6 +8,40 @@ namespace ZEarth.Tests;
 public sealed class SettingsModelSerializationTests
 {
     [TestMethod]
+    public void AtomicSettingsStorePersistsTheSelectedModelToAnIsolatedFile()
+    {
+        var folder = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "zearth-settings-" + System.Guid.NewGuid().ToString("N"));
+        var path = System.IO.Path.Combine(folder, "settings.json");
+        try
+        {
+            var selected = new AppSettingsModel
+            {
+                SnappingEnabled = false,
+                SnapGroundToleranceMeters = 22,
+                SnapVertices = false,
+                DistanceUnit = "Miles",
+                Theme = "Light",
+                Language = "ar",
+                CesiumIonToken = "never-write-this-secret"
+            };
+            AppSettingsStore.Save(path, selected);
+            var loaded = JsonSerializer.Deserialize<AppSettingsModel>(System.IO.File.ReadAllText(path))!;
+            Assert.IsFalse(loaded.SnappingEnabled);
+            Assert.IsFalse(loaded.SnapVertices);
+            Assert.AreEqual(22.0, loaded.SnapGroundToleranceMeters);
+            Assert.AreEqual("Miles", loaded.DistanceUnit);
+            Assert.AreEqual("Light", loaded.Theme);
+            Assert.AreEqual("ar", loaded.Language);
+            Assert.IsFalse(System.IO.File.ReadAllText(path).Contains("never-write-this-secret"));
+            Assert.IsFalse(System.IO.File.Exists(path + ".tmp"));
+        }
+        finally
+        {
+            if (System.IO.Directory.Exists(folder)) System.IO.Directory.Delete(folder, recursive: true);
+        }
+    }
+
+    [TestMethod]
     public void UserOptionsRoundTripPreservesSnappingUnitsAndAppearanceWithoutTokens()
     {
         var changed = new AppSettingsModel
