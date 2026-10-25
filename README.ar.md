@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/branding/zearth-repo-header.webp" alt="Z EARTH Desktop GIS — official repository banner with blue Z globe emblem and topographic background" width="720" />
+</p>
+
 # Z EARTH — برنامج GIS مكتبي وكرة أرضية ثلاثية الأبعاد
 
 مشروع لنظام **Windows** باستخدام **.NET 10 وWPF وCesiumJS داخل WebView2**، مع GDAL/PROJ وSQLite ودعم KML/KMZ.

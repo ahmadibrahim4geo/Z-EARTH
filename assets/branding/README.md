@@ -9,3 +9,7 @@ These repository files must remain **byte-identical to the corresponding EXE bui
 `zearth_icon.svg` and `zearth_logo.svg` are **legacy editable vector art** and have **not** been certified as visually identical to the EXE icon. Do not use them for the application's icon or new marketing material until an approved vector master matches the binary exactly. A repository unit test checks that the official ICO and PNG copies never diverge from the executable-source files.
 
 The application assembly name, Windows taskbar icon and branding remain Z EARTH. Rebuild a new preview after icon changes, and test Explorer/taskbar appearance at multiple DPI sizes on Windows before publishing a signed release.
+
+## GitHub README header (2026-10-25)
+
+`zearth-repo-header.webp` is an optimized repository presentation banner based on the user-approved Z EARTH Desktop GIS blue Z/orbital wordmark with pale globe and cartographic contour-line background. It is the **first visible element** of both `README.md` and `README.ar.md`. It does **not** replace the Windows executable icon or the canonical ICO in `src/ZEarth.App/Assets`.

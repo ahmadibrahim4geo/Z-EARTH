@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/branding/zearth-repo-header.webp" alt="Z EARTH Desktop GIS — official repository banner with blue Z globe emblem and topographic background" width="720" />
+</p>
+
 # Z EARTH — Desktop GIS & 3D Globe
 
 Open-source-oriented **Windows desktop GIS development project** using **.NET 10 WPF / MVVM**, **CesiumJS hosted in WebView2**, **GDAL/PROJ**, **SQLite**, KML/KMZ and geospatial data visualization.
