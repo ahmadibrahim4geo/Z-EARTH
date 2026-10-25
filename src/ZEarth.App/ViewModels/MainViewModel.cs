@@ -41,6 +41,29 @@ namespace ZEarth.App.ViewModels
         public string Name { get; init; } = string.Empty;
         public string ToolTip { get; init; } = string.Empty;
         public bool IsDefault { get; init; }
+
+        // Distinguish imagery themes at a glance instead of displaying the same globe
+        // symbol for every provider. These are icons, not an assertion of source availability.
+        public string Glyph => Id switch
+        {
+            "offline-vector" => "🗺",
+            "osm-standard" => "🛣",
+            "osm-humanitarian" => "🏥",
+            "osm-cycling" => "🚲",
+            "opentopo" => "⛰",
+            "carto-dark" => "🌙",
+            "carto-light" => "☀",
+            "carto-voyager" => "🧭",
+            "esri-imagery" => "🛰",
+            "esri-hybrid" => "🌐",
+            "esri-streets" => "🚗",
+            "esri-topo" => "🏔",
+            "esri-gray" => "▦",
+            "esri-physical" => "🌍",
+            "esri-shaded-relief" => "⛰",
+            "esri-ocean" => "🌊",
+            _ => "🗺"
+        };
     }
 
     public sealed class BasemapRibbonGroup

@@ -843,7 +843,7 @@
                                                                     CommandParameter="{Binding Id}" ToolTip="{Binding ToolTip}">
                                                                 <StackPanel HorizontalAlignment="Center">
                                                                     <Grid Width="25" Height="25">
-                                                                        <Path Data="{StaticResource Icon.FullGlobe}" Style="{StaticResource RibbonLargeIconStyle}" Fill="#38bdf8"/>
+                                                                        <TextBlock Text="{Binding Glyph}" FontSize="19" FontFamily="Segoe UI Emoji, Segoe UI Symbol" HorizontalAlignment="Center" VerticalAlignment="Center" ToolTip="{Binding ToolTip}"/>
                                                                         <Border Background="#15803d" CornerRadius="7" Width="15" Height="15"
                                                                                 HorizontalAlignment="Right" VerticalAlignment="Bottom"
                                                                                 Visibility="{Binding IsDefault, Converter={StaticResource BoolToVisibilityConverter}}">
