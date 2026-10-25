@@ -380,6 +380,25 @@ namespace ZEarth.App.Views
 
                 // Prevent a navigated/embedded untrusted page from invoking native
                 // WPF commands through WebMessageReceived.
+                GlobeWebView.CoreWebView2.PermissionRequested += (_, args) =>
+                {
+                    if (args.PermissionKind != CoreWebView2PermissionKind.Geolocation) return;
+                    args.SavesInProfile = false; // consent is per request, not a permanent grant
+                    if (!WebViewTrustPolicy.IsTrustedGlobeDocument(args.Uri))
+                    {
+                        args.State = CoreWebView2PermissionState.Deny;
+                        return;
+                    }
+                    var response = MessageBox.Show(
+                        "Z EARTH requests your device location only for the Find My Location command. " +
+                        "Location may be inaccurate or unavailable on this computer. Allow one lookup?",
+                        "Device Location — Explicit Permission",
+                        MessageBoxButton.YesNo, MessageBoxImage.Question);
+                    args.State = response == MessageBoxResult.Yes
+                        ? CoreWebView2PermissionState.Allow
+                        : CoreWebView2PermissionState.Deny;
+                };
+
                 GlobeWebView.CoreWebView2.NavigationStarting += (_, args) =>
                 {
                     if (WebViewTrustPolicy.IsTrustedGlobeDocument(args.Uri)) return;
