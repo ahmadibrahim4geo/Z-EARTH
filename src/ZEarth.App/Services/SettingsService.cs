@@ -19,6 +19,7 @@ public class AppSettingsModel
     public string? CustomTerrainUrl { get; set; } = null;
     public bool ShowGraticules { get; set; } = false;
     public bool ShowGraticuleLabels { get; set; } = true;
+    public string GridLabelFormat { get; set; } = "DMS";
     public bool ShowKeyParallels { get; set; } = true;
     public bool ShowLongitudeLines { get; set; } = true;
     public bool ShowLatitudeLines { get; set; } = true;
