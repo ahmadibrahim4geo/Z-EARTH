@@ -1111,7 +1111,7 @@
           name: p.name,
           polygon: {
             hierarchy: new Cesium.PolygonHierarchy(outerPositions, holes),
-            material: colorVal.withAlpha(0.4),
+            material: colorVal.withAlpha(Number.isFinite(Number(p.fillOpacity)) ? Math.max(0, Math.min(1, Number(p.fillOpacity))) : 0.4),
             outline: true,
             outlineColor: colorVal,
             outlineWidth: Number(p.outlineWidth || 2),
@@ -1165,7 +1165,10 @@
         const lat = p.lat !== undefined ? p.lat : (p.coordinates && p.coordinates[0] ? p.coordinates[0].lat : 0);
         const alt = p.alt || 0;
         const symbolShape = String(p.symbolShape || 'Circle');
-        const useCesiumPoint = symbolShape.toLowerCase() === 'circle';
+        const iconImage = typeof p.iconDataUri === 'string' &&
+          /^data:image\/(png|jpeg|webp|gif);base64,[a-zA-Z0-9+/=]+$/.test(p.iconDataUri) &&
+          p.iconDataUri.length < 1400100 ? p.iconDataUri : null;
+        const useCesiumPoint = !iconImage && symbolShape.toLowerCase() === 'circle';
 
         ent = viewer.entities.add({
           id: p.id,
@@ -1182,7 +1185,7 @@
             distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 25000000)
           },
           billboard: useCesiumPoint ? undefined : {
-            image: createFeatureSymbolCanvas(symbolShape, colorVal),
+            image: iconImage || createFeatureSymbolCanvas(symbolShape, colorVal),
             width: 30,
             height: 30,
             verticalOrigin: symbolShape.toLowerCase() === 'pin' ? Cesium.VerticalOrigin.BOTTOM : Cesium.VerticalOrigin.CENTER,
