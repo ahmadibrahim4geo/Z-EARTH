@@ -21,7 +21,9 @@ dotnet test tests/ZEarth.Tests/ZEarth.Tests.csproj -c Release --no-build
 
 ## استخدام مهارات GIS Development Skills
 
-أضفنا **16 مهارة GIS مثبتة النسخة** داخل `.github/skills/` جنبًا إلى جنب مع مهارات CesiumJS وZ EARTH الموجودة بالفعل. يقرأ الـAgent [AGENTS.md](AGENTS.md) أولًا، ثم مهارة `gis-development` الأساسية، ثم مهارات التخصص الضرورية حسب المشكلة.
+أضفنا **19 مهارة GIS مثبتة النسخة** و**51 ملفًا مرجعيًا** داخل `.github/skills/` جنبًا إلى جنب مع مهارات CesiumJS وZ EARTH الموجودة بالفعل. يقرأ الـAgent [AGENTS.md](AGENTS.md) أولًا، ثم مهارة `gis-development` الأساسية، ثم مهارات التخصص الضرورية حسب المشكلة.
+
+تم تثبيت إصدار المصدر برقم Commit محدد وتسجيل بصمات الملفات في [سجل المزامنة](docs/GIS_SKILLS_SNAPSHOT.json)، ويمكن التأكد منها بالأمر `python scripts/validate-agent-skills.py`. وأضفنا [مهارة مخصصة لوظائف Google Earth Pro](.github/skills/zearth-google-earth-pro-workflows/SKILL.md)، مرتبطة بـ[الصور التاريخية](.github/references/historical-imagery-timeline.md)، و[KML/KMZ](.github/references/google-kml-kmz-compatibility.md)، و[World Gazetteer](.github/references/world-gazetteer-reference-layer.md)، إلى جانب مهارة الأمان. **دي تعليمات للـAgent اللي بيطوّر البرنامج، ومش معناها إن التطبيق المثبت بيقرأ SKILL.md أثناء تشغيله**.
 
 الهدف إن الـAgent يحدد السبب، ويصلح الكود، ويضيف اختبارًا، وبعدها يتحقق من التشغيل الحقيقي دون الادعاء بنجاح لم يختبره. [شرح الربط والمصادر](docs/GIS_SKILLS_INTEGRATION.md) و[قائمة الاختبار العملي](docs/FRESH_CLONE_VALIDATION.md).
 
