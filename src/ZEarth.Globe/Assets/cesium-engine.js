@@ -3689,37 +3689,44 @@
         }
         case 'layers.add': {
           const res = ImageryManager.addCustomLayer(data.payload?.layer || data.payload);
-          respondSuccess(res);
+          if (res?.success === false) respond('failed', res, res.error || 'Could not add imagery layer');
+          else respondSuccess(res);
           break;
         }
         case 'layers.addRasterOverlay': {
           const added = RasterOverlayManager.add(data.payload);
-          respondSuccess({ added, id: data.payload?.id });
+          if (!added) respond('failed', { added: false }, 'Raster overlay could not be added');
+          else respondSuccess({ added: true, id: data.payload?.id });
           break;
         }
         case 'layers.removeRasterOverlay': {
           const removed = RasterOverlayManager.remove(data.payload?.id);
-          respondSuccess({ removed, id: data.payload?.id });
+          if (!removed) respond('failed', { removed: false }, 'Raster overlay was not found');
+          else respondSuccess({ removed: true, id: data.payload?.id });
           break;
         }
         case 'layers.remove': {
           const ok = ImageryManager.removeLayer(data.payload?.id);
-          respondSuccess({ removed: ok, id: data.payload?.id });
+          if (!ok) respond('failed', { removed: false }, 'Layer was not found');
+          else respondSuccess({ removed: true, id: data.payload?.id });
           break;
         }
         case 'layers.setVisibility': {
           const ok = ImageryManager.setLayerVisibility(data.payload?.id, data.payload?.visible);
-          respondSuccess({ updated: ok, id: data.payload?.id, visible: data.payload?.visible });
+          if (!ok) respond('failed', { updated: false }, 'Cannot change visibility: layer was not found');
+          else respondSuccess({ updated: true, id: data.payload?.id, visible: data.payload?.visible });
           break;
         }
         case 'layers.setOpacity': {
           const ok = ImageryManager.setLayerOpacity(data.payload?.id, data.payload?.opacity);
-          respondSuccess({ updated: ok, id: data.payload?.id, opacity: data.payload?.opacity });
+          if (!ok) respond('failed', { updated: false }, 'Cannot change opacity: layer was not found');
+          else respondSuccess({ updated: true, id: data.payload?.id, opacity: data.payload?.opacity });
           break;
         }
         case 'layers.reorder': {
           const ok = ImageryManager.reorderLayer(data.payload?.id, data.payload?.direction);
-          respondSuccess({ reordered: ok, id: data.payload?.id });
+          if (!ok) respond('failed', { reordered: false }, 'Cannot reorder: layer was not found');
+          else respondSuccess({ reordered: true, id: data.payload?.id });
           break;
         }
         case 'layers.setBorders': {
