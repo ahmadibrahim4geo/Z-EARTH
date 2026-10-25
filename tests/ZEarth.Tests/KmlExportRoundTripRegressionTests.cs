@@ -174,6 +174,21 @@ public sealed class KmlExportRoundTripRegressionTests
     }
 
     [TestMethod]
+    public void ExportPreservesSurveyPrecisionAndSubmeterElevation()
+    {
+        const double latitude = 29.9812345678912;
+        const double longitude = 31.1234567891234;
+        const double altitude = 123.987654321;
+        var original = new PlaceItem("Survey point", PlaceItemType.Placemark, latitude, longitude, altitude);
+        var kml = KmlSerializer.SerializeToString(original);
+        var reopened = KmlParser.ParseDocument(XDocument.Parse(kml)).Children.Single();
+        Assert.AreEqual(longitude, reopened.Longitude!.Value, 0.00000000000001);
+        Assert.AreEqual(latitude, reopened.Latitude!.Value, 0.00000000000001);
+        Assert.AreEqual(altitude, reopened.Altitude!.Value, 0.00000000001);
+        Assert.IsFalse(kml.Contains("31.123457,"), "Coordinates must not be rounded to 6 decimals");
+    }
+
+    [TestMethod]
     public void ExportNestedSelectedPointCarriesAncestorStyleMapAndIconBytes()
     {
         const string kml = "<kml xmlns=\"http://www.opengis.net/kml/2.2\"><Document>" +
