@@ -433,7 +433,7 @@ namespace ZEarth.Tests
         public void ThemeService_UsesComponentResourceUris()
         {
             var source = File.ReadAllText(RepoFile("src", "ZEarth.App", "Services", "ThemeService.cs"));
-            Assert.IsTrue(source.Contains("/ZEarth;component/Themes/DarkTheme.xaml"), "Theme URIs must resolve to this assembly (RC-6)");
+            Assert.IsTrue(source.Contains("/Z EARTH;component/Themes/DarkTheme.xaml"), "Theme URIs must use the actual WPF assembly name (RC-6)");
             Assert.IsFalse(source.Contains("MergedDictionaries.Clear()"), "Theme switching must not clear all merged resources (RC-6)");
         }
     }
