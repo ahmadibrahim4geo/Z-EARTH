@@ -166,7 +166,8 @@ namespace ZEarth.Domain.Kml
             // Preserve unparsed elements (LookAt, Camera, Style, gx elements, custom XML)
             var knownNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
             {
-                "name", "description", "visibility", "styleUrl", "TimeSpan", "TimeStamp",
+                // TimeStamp is not modeled separately: preserve it as raw XML.
+                "name", "description", "visibility", "styleUrl", "TimeSpan",
                 "ExtendedData", "Point", "LineString", "Polygon", "MultiGeometry"
             };
 
