@@ -5,8 +5,8 @@
         Width="460" SizeToContent="Height"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
-        Background="{StaticResource Brush.Window.Background}"
-        Foreground="{StaticResource Brush.Text.Primary}"
+        Background="{DynamicResource Brush.Window.Background}"
+        Foreground="{DynamicResource Brush.Text.Primary}"
         FontFamily="Segoe UI">
 
     <Grid Margin="18">
@@ -22,7 +22,7 @@
         <StackPanel Grid.Row="0" Margin="0,0,0,10">
             <TextBlock Text="Coordinate Grid (Geographic Graticule)" FontWeight="Bold" FontSize="14" Margin="0,0,0,2"/>
             <TextBlock Text="Control how the latitude/longitude grid is drawn on the globe — including the named key lines (Equator, Tropics, Polar Circles, Prime Meridian, Dateline), the graticule spacing per axis, and global UTM zone boundaries."
-                       FontSize="11" TextWrapping="Wrap" Foreground="{StaticResource Brush.Text.Secondary}"/>
+                       FontSize="11" TextWrapping="Wrap" Foreground="{DynamicResource Brush.Text.Secondary}"/>
         </StackPanel>
 
         <StackPanel Grid.Row="1" Margin="0,4">
@@ -34,7 +34,7 @@
 
         <UniformGrid Grid.Row="2" Columns="2" Margin="0,10,0,4">
             <StackPanel Margin="0,0,6,0">
-                <TextBlock Text="Latitude step (parallels):" FontSize="11" Foreground="{StaticResource Brush.Text.Secondary}" Margin="0,0,0,3"/>
+                <TextBlock Text="Latitude step (parallels):" FontSize="11" Foreground="{DynamicResource Brush.Text.Secondary}" Margin="0,0,0,3"/>
                 <ComboBox x:Name="LatSpacingCombo" Height="24" FontSize="11">
                     <ComboBoxItem Content="Every 1°" Tag="1"/>
                     <ComboBoxItem Content="Every 2°" Tag="2"/>
@@ -48,7 +48,7 @@
                 </ComboBox>
             </StackPanel>
             <StackPanel Margin="6,0,0,0">
-                <TextBlock Text="Longitude step (meridians):" FontSize="11" Foreground="{StaticResource Brush.Text.Secondary}" Margin="0,0,0,3"/>
+                <TextBlock Text="Longitude step (meridians):" FontSize="11" Foreground="{DynamicResource Brush.Text.Secondary}" Margin="0,0,0,3"/>
                 <ComboBox x:Name="LonSpacingCombo" Height="24" FontSize="11">
                     <ComboBoxItem Content="Every 1°" Tag="1"/>
                     <ComboBoxItem Content="Every 2°" Tag="2"/>
@@ -63,18 +63,18 @@
             </StackPanel>
         </UniformGrid>
 
-        <Border Grid.Row="3" Background="{StaticResource Brush.Control.Background}" CornerRadius="4" Padding="8,5" Margin="0,8">
+        <Border Grid.Row="3" Background="{DynamicResource Brush.Control.Background}" CornerRadius="4" Padding="8,5" Margin="0,8">
             <TextBlock Text="Tip: the live UTM zone of the map center is always shown in the bottom-left coordinate readout."
-                       FontSize="10.5" Foreground="{StaticResource Brush.Text.Secondary}"/>
+                       FontSize="10.5" Foreground="{DynamicResource Brush.Text.Secondary}"/>
         </Border>
 
         <DockPanel Grid.Row="5" Margin="0,10,0,0" LastChildFill="False">
             <Button DockPanel.Dock="Right" Content="OK" Width="84" Height="28" Click="OnOkClick" IsDefault="True"
-                    Background="{StaticResource Brush.Control.Background}" Foreground="{StaticResource Brush.Text.Primary}"
-                    BorderBrush="{StaticResource Brush.Control.Border}" BorderThickness="1"/>
+                    Background="{DynamicResource Brush.Control.Background}" Foreground="{DynamicResource Brush.Text.Primary}"
+                    BorderBrush="{DynamicResource Brush.Control.Border}" BorderThickness="1"/>
             <Button DockPanel.Dock="Right" Content="Cancel" Width="84" Height="28" Margin="0,0,8,0" IsCancel="True"
-                    Background="{StaticResource Brush.Control.Background}" Foreground="{StaticResource Brush.Text.Primary}"
-                    BorderBrush="{StaticResource Brush.Control.Border}" BorderThickness="1"/>
+                    Background="{DynamicResource Brush.Control.Background}" Foreground="{DynamicResource Brush.Text.Primary}"
+                    BorderBrush="{DynamicResource Brush.Control.Border}" BorderThickness="1"/>
         </DockPanel>
     </Grid>
 </Window>

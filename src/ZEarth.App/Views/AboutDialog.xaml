@@ -5,8 +5,8 @@
         Height="500" Width="560"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
-        Background="{StaticResource Brush.Window.Background}"
-        Foreground="{StaticResource Brush.Text.Primary}"
+        Background="{DynamicResource Brush.Window.Background}"
+        Foreground="{DynamicResource Brush.Text.Primary}"
         FontFamily="Segoe UI">
 
     <Grid Margin="24">
@@ -17,48 +17,48 @@
         </Grid.RowDefinitions>
 
         <!-- Approved Header Branding -->
-        <Border Grid.Row="0" Background="{StaticResource Brush.Ribbon.Background}" CornerRadius="8" Padding="14" Margin="0,0,0,16"
-                BorderBrush="{StaticResource Brush.Ribbon.Border}" BorderThickness="1">
+        <Border Grid.Row="0" Background="{DynamicResource Brush.Ribbon.Background}" CornerRadius="8" Padding="14" Margin="0,0,0,16"
+                BorderBrush="{DynamicResource Brush.Ribbon.Border}" BorderThickness="1">
             <StackPanel HorizontalAlignment="Center">
                 <Image Source="/Assets/zearth_approved_logo_dark_theme.png" Height="80"
                        RenderOptions.BitmapScalingMode="HighQuality" Margin="0,0,0,6"/>
-                <TextBlock Text="Independent Open-Source 3D Globe &amp; Desktop GIS" FontSize="12" Foreground="{StaticResource Brush.Text.Secondary}" HorizontalAlignment="Center"/>
+                <TextBlock Text="Independent Open-Source 3D Globe &amp; Desktop GIS" FontSize="12" Foreground="{DynamicResource Brush.Text.Secondary}" HorizontalAlignment="Center"/>
             </StackPanel>
         </Border>
 
         <!-- Details -->
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
             <StackPanel Margin="4">
-                <TextBlock Text="Developer Information" FontWeight="Bold" FontSize="13" Foreground="{StaticResource Brush.Accent}" Margin="0,0,0,6"/>
-                <TextBlock Margin="0,0,0,12" LineHeight="20" Foreground="{StaticResource Brush.Text.Secondary}">
-                    <Run Text="Lead Architect &amp; Developer:" FontWeight="SemiBold"/> <Run Text="Ahmad Ibrahim" Foreground="{StaticResource Brush.Text.Primary}" FontWeight="Bold"/><LineBreak/>
-                    <Run Text="Product Version:" FontWeight="SemiBold"/> <Run Text="1.0.0 (Release — Sprints 0–9 Complete)" Foreground="{StaticResource Brush.Text.Primary}"/><LineBreak/>
+                <TextBlock Text="Developer Information" FontWeight="Bold" FontSize="13" Foreground="{DynamicResource Brush.Accent}" Margin="0,0,0,6"/>
+                <TextBlock Margin="0,0,0,12" LineHeight="20" Foreground="{DynamicResource Brush.Text.Secondary}">
+                    <Run Text="Lead Architect &amp; Developer:" FontWeight="SemiBold"/> <Run Text="Ahmad Ibrahim" Foreground="{DynamicResource Brush.Text.Primary}" FontWeight="Bold"/><LineBreak/>
+                    <Run Text="Product Version:" FontWeight="SemiBold"/> <Run Text="1.0.0 (Release — Sprints 0–9 Complete)" Foreground="{DynamicResource Brush.Text.Primary}"/><LineBreak/>
                     <Run Text="Runtime Target:" FontWeight="SemiBold"/> <Run Text="Microsoft .NET 10.0 x64 / Windows Desktop"/><LineBreak/>
                     <Run Text="Geographic Engine:" FontWeight="SemiBold"/> <Run Text="CesiumJS 1.146.0 / Chromium WebView2 Bridge"/><LineBreak/>
-                    <Run Text="License:" FontWeight="SemiBold"/> <Run Text="Open Source (GPLv3 / Independent)" Foreground="{StaticResource Brush.Text.Primary}"/>
+                    <Run Text="License:" FontWeight="SemiBold"/> <Run Text="Open Source (GPLv3 / Independent)" Foreground="{DynamicResource Brush.Text.Primary}"/>
                 </TextBlock>
 
-                <TextBlock Text="Architectural Foundation" FontWeight="Bold" FontSize="13" Foreground="{StaticResource Brush.Accent}" Margin="0,0,0,6"/>
-                <TextBlock Margin="0,0,0,12" LineHeight="20" TextWrapping="Wrap" Foreground="{StaticResource Brush.Text.Secondary}">
+                <TextBlock Text="Architectural Foundation" FontWeight="Bold" FontSize="13" Foreground="{DynamicResource Brush.Accent}" Margin="0,0,0,6"/>
+                <TextBlock Margin="0,0,0,12" LineHeight="20" TextWrapping="Wrap" Foreground="{DynamicResource Brush.Text.Secondary}">
                     Z EARTH Desktop is an independent desktop GIS application designed with clean architectural boundaries:
                     WPF MVVM native shell, Microsoft Edge WebView2, CesiumJS/TypeScript geographic viewport bridge,
                     SQLite project persistence, and isolated GDAL/PROJ coordinate adapters.
                     Fully operational offline without external paid API keys.
                 </TextBlock>
 
-                <TextBlock Text="Third-Party Open-Source Licenses" FontWeight="Bold" FontSize="13" Foreground="{StaticResource Brush.Accent}" Margin="0,0,0,6"/>
-                <Border Background="{StaticResource Brush.Control.Background}" CornerRadius="4" Padding="10" Margin="0,0,0,12">
+                <TextBlock Text="Third-Party Open-Source Licenses" FontWeight="Bold" FontSize="13" Foreground="{DynamicResource Brush.Accent}" Margin="0,0,0,6"/>
+                <Border Background="{DynamicResource Brush.Control.Background}" CornerRadius="4" Padding="10" Margin="0,0,0,12">
                     <StackPanel>
-                        <TextBlock Text="• CesiumJS 1.146.0 — Apache License 2.0" FontSize="11" Foreground="{StaticResource Brush.Text.Primary}" Margin="0,1"/>
-                        <TextBlock Text="• OpenStreetMap Cartography — Open Database License (ODbL)" FontSize="11" Foreground="{StaticResource Brush.Text.Primary}" Margin="0,1"/>
-                        <TextBlock Text="• Natural Earth Vector Data — Public Domain" FontSize="11" Foreground="{StaticResource Brush.Text.Primary}" Margin="0,1"/>
-                        <TextBlock Text="• SQLite — Public Domain" FontSize="11" Foreground="{StaticResource Brush.Text.Primary}" Margin="0,1"/>
-                        <TextBlock Text="• Microsoft.Web.WebView2 — Microsoft Software License" FontSize="11" Foreground="{StaticResource Brush.Text.Primary}" Margin="0,1"/>
+                        <TextBlock Text="• CesiumJS 1.146.0 — Apache License 2.0" FontSize="11" Foreground="{DynamicResource Brush.Text.Primary}" Margin="0,1"/>
+                        <TextBlock Text="• OpenStreetMap Cartography — Open Database License (ODbL)" FontSize="11" Foreground="{DynamicResource Brush.Text.Primary}" Margin="0,1"/>
+                        <TextBlock Text="• Natural Earth Vector Data — Public Domain" FontSize="11" Foreground="{DynamicResource Brush.Text.Primary}" Margin="0,1"/>
+                        <TextBlock Text="• SQLite — Public Domain" FontSize="11" Foreground="{DynamicResource Brush.Text.Primary}" Margin="0,1"/>
+                        <TextBlock Text="• Microsoft.Web.WebView2 — Microsoft Software License" FontSize="11" Foreground="{DynamicResource Brush.Text.Primary}" Margin="0,1"/>
                     </StackPanel>
                 </Border>
 
-                <TextBlock Text="Legal &amp; Clean Room Notice" FontWeight="Bold" FontSize="13" Foreground="{StaticResource Brush.Accent}" Margin="0,0,0,6"/>
-                <TextBlock Margin="0,0,0,8" LineHeight="18" TextWrapping="Wrap" Foreground="{StaticResource Brush.Text.Muted}" FontSize="11">
+                <TextBlock Text="Legal &amp; Clean Room Notice" FontWeight="Bold" FontSize="13" Foreground="{DynamicResource Brush.Accent}" Margin="0,0,0,6"/>
+                <TextBlock Margin="0,0,0,8" LineHeight="18" TextWrapping="Wrap" Foreground="{DynamicResource Brush.Text.Muted}" FontSize="11">
                     Z EARTH Desktop does not copy, redistribute, or depend on proprietary code, private protocols, or assets from Google Earth or ArcGIS. All UI controls, vector graphics, and projection routines are original and legally compliant.
                 </TextBlock>
             </StackPanel>
@@ -66,7 +66,7 @@
 
         <!-- Close Button -->
         <Button Grid.Row="2" Content="Close" Width="100" Height="32" HorizontalAlignment="Right"
-                Background="{StaticResource Brush.Accent}" Foreground="#ffffff" FontWeight="SemiBold"
+                Background="{DynamicResource Brush.Accent}" Foreground="#ffffff" FontWeight="SemiBold"
                 BorderThickness="0" Click="Close_Click" Cursor="Hand" Margin="0,12,0,0">
             <Button.Resources>
                 <Style TargetType="Border">

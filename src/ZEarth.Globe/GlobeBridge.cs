@@ -729,8 +729,8 @@ namespace ZEarth.Globe
         public Task<bool> ReorderLayerAsync(string id, string direction) => SendRequestAsync("layers.reorder", new { id, direction });
         public Task<bool> SetGraticulesVisibleAsync(bool visible) => SendRequestAsync("layers.setGraticules", new { visible });
         public Task<bool> SetGraticulesConfigAsync(bool visible, bool showLabels = true, bool showKeyParallels = true, bool showUtmZones = false,
-            bool showLongitudeLines = true, bool showLatitudeLines = true, double longitudeIntervalDegrees = 0.0, double latitudeIntervalDegrees = 0.0) =>
-            SendRequestAsync("layers.setGraticulesConfig", new { visible, showLabels, showKeyParallels, showUtmZones, showLongitudeLines, showLatitudeLines, longitudeIntervalDegrees, latitudeIntervalDegrees });
+            bool showLongitudeLines = true, bool showLatitudeLines = true, double longitudeIntervalDegrees = 0.0, double latitudeIntervalDegrees = 0.0, string gridLabelFormat = "DMS") =>
+            SendRequestAsync("layers.setGraticulesConfig", new { visible, showLabels, showKeyParallels, showUtmZones, showLongitudeLines, showLatitudeLines, longitudeIntervalDegrees, latitudeIntervalDegrees, gridLabelFormat });
         public Task<bool> SetCreditsConfigAsync(string mode, bool showOptionalLogos) =>
             SendRequestAsync("credits.setConfig", new { mode, showOptionalLogos });
         public Task<bool> SetZoomSensitivityAsync(double factor) =>
@@ -757,14 +757,14 @@ namespace ZEarth.Globe
         public Task<bool> SetCompassModeAsync(string mode) =>
             SendRequestAsync("compass.setMode", new { mode });
 
-        public Task<bool> SetSunlightAsync(bool enabled, double timeHours = 12.0) =>
-            SendRequestAsync("environment.setSunlight", new { enabled, timeHours });
+        public Task<bool> SetSunlightAsync(bool enabled, double timeHours = 12.0, string? dateUtc = null) =>
+            SendRequestAsync("environment.setSunlight", new { enabled, timeHours, dateUtc });
 
         public Task<bool> SetAtmosphereAsync(bool enabled) =>
             SendRequestAsync("environment.setAtmosphere", new { enabled });
 
-        public Task<bool> SetTimeOfDayAsync(double timeHours) =>
-            SendRequestAsync("environment.setTimeOfDay", new { timeHours });
+        public Task<bool> SetTimeOfDayAsync(double timeHours, string? dateUtc = null) =>
+            SendRequestAsync("environment.setTimeOfDay", new { timeHours, dateUtc });
 
         public Task<bool> SetMapCrsAsync(int epsgCode, string name, bool isProjected, string unit) =>
             SendRequestAsync("crs.setMapCrs", new { epsg = epsgCode, name, isProjected, unit });

@@ -44,6 +44,22 @@ namespace ZEarth.App.ViewModels
 
         // Distinguish imagery themes at a glance instead of displaying the same globe
         // symbol for every provider. These are icons, not an assertion of source availability.
+        // Distinct color families make monochrome Segoe UI symbols readable at a glance.
+        public string GlyphBackground => Id switch
+        {
+            "offline-vector" => "#266A64",
+            "osm-standard" or "osm-humanitarian" or "osm-cycling" => "#285A75",
+            "opentopo" or "esri-topo" or "esri-physical" or "esri-shaded-relief" => "#56783F",
+            "carto-dark" => "#383854",
+            "carto-light" => "#8B6836",
+            "carto-voyager" => "#8B4C62",
+            "esri-imagery" or "esri-hybrid" => "#2D5278",
+            "esri-streets" => "#7B543A",
+            "esri-gray" => "#596572",
+            "esri-ocean" => "#126F81",
+            _ => "#526079"
+        };
+
         public string Glyph => Id switch
         {
             "offline-vector" => "🗺",
@@ -233,10 +249,17 @@ namespace ZEarth.App.ViewModels
             {
                 if (SetProperty(ref _isGraticulesVisible, value))
                 {
+                    OnPropertyChanged(nameof(GridToggleBrush));
+                    SettingsService.Instance.Settings.ShowGraticules = value;
+                    SettingsService.Instance.Save();
                     _ = _globeBridge.SetGraticulesVisibleAsync(value);
                 }
             }
         }
+
+        public Brush GridToggleBrush => IsGraticulesVisible
+            ? new SolidColorBrush(Color.FromRgb(74, 222, 128))
+            : (Application.Current?.TryFindResource("Brush.Text.Secondary") as Brush ?? Brushes.Gray);
 
         public bool IsRoadsVisible
         {
@@ -374,7 +397,24 @@ namespace ZEarth.App.ViewModels
             ? new SolidColorBrush(Color.FromRgb(56, 189, 248)) // #38bdf8 Atmospheric Sky
             : (Application.Current?.TryFindResource("Brush.Text.Secondary") as Brush ?? Brushes.Gray);
 
-        private double _timeOfDayHours = 12.0;
+        // UTC is unambiguous; Cesium's sun/terminator is geographic and varies by the
+        // map location. Never invent a country's civil time zone from longitude.
+        private DateTime? _sunlightDateUtc = DateTime.UtcNow.Date;
+        public DateTime? SunlightDateUtc
+        {
+            get => _sunlightDateUtc;
+            set
+            {
+                if (SetProperty(ref _sunlightDateUtc, value?.Date))
+                {
+                    if (IsSunlightEnabled)
+                        _ = _globeBridge.SetTimeOfDayAsync(_timeOfDayHours,
+                            _sunlightDateUtc?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
+                }
+            }
+        }
+
+        private double _timeOfDayHours = 12.0; // Known stable noon default; date and UTC hours remain user-selectable.
         public double TimeOfDayHours
         {
             get => _timeOfDayHours;
@@ -386,7 +426,8 @@ namespace ZEarth.App.ViewModels
                     UpdateTimeOfDayDisplay();
                     if (IsSunlightEnabled)
                     {
-                        _ = _globeBridge.SetTimeOfDayAsync(_timeOfDayHours);
+                        _ = _globeBridge.SetTimeOfDayAsync(_timeOfDayHours,
+                            SunlightDateUtc?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
                     }
                 }
             }
@@ -805,6 +846,7 @@ namespace ZEarth.App.ViewModels
 
         public ICommand ToggleBordersCommand { get; }
         public ICommand ToggleGraticulesCommand { get; }
+        public ICommand GridOptionsCommand { get; }
         public ICommand ToggleTerrainCommand { get; }
         public ICommand SelectBasemapCommand { get; }
         public ICommand HistoricalImageryCommand { get; }
@@ -944,6 +986,17 @@ namespace ZEarth.App.ViewModels
                     IsTerrainEnabled = false;
                     SyncTerrainSettingsDisplay(updateEnabledState: false);
                     UpdateTerrainStatusDisplay();
+                    string message = "Provider unavailable: network, credentials or terrain tiles failed.";
+                    try
+                    {
+                        using var doc = JsonDocument.Parse(info);
+                        if (doc.RootElement.TryGetProperty("reason", out var reason) &&
+                            reason.ValueKind == JsonValueKind.String)
+                            message = reason.GetString() ?? message;
+                    }
+                    catch (JsonException) { }
+                    StatusMessage = $"Terrain OFF — {message}";
+                    LoggerService.Instance.LogWarning($"Terrain reverted to ellipsoid: {message}");
                 });
             };
             _globeBridge.TimeOfDayChanged += (s, time) =>
@@ -1266,6 +1319,7 @@ namespace ZEarth.App.ViewModels
             // Layer & Terrain Commands (Sprint 7)
             ToggleBordersCommand = new RelayCommand(() => IsBordersVisible = !IsBordersVisible);
             ToggleGraticulesCommand = new RelayCommand(() => IsGraticulesVisible = !IsGraticulesVisible);
+            GridOptionsCommand = new RelayCommand(() => ExecuteShowOptions(true));
             ToggleTerrainCommand = AsyncCommand(ExecuteToggleTerrainAsync, "Toggle terrain");
             SelectBasemapCommand = new RelayCommand(p =>
             {
@@ -1322,7 +1376,8 @@ namespace ZEarth.App.ViewModels
         private async Task ExecuteToggleSunlightAsync()
         {
             var desired = !IsSunlightEnabled;
-            if (await _globeBridge.SetSunlightAsync(desired, _timeOfDayHours))
+            if (await _globeBridge.SetSunlightAsync(desired, _timeOfDayHours,
+                SunlightDateUtc?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)))
                 IsSunlightEnabled = desired;
             else
                 StatusMessage = "Sunlight not changed — globe request failed or timed out.";
@@ -3316,10 +3371,12 @@ namespace ZEarth.App.ViewModels
             dlg.ShowDialog();
         }
 
-        public void ExecuteShowOptions()
+        public void ExecuteShowOptions() => ExecuteShowOptions(false);
+
+        private void ExecuteShowOptions(bool openGridTab)
         {
             var wasTerrainEnabled = IsTerrainEnabled;
-            var dlg = new Views.OptionsDialog(_globeBridge)
+            var dlg = new Views.OptionsDialog(_globeBridge, openGridTab)
             {
                 Owner = Application.Current?.MainWindow
             };
@@ -3383,7 +3440,7 @@ namespace ZEarth.App.ViewModels
             }
         }
 
-        private void SyncTerrainSettingsDisplay(bool updateEnabledState = true)
+        private void SyncTerrainSettingsDisplay(bool updateEnabledState = false)
         {
             var providerId = SettingsService.Instance.Settings.TerrainProviderId;
             switch (providerId)
@@ -3411,11 +3468,8 @@ namespace ZEarth.App.ViewModels
                     break;
             }
 
-            if (updateEnabledState)
-            {
-                IsTerrainEnabled = !string.Equals(providerId, "ellipsoid", StringComparison.OrdinalIgnoreCase);
-            }
-
+            // Configuration is only a selected preference. Never display green/ON
+            // until Cesium has acknowledged a real provider activation.
             UpdateTerrainStatusDisplay();
         }
 
@@ -3425,6 +3479,8 @@ namespace ZEarth.App.ViewModels
                 ? _terrainConfig.Name
                 : $"Off — Default: {_terrainConfig.Name}";
         }
+
+        public Task InitializeConfiguredTerrainAsync() => ActivateConfiguredTerrainAsync();
 
         private async Task ActivateConfiguredTerrainAsync()
         {
@@ -3448,15 +3504,24 @@ namespace ZEarth.App.ViewModels
             UpdateTerrainStatusDisplay();
         }
 
+        private bool _terrainRequestInProgress;
+
         public async Task ExecuteToggleTerrainAsync()
         {
+            if (_terrainRequestInProgress) return;
+            _terrainRequestInProgress = true;
+            try
+            {
+            StatusMessage = IsTerrainEnabled ? "Disabling terrain…" : "Loading selected elevation model…";
             if (IsTerrainEnabled)
             {
                 if (await _globeBridge.SetTerrainProviderAsync("ellipsoid"))
                 {
                     IsTerrainEnabled = false;
                     UpdateTerrainStatusDisplay();
+                    StatusMessage = "Terrain disabled; smooth ellipsoid restored.";
                 }
+                else StatusMessage = "Unable to disable terrain: globe did not acknowledge.";
                 return;
             }
 
@@ -3465,10 +3530,16 @@ namespace ZEarth.App.ViewModels
             {
                 IsTerrainEnabled = false;
                 UpdateTerrainStatusDisplay();
+                StatusMessage = "WGS84 ellipsoid has no elevation relief. Choose an actual DEM under Options → Terrain Models.";
                 return;
             }
 
             await ActivateConfiguredTerrainAsync();
+            StatusMessage = IsTerrainEnabled
+                ? $"Terrain active: {_terrainConfig.Name}"
+                : $"Terrain unavailable: {_terrainConfig.Name}. Check the provider connection, URL or Cesium ion token.";
+            }
+            finally { _terrainRequestInProgress = false; }
         }
 
         private async Task ExecuteShowHistoricalImageryAsync()

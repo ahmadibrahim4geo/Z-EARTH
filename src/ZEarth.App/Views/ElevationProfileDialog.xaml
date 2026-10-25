@@ -5,8 +5,8 @@
         Height="520" Width="760"
         WindowStartupLocation="CenterOwner"
         ResizeMode="CanResizeWithGrip"
-        Background="{StaticResource Brush.Window.Background}"
-        Foreground="{StaticResource Brush.Text.Primary}"
+        Background="{DynamicResource Brush.Window.Background}"
+        Foreground="{DynamicResource Brush.Text.Primary}"
         FontFamily="Segoe UI">
 
     <Grid Margin="18">
@@ -19,78 +19,78 @@
         </Grid.RowDefinitions>
 
         <!-- Header -->
-        <Border Grid.Row="0" Background="{StaticResource Brush.Ribbon.Background}" CornerRadius="6" Padding="12" Margin="0,0,0,12"
-                BorderBrush="{StaticResource Brush.Ribbon.Border}" BorderThickness="1">
+        <Border Grid.Row="0" Background="{DynamicResource Brush.Ribbon.Background}" CornerRadius="6" Padding="12" Margin="0,0,0,12"
+                BorderBrush="{DynamicResource Brush.Ribbon.Border}" BorderThickness="1">
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                 <Path Data="{StaticResource Icon.ElevationProfile}" Style="{StaticResource RibbonIconPathStyle}" Width="22" Height="22" Margin="0,0,10,0"/>
                 <StackPanel>
-                    <TextBlock Text="Path Vertex Elevation (DEM Sampling Pending)" FontWeight="Bold" FontSize="14" Foreground="{StaticResource Brush.Text.Primary}"/>
-                    <TextBlock Text="Distance versus stored path vertex Z (NOT sampled from active DEM)." FontSize="11" Foreground="{StaticResource Brush.Text.Secondary}"/>
+                    <TextBlock Text="Path Vertex Elevation (DEM Sampling Pending)" FontWeight="Bold" FontSize="14" Foreground="{DynamicResource Brush.Text.Primary}"/>
+                    <TextBlock Text="Distance versus stored path vertex Z (NOT sampled from active DEM)." FontSize="11" Foreground="{DynamicResource Brush.Text.Secondary}"/>
                 </StackPanel>
             </StackPanel>
         </Border>
 
         <!-- Summary Statistics Cards -->
         <UniformGrid Grid.Row="1" Columns="6" Margin="0,0,0,12">
-            <Border Background="{StaticResource Brush.Ribbon.Background}" BorderBrush="{StaticResource Brush.Ribbon.Border}" BorderThickness="1" CornerRadius="4" Padding="8,6" Margin="2">
+            <Border Background="{DynamicResource Brush.Ribbon.Background}" BorderBrush="{DynamicResource Brush.Ribbon.Border}" BorderThickness="1" CornerRadius="4" Padding="8,6" Margin="2">
                 <StackPanel>
-                    <TextBlock Text="Total Distance" FontSize="10" Foreground="{StaticResource Brush.Text.Secondary}"/>
-                    <TextBlock x:Name="StatDistanceText" Text="0.00 km" FontWeight="Bold" FontSize="12.5" Foreground="{StaticResource Brush.Accent}"/>
+                    <TextBlock Text="Total Distance" FontSize="10" Foreground="{DynamicResource Brush.Text.Secondary}"/>
+                    <TextBlock x:Name="StatDistanceText" Text="0.00 km" FontWeight="Bold" FontSize="12.5" Foreground="{DynamicResource Brush.Accent}"/>
                 </StackPanel>
             </Border>
-            <Border Background="{StaticResource Brush.Ribbon.Background}" BorderBrush="{StaticResource Brush.Ribbon.Border}" BorderThickness="1" CornerRadius="4" Padding="8,6" Margin="2">
+            <Border Background="{DynamicResource Brush.Ribbon.Background}" BorderBrush="{DynamicResource Brush.Ribbon.Border}" BorderThickness="1" CornerRadius="4" Padding="8,6" Margin="2">
                 <StackPanel>
-                    <TextBlock Text="Min Elevation" FontSize="10" Foreground="{StaticResource Brush.Text.Secondary}"/>
-                    <TextBlock x:Name="StatMinElevText" Text="0.0 m" FontWeight="Bold" FontSize="12.5" Foreground="{StaticResource Brush.Text.Primary}"/>
+                    <TextBlock Text="Min Elevation" FontSize="10" Foreground="{DynamicResource Brush.Text.Secondary}"/>
+                    <TextBlock x:Name="StatMinElevText" Text="0.0 m" FontWeight="Bold" FontSize="12.5" Foreground="{DynamicResource Brush.Text.Primary}"/>
                 </StackPanel>
             </Border>
-            <Border Background="{StaticResource Brush.Ribbon.Background}" BorderBrush="{StaticResource Brush.Ribbon.Border}" BorderThickness="1" CornerRadius="4" Padding="8,6" Margin="2">
+            <Border Background="{DynamicResource Brush.Ribbon.Background}" BorderBrush="{DynamicResource Brush.Ribbon.Border}" BorderThickness="1" CornerRadius="4" Padding="8,6" Margin="2">
                 <StackPanel>
-                    <TextBlock Text="Max Elevation" FontSize="10" Foreground="{StaticResource Brush.Text.Secondary}"/>
-                    <TextBlock x:Name="StatMaxElevText" Text="0.0 m" FontWeight="Bold" FontSize="12.5" Foreground="{StaticResource Brush.Text.Primary}"/>
+                    <TextBlock Text="Max Elevation" FontSize="10" Foreground="{DynamicResource Brush.Text.Secondary}"/>
+                    <TextBlock x:Name="StatMaxElevText" Text="0.0 m" FontWeight="Bold" FontSize="12.5" Foreground="{DynamicResource Brush.Text.Primary}"/>
                 </StackPanel>
             </Border>
-            <Border Background="{StaticResource Brush.Ribbon.Background}" BorderBrush="{StaticResource Brush.Ribbon.Border}" BorderThickness="1" CornerRadius="4" Padding="8,6" Margin="2">
+            <Border Background="{DynamicResource Brush.Ribbon.Background}" BorderBrush="{DynamicResource Brush.Ribbon.Border}" BorderThickness="1" CornerRadius="4" Padding="8,6" Margin="2">
                 <StackPanel>
-                    <TextBlock Text="Elevation ΔZ" FontSize="10" Foreground="{StaticResource Brush.Text.Secondary}"/>
-                    <TextBlock x:Name="StatDeltaZText" Text="0.0 m" FontWeight="Bold" FontSize="12.5" Foreground="{StaticResource Brush.Text.Primary}"/>
+                    <TextBlock Text="Elevation ΔZ" FontSize="10" Foreground="{DynamicResource Brush.Text.Secondary}"/>
+                    <TextBlock x:Name="StatDeltaZText" Text="0.0 m" FontWeight="Bold" FontSize="12.5" Foreground="{DynamicResource Brush.Text.Primary}"/>
                 </StackPanel>
             </Border>
-            <Border Background="{StaticResource Brush.Ribbon.Background}" BorderBrush="{StaticResource Brush.Ribbon.Border}" BorderThickness="1" CornerRadius="4" Padding="8,6" Margin="2">
+            <Border Background="{DynamicResource Brush.Ribbon.Background}" BorderBrush="{DynamicResource Brush.Ribbon.Border}" BorderThickness="1" CornerRadius="4" Padding="8,6" Margin="2">
                 <StackPanel>
-                    <TextBlock Text="Avg Slope" FontSize="10" Foreground="{StaticResource Brush.Text.Secondary}"/>
-                    <TextBlock x:Name="StatAvgSlopeText" Text="0.0%" FontWeight="Bold" FontSize="12.5" Foreground="{StaticResource Brush.Text.Primary}"/>
+                    <TextBlock Text="Avg Slope" FontSize="10" Foreground="{DynamicResource Brush.Text.Secondary}"/>
+                    <TextBlock x:Name="StatAvgSlopeText" Text="0.0%" FontWeight="Bold" FontSize="12.5" Foreground="{DynamicResource Brush.Text.Primary}"/>
                 </StackPanel>
             </Border>
-            <Border Background="{StaticResource Brush.Ribbon.Background}" BorderBrush="{StaticResource Brush.Ribbon.Border}" BorderThickness="1" CornerRadius="4" Padding="8,6" Margin="2">
+            <Border Background="{DynamicResource Brush.Ribbon.Background}" BorderBrush="{DynamicResource Brush.Ribbon.Border}" BorderThickness="1" CornerRadius="4" Padding="8,6" Margin="2">
                 <StackPanel>
-                    <TextBlock Text="Max Slope" FontSize="10" Foreground="{StaticResource Brush.Text.Secondary}"/>
-                    <TextBlock x:Name="StatMaxSlopeText" Text="0.0%" FontWeight="Bold" FontSize="12.5" Foreground="{StaticResource Brush.Text.Primary}"/>
+                    <TextBlock Text="Max Slope" FontSize="10" Foreground="{DynamicResource Brush.Text.Secondary}"/>
+                    <TextBlock x:Name="StatMaxSlopeText" Text="0.0%" FontWeight="Bold" FontSize="12.5" Foreground="{DynamicResource Brush.Text.Primary}"/>
                 </StackPanel>
             </Border>
         </UniformGrid>
 
         <!-- Profile Graph Canvas -->
-        <Border Grid.Row="2" Background="{StaticResource Brush.Ribbon.Background}" BorderBrush="{StaticResource Brush.Ribbon.Border}" BorderThickness="1" CornerRadius="6" ClipToBounds="True">
+        <Border Grid.Row="2" Background="{DynamicResource Brush.Ribbon.Background}" BorderBrush="{DynamicResource Brush.Ribbon.Border}" BorderThickness="1" CornerRadius="6" ClipToBounds="True">
             <Grid x:Name="GraphContainer" SizeChanged="OnGraphSizeChanged">
                 <Canvas x:Name="GraphCanvas" MouseMove="OnCanvasMouseMove" MouseLeave="OnCanvasMouseLeave" Background="Transparent"/>
             </Grid>
         </Border>
 
         <!-- Hover Telemetry Pill -->
-        <Border Grid.Row="3" Background="{StaticResource Brush.Control.Background}" CornerRadius="4" Padding="8,4" Margin="0,8,0,0">
-            <TextBlock x:Name="HoverInfoText" Text="Hover over the profile chart to inspect exact distance, elevation, and coordinates." FontSize="11" Foreground="{StaticResource Brush.Text.Secondary}"/>
+        <Border Grid.Row="3" Background="{DynamicResource Brush.Control.Background}" CornerRadius="4" Padding="8,4" Margin="0,8,0,0">
+            <TextBlock x:Name="HoverInfoText" Text="Hover over the profile chart to inspect exact distance, elevation, and coordinates." FontSize="11" Foreground="{DynamicResource Brush.Text.Secondary}"/>
         </Border>
 
         <!-- Actions -->
         <DockPanel Grid.Row="4" Margin="0,12,0,0" LastChildFill="False">
             <Button DockPanel.Dock="Left" Content="Export CSV" Width="100" Height="28" Click="OnExportCsvClick"
-                    Background="{StaticResource Brush.Control.Background}" Foreground="{StaticResource Brush.Text.Primary}"
-                    BorderBrush="{StaticResource Brush.Control.Border}" BorderThickness="1"/>
+                    Background="{DynamicResource Brush.Control.Background}" Foreground="{DynamicResource Brush.Text.Primary}"
+                    BorderBrush="{DynamicResource Brush.Control.Border}" BorderThickness="1"/>
 
             <Button DockPanel.Dock="Right" Content="Close" Width="80" Height="28" IsCancel="True"
-                    Background="{StaticResource Brush.Control.Background}" Foreground="{StaticResource Brush.Text.Primary}"
-                    BorderBrush="{StaticResource Brush.Control.Border}" BorderThickness="1"/>
+                    Background="{DynamicResource Brush.Control.Background}" Foreground="{DynamicResource Brush.Text.Primary}"
+                    BorderBrush="{DynamicResource Brush.Control.Border}" BorderThickness="1"/>
         </DockPanel>
     </Grid>
 </Window>
