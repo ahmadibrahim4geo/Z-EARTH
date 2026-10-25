@@ -793,6 +793,7 @@ namespace ZEarth.App.ViewModels
         public ICommand DrawLineCommand { get; }
         public ICommand DrawPolygonCommand { get; }
         public ICommand DrawCircleCommand { get; }
+        public ICommand DrawRectangleCommand { get; }
         public ICommand OverlayImageCommand { get; }
         public ICommand Model3DCommand { get; }
 
@@ -1219,6 +1220,7 @@ namespace ZEarth.App.ViewModels
             DrawPlacemarkCommand = AsyncCommand(() => _globeBridge.StartDrawingAsync("point"), "Draw placemark");
             DrawLineCommand = AsyncCommand(() => _globeBridge.StartDrawingAsync("path"), "Draw line");
             DrawPolygonCommand = AsyncCommand(() => _globeBridge.StartDrawingAsync("polygon"), "Draw polygon");
+            DrawRectangleCommand = AsyncCommand(() => _globeBridge.StartDrawingAsync("rectangle"), "Draw rectangle");
             DrawCircleCommand = AsyncCommand(async () =>
             {
                 ActiveMeasurementInfo = "Draw Circle: Click center point, then click outer edge to complete circle.";
@@ -1541,11 +1543,14 @@ namespace ZEarth.App.ViewModels
 
                     if (type == "polygon")
                     {
-                        newItem = new PlaceItem($"Polygon {count}", PlaceItemType.Polygon)
+                        bool isRectangle = root.TryGetProperty("shapeKind", out var shapeKind) &&
+                            string.Equals(shapeKind.GetString(), "rectangle", StringComparison.OrdinalIgnoreCase);
+                        newItem = new PlaceItem($"{(isRectangle ? "Rectangle" : "Polygon")} {count}", PlaceItemType.Polygon)
                         {
                             Coordinates = coords,
                             ColorHex = color ?? "#22A8DE"
                         };
+                        if (isRectangle) newItem.ExtendedData["shapeKind"] = "rectangle";
                         if (coords.Count > 0)
                         {
                             newItem.Longitude = coords[0].Longitude;

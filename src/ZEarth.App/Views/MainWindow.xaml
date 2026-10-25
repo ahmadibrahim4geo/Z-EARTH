@@ -692,6 +692,12 @@
                                             <TextBlock Text="Polygon" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
                                         </StackPanel>
                                     </Button>
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding DrawRectangleCommand}" ToolTip="Draw precise axis-aligned geographic rectangle using two opposite corners">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <TextBlock Text="▭" FontSize="22" FontWeight="Bold" Foreground="{StaticResource Brush.Accent}" HorizontalAlignment="Center"/>
+                                            <TextBlock Text="Rectangle" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Button>
                                     <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding DrawCircleCommand}" ToolTip="Draw geographic radius circle with area and circumference">
                                         <StackPanel HorizontalAlignment="Center">
                                             <Path Data="{StaticResource Icon.Circle}" Style="{StaticResource RibbonLargeIconStyle}" Fill="#fb923c"/>
@@ -1313,6 +1319,7 @@
                                                 <Button Style="{StaticResource QuickAccessBtnStyle}" Command="{Binding AddPlacemarkCommand}" ToolTip="Add new Placemark (📍)">📍</Button>
                                                 <Button Style="{StaticResource QuickAccessBtnStyle}" Command="{Binding DrawLineCommand}" ToolTip="Add Path/Line (〰️)">〰️</Button>
                                                 <Button Style="{StaticResource QuickAccessBtnStyle}" Command="{Binding DrawPolygonCommand}" ToolTip="Add Polygon (⬡)">⬡</Button>
+                                                <Button Style="{StaticResource QuickAccessBtnStyle}" Command="{Binding DrawRectangleCommand}" ToolTip="Draw geographic rectangle by clicking two corners">▭</Button>
                                                 <Button Style="{StaticResource QuickAccessBtnStyle}" Command="{Binding AddFolderCommand}" ToolTip="Add new Folder (📁)">📁</Button>
                                                 <Button Style="{StaticResource QuickAccessBtnStyle}" Command="{Binding AddSavedSceneCommand}" ToolTip="Save viewpoint as Scene (🎬)">🎬</Button>
                                                 <Button Style="{StaticResource QuickAccessBtnStyle}" Command="{Binding MoveSavedSceneUpCommand}" ToolTip="Move selected Saved Scene up. The first scene opens at startup.">↑</Button>
@@ -1372,6 +1379,7 @@
                                                     <MenuItem Header="📍 Add Placemark" Command="{Binding AddPlacemarkCommand}"/>
                                                     <MenuItem Header="〰️ Add Path" Command="{Binding DrawLineCommand}"/>
                                                     <MenuItem Header="⬡ Add Polygon" Command="{Binding DrawPolygonCommand}"/>
+                                                    <MenuItem Header="▭ Add Rectangle" Command="{Binding DrawRectangleCommand}"/>
                                                     <MenuItem Header="📁 Add Folder" Command="{Binding AddFolderCommand}"/>
                                                     <MenuItem Header="🎬 Add Saved Scene" Command="{Binding AddSavedSceneCommand}"/>
                                                     <MenuItem Header="📥 Import KML/KMZ..." Command="{Binding ImportKmlCommand}"/>

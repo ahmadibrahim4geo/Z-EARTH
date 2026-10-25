@@ -1418,7 +1418,7 @@
 
   // 4.6. Interactive Drawing Engine with Snapping Integration (ZE-040, ZE-041, ZE-045)
   const DrawingManager = {
-    activeMode: null, // 'point' | 'path' | 'polygon'
+    activeMode: null, // 'point' | 'path' | 'polygon' | 'rectangle' | 'circle'
     vertices: [],
     tempPoints: [],
     previewEntity: null,
@@ -1433,6 +1433,25 @@
         pos = viewer.camera.pickEllipsoid(screenPos, viewer.scene.globe.ellipsoid);
       }
       return pos;
+    },
+
+    getRectanglePositions: function (edge) {
+      if (!edge || !this.vertices.length) return [];
+      const first = Cesium.Cartographic.fromCartesian(this.vertices[0]);
+      const second = Cesium.Cartographic.fromCartesian(edge);
+      if (!first || !second) return [];
+      const w1 = Cesium.Math.toDegrees(first.longitude);
+      const w2 = Cesium.Math.toDegrees(second.longitude);
+      const s1 = Cesium.Math.toDegrees(first.latitude);
+      const s2 = Cesium.Math.toDegrees(second.latitude);
+      // First release: do not silently create a wrong polygon over the dateline.
+      if (Math.abs(w2 - w1) >= 180 || Math.abs(w2 - w1) < 1e-9 ||
+          Math.abs(s2 - s1) < 1e-9) return [];
+      const west = Math.min(w1, w2), east = Math.max(w1, w2);
+      const south = Math.min(s1, s2), north = Math.max(s1, s2);
+      return Cesium.Cartesian3.fromDegreesArray([
+        west, south, east, south, east, north, west, north
+      ]);
     },
 
     start: function (type, styleOptions) {
@@ -1522,6 +1541,12 @@
         });
         this.tempPoints.push(ptEnt);
 
+        // Two diagonal corners completely define a geographic rectangle.
+        if (this.activeMode === 'rectangle' && this.vertices.length === 2) {
+          this.finish();
+          return;
+        }
+
         if (this.vertices.length === 1) {
           if (this.activeMode === 'path') {
             this.previewEntity = viewer.entities.add({
@@ -1539,6 +1564,19 @@
                 outline: true,
                 outlineColor: Cesium.Color.fromCssColorString(this.style.color || '#22A8DE'),
                 outlineWidth: 2
+              }
+            });
+          } else if (this.activeMode === 'rectangle') {
+            this.previewEntity = viewer.entities.add({
+              polygon: {
+                hierarchy: new Cesium.CallbackProperty(() => {
+                  const corners = this.getRectanglePositions(currentMousePos);
+                  return new Cesium.PolygonHierarchy(corners);
+                }, false),
+                material: Cesium.Color.fromCssColorString(this.style.color || '#22A8DE').withAlpha(this.style.opacity || 0.4),
+                outline: true,
+                outlineColor: Cesium.Color.fromCssColorString(this.style.color || '#22A8DE'),
+                heightReference: Cesium.HeightReference.CLAMP_TO_GROUND
               }
             });
           } else if (this.activeMode === 'circle') {
@@ -1597,7 +1635,17 @@
         return;
       }
 
-      const coords = this.vertices.map((cart) => {
+      // Rectangle is persisted as an ordinary 4-corner polygon plus a shapeKind marker.
+      // A flat 2D bbox polygon cannot cross the antimeridian in this initial tool;
+      // reject rather than creating a scientifically incorrect spanning polygon.
+      const finalVertices = this.activeMode === 'rectangle'
+        ? this.getRectanglePositions(this.vertices[1]) : this.vertices;
+      if (finalVertices.length < 2) {
+        this.cancel();
+        return;
+      }
+
+      const coords = finalVertices.map((cart) => {
         const carto = Cesium.Cartographic.fromCartesian(cart);
         return {
           longitude: Cesium.Math.toDegrees(carto.longitude),
@@ -1619,7 +1667,8 @@
       } else {
         sendHostMessage({
           event: 'draw.completed',
-          geometryType: this.activeMode,
+          geometryType: this.activeMode === 'rectangle' ? 'polygon' : this.activeMode,
+          shapeKind: this.activeMode === 'rectangle' ? 'rectangle' : undefined,
           coordinates: coords,
           color: this.style.color
         });
