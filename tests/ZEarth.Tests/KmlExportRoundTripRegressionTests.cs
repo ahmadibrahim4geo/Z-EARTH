@@ -108,6 +108,54 @@ public sealed class KmlExportRoundTripRegressionTests
     }
 
     [TestMethod]
+    public void ImportedKmlColorsAndStyleMapNormalResolveToCorrectCssWithoutChangingXml()
+    {
+        const string source = "<kml xmlns=\"http://www.opengis.net/kml/2.2\"><Document>" +
+            "<Style id=\"a\"><IconStyle><color>ff0000ff</color>" +
+            "<Icon><href>files/marker.png</href></Icon></IconStyle></Style>" +
+            "<StyleMap id=\"m\"><Pair><key>normal</key><styleUrl>#a</styleUrl></Pair>" +
+            "<Pair><key>highlight</key><styleUrl>#other</styleUrl></Pair></StyleMap>" +
+            "<Placemark><name>Red</name><styleUrl>#m</styleUrl>" +
+            "<Point><coordinates>31,30,0</coordinates></Point></Placemark></Document></kml>";
+        var original = XDocument.Parse(source);
+        var parsed = KmlParser.ParseDocument(original);
+        var point = parsed.Children.Single();
+        Assert.AreEqual("#FF0000", point.ColorHex);
+        Assert.AreEqual("files/marker.png", point.ExtendedData["KmlIconHref"]);
+        Assert.AreEqual("#m", point.StyleUrl);
+        var restoredXml = KmlSerializer.SerializeToString(parsed);
+        Assert.IsTrue(restoredXml.Contains("ff0000ff"));
+        Assert.IsTrue(restoredXml.Contains("<StyleMap"));
+        Assert.IsTrue(restoredXml.Contains("#other"));
+    }
+
+    [TestMethod]
+    public void InvalidPreservedStyleFailsExportBeforeOverwritingAnExistingKml()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "zearth-style-safe-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dir);
+        try
+        {
+            var path = Path.Combine(dir, "previous.kml");
+            File.WriteAllText(path, "original contents");
+            var item = new PlaceItem("Broken XML", PlaceItemType.Folder);
+            item.PreservedXmlFragments.Add("<Style>");
+            Assert.ThrowsException<InvalidDataException>(() => KmlSerializer.SerializeToFile(item, path));
+            Assert.AreEqual("original contents", File.ReadAllText(path));
+        }
+        finally { Directory.Delete(dir, true); }
+    }
+
+    [TestMethod]
+    public void KmlAbgrColorsDecodeOpacityAndRedBlueOrder()
+    {
+        Assert.IsTrue(KmlStyleResolver.TryParseKmlColor("7f00ff00", out var css, out var alpha));
+        Assert.AreEqual("#00FF00", css);
+        Assert.AreEqual(127.0 / 255, alpha, 0.0001);
+        Assert.IsFalse(KmlStyleResolver.TryParseKmlColor("not-hex", out _, out _));
+    }
+
+    [TestMethod]
     public void ZearthAuthoritativeSqliteSaveOpenPreservesImportedAssetsAndKmlTimes()
     {
         var dir = Path.Combine(Path.GetTempPath(), "zearth-sqlite-kmz-" + Guid.NewGuid().ToString("N"));
