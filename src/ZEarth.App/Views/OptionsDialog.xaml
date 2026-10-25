@@ -5,8 +5,8 @@
         Height="650" Width="680"
         WindowStartupLocation="CenterOwner"
         ResizeMode="CanResize" MinWidth="640" MinHeight="580"
-        Background="{StaticResource Brush.Window.Background}"
-        Foreground="{StaticResource Brush.Text.Primary}"
+        Background="{DynamicResource Brush.Window.Background}"
+        Foreground="{DynamicResource Brush.Text.Primary}"
         FontFamily="Segoe UI">
 
     <Grid Margin="18">
@@ -17,26 +17,26 @@
         </Grid.RowDefinitions>
 
         <!-- Header -->
-        <Border Grid.Row="0" Background="{StaticResource Brush.Ribbon.Background}" CornerRadius="6" Padding="12" Margin="0,0,0,14"
-                BorderBrush="{StaticResource Brush.Ribbon.Border}" BorderThickness="1">
+        <Border Grid.Row="0" Background="{DynamicResource Brush.Ribbon.Background}" CornerRadius="6" Padding="12" Margin="0,0,0,14"
+                BorderBrush="{DynamicResource Brush.Ribbon.Border}" BorderThickness="1">
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                 <Path Data="{StaticResource Icon.Options}" Style="{StaticResource RibbonIconPathStyle}" Width="22" Height="22" Margin="0,0,10,0"/>
                 <StackPanel>
-                    <TextBlock Text="Z EARTH Options &amp; GIS Configuration" FontWeight="Bold" FontSize="14" Foreground="{StaticResource Brush.Text.Primary}"/>
-                    <TextBlock Text="Configure measurement units, spatial snapping, basemaps, and display preferences." FontSize="11" Foreground="{StaticResource Brush.Text.Secondary}"/>
+                    <TextBlock Text="Z EARTH Options &amp; GIS Configuration" FontWeight="Bold" FontSize="14" Foreground="{DynamicResource Brush.Text.Primary}"/>
+                    <TextBlock Text="Configure measurement units, spatial snapping, basemaps, and display preferences." FontSize="11" Foreground="{DynamicResource Brush.Text.Secondary}"/>
                 </StackPanel>
             </StackPanel>
         </Border>
 
         <!-- Tabbed Settings Content -->
-        <TabControl Grid.Row="1" Background="{StaticResource Brush.Ribbon.Background}" BorderBrush="{StaticResource Brush.Ribbon.Border}">
+        <TabControl Grid.Row="1" Background="{DynamicResource Brush.Ribbon.Background}" BorderBrush="{DynamicResource Brush.Ribbon.Border}">
             
             <!-- Tab 1: Measurement Units -->
             <TabItem Header="Measurement Units">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="14">
                     <StackPanel>
-                        <TextBlock Text="Geodesic Distance Units" FontWeight="Bold" FontSize="12" Foreground="{StaticResource Brush.Accent}" Margin="0,0,0,6"/>
-                        <ComboBox x:Name="DistanceUnitCombo" Height="28" Margin="0,0,0,14" Background="{StaticResource Brush.Control.Background}" Foreground="{StaticResource Brush.Text.Primary}">
+                        <TextBlock Text="Geodesic Distance Units" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource Brush.Accent}" Margin="0,0,0,6"/>
+                        <ComboBox x:Name="DistanceUnitCombo" Height="28" Margin="0,0,0,14" Background="{DynamicResource Brush.Control.Background}" Foreground="{DynamicResource Brush.Text.Primary}">
                             <ComboBoxItem Content="Auto Metric (m / km)" Tag="AutoMetric"/>
                             <ComboBoxItem Content="Meters (m)" Tag="Meters"/>
                             <ComboBoxItem Content="Kilometers (km)" Tag="Kilometers"/>
@@ -48,8 +48,8 @@
                             <ComboBoxItem Content="Millimeters (mm)" Tag="Millimeters"/>
                         </ComboBox>
 
-                        <TextBlock Text="Surface Area Units" FontWeight="Bold" FontSize="12" Foreground="{StaticResource Brush.Accent}" Margin="0,0,0,6"/>
-                        <ComboBox x:Name="AreaUnitCombo" Height="28" Margin="0,0,0,14" Background="{StaticResource Brush.Control.Background}" Foreground="{StaticResource Brush.Text.Primary}">
+                        <TextBlock Text="Surface Area Units" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource Brush.Accent}" Margin="0,0,0,6"/>
+                        <ComboBox x:Name="AreaUnitCombo" Height="28" Margin="0,0,0,14" Background="{DynamicResource Brush.Control.Background}" Foreground="{DynamicResource Brush.Text.Primary}">
                             <ComboBoxItem Content="Auto Metric (m² / ha / km²)" Tag="AutoMetric"/>
                             <ComboBoxItem Content="Square Meters (m²)" Tag="SquareMeters"/>
                             <ComboBoxItem Content="Square Kilometers (km²)" Tag="SquareKilometers"/>
@@ -61,15 +61,15 @@
                             <ComboBoxItem Content="Square Miles (mi²)" Tag="SquareMiles"/>
                         </ComboBox>
 
-                        <TextBlock Text="Elevation Units" FontWeight="Bold" FontSize="12" Foreground="{StaticResource Brush.Accent}" Margin="0,0,0,6"/>
-                        <ComboBox x:Name="ElevationUnitCombo" Height="28" Margin="0,0,0,14" Background="{StaticResource Brush.Control.Background}" Foreground="{StaticResource Brush.Text.Primary}">
+                        <TextBlock Text="Elevation Units" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource Brush.Accent}" Margin="0,0,0,6"/>
+                        <ComboBox x:Name="ElevationUnitCombo" Height="28" Margin="0,0,0,14" Background="{DynamicResource Brush.Control.Background}" Foreground="{DynamicResource Brush.Text.Primary}">
                             <ComboBoxItem Content="Meters (m)" Tag="Meters"/>
                             <ComboBoxItem Content="Feet (ft)" Tag="Feet"/>
                         </ComboBox>
 
-                        <Border Background="{StaticResource Brush.Control.Background}" CornerRadius="4" Padding="10" Margin="0,4,0,0">
+                        <Border Background="{DynamicResource Brush.Control.Background}" CornerRadius="4" Padding="10" Margin="0,4,0,0">
                             <TextBlock Text="All internal calculations are computed strictly on the WGS 84 ellipsoid (EPSG:4326). Display units convert automatically with full SI fidelity without precision degradation."
-                                       TextWrapping="Wrap" FontSize="11" Foreground="{StaticResource Brush.Text.Secondary}"/>
+                                       TextWrapping="Wrap" FontSize="11" Foreground="{DynamicResource Brush.Text.Secondary}"/>
                         </Border>
                     </StackPanel>
                 </ScrollViewer>
@@ -79,28 +79,28 @@
             <TabItem Header="Spatial Snapping">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="14">
                     <StackPanel>
-                        <CheckBox x:Name="SnapEnabledCheck" Content="Enable Spatial Snapping for Vector Drawing &amp; Measurement" IsChecked="true" FontWeight="SemiBold" Margin="0,0,0,12" Foreground="{StaticResource Brush.Text.Primary}"/>
+                        <CheckBox x:Name="SnapEnabledCheck" Content="Enable Spatial Snapping for Vector Drawing &amp; Measurement" IsChecked="true" FontWeight="SemiBold" Margin="0,0,0,12" Foreground="{DynamicResource Brush.Text.Primary}"/>
 
-                        <Border Background="{StaticResource Brush.Control.Background}" CornerRadius="4" Padding="10" Margin="0,0,0,14">
+                        <Border Background="{DynamicResource Brush.Control.Background}" CornerRadius="4" Padding="10" Margin="0,0,0,14">
                             <TextBlock Text="Snapping uses real geodesic ground distance on WGS 84. Its tolerance is stable in meters and does not change with screen resolution or zoom level."
-                                       TextWrapping="Wrap" Foreground="{StaticResource Brush.Text.Secondary}"/>
+                                       TextWrapping="Wrap" Foreground="{DynamicResource Brush.Text.Secondary}"/>
                         </Border>
 
-                        <TextBlock Text="Ground Tolerance (Meters)" FontWeight="Bold" FontSize="12" Foreground="{StaticResource Brush.Accent}" Margin="0,0,0,4"/>
+                        <TextBlock Text="Ground Tolerance (Meters)" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource Brush.Accent}" Margin="0,0,0,4"/>
                         <Grid Margin="0,0,0,14">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="50"/>
                             </Grid.ColumnDefinitions>
                             <Slider x:Name="GroundToleranceSlider" Minimum="1" Maximum="50" Value="5" TickFrequency="1" IsSnapToTickEnabled="True" VerticalAlignment="Center"/>
-                            <TextBlock Grid.Column="1" Text="{Binding Value, ElementName=GroundToleranceSlider, StringFormat='{}{0} m'}" HorizontalAlignment="Right" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="{StaticResource Brush.Text.Primary}"/>
+                            <TextBlock Grid.Column="1" Text="{Binding Value, ElementName=GroundToleranceSlider, StringFormat='{}{0} m'}" HorizontalAlignment="Right" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text.Primary}"/>
                         </Grid>
 
-                        <TextBlock Text="Active Snap Targets" FontWeight="Bold" FontSize="12" Foreground="{StaticResource Brush.Accent}" Margin="0,0,0,6"/>
-                        <CheckBox x:Name="SnapVerticesCheck" Content="Snap to Vertices (Points and corner vertices)" IsChecked="True" Margin="0,2" Foreground="{StaticResource Brush.Text.Primary}"/>
-                        <CheckBox x:Name="SnapMidpointsCheck" Content="Snap to Segment Midpoints" IsChecked="True" Margin="0,2" Foreground="{StaticResource Brush.Text.Primary}"/>
-                        <CheckBox x:Name="SnapEdgesCheck" Content="Snap to Nearest Edge / Boundary" IsChecked="True" Margin="0,2" Foreground="{StaticResource Brush.Text.Primary}"/>
-                        <CheckBox x:Name="SnapIntersectionsCheck" Content="Snap to Intersections" IsChecked="True" Margin="0,2" Foreground="{StaticResource Brush.Text.Primary}"/>
+                        <TextBlock Text="Active Snap Targets" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource Brush.Accent}" Margin="0,0,0,6"/>
+                        <CheckBox x:Name="SnapVerticesCheck" Content="Snap to Vertices (Points and corner vertices)" IsChecked="True" Margin="0,2" Foreground="{DynamicResource Brush.Text.Primary}"/>
+                        <CheckBox x:Name="SnapMidpointsCheck" Content="Snap to Segment Midpoints" IsChecked="True" Margin="0,2" Foreground="{DynamicResource Brush.Text.Primary}"/>
+                        <CheckBox x:Name="SnapEdgesCheck" Content="Snap to Nearest Edge / Boundary" IsChecked="True" Margin="0,2" Foreground="{DynamicResource Brush.Text.Primary}"/>
+                        <CheckBox x:Name="SnapIntersectionsCheck" Content="Snap to Intersections" IsChecked="True" Margin="0,2" Foreground="{DynamicResource Brush.Text.Primary}"/>
                     </StackPanel>
                 </ScrollViewer>
             </TabItem>
@@ -109,8 +109,8 @@
             <TabItem Header="Basemap &amp; Display">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="14">
                     <StackPanel>
-                        <TextBlock Text="Startup Basemap" FontWeight="Bold" FontSize="12" Foreground="{StaticResource Brush.Accent}" Margin="0,0,0,6"/>
-                        <ComboBox x:Name="DefaultBasemapCombo" Height="28" Margin="0,0,0,14" Background="{StaticResource Brush.Control.Background}" Foreground="{StaticResource Brush.Text.Primary}">
+                        <TextBlock Text="Startup Basemap" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource Brush.Accent}" Margin="0,0,0,6"/>
+                        <ComboBox x:Name="DefaultBasemapCombo" Height="28" Margin="0,0,0,14" Background="{DynamicResource Brush.Control.Background}" Foreground="{DynamicResource Brush.Text.Primary}">
                             <ComboBoxItem Content="Natural Earth II (Offline Cartographic — Zero Network)" Tag="offline-vector"/>
                             <ComboBoxItem Content="OpenStreetMap Standard" Tag="osm-standard"/>
                             <ComboBoxItem Content="OpenStreetMap Humanitarian" Tag="osm-humanitarian"/>
@@ -129,35 +129,35 @@
                             <ComboBoxItem Content="Esri Ocean &amp; Bathymetry" Tag="esri-ocean"/>
                         </ComboBox>
 
-                        <TextBlock Text="Interface Theme" FontWeight="Bold" FontSize="12" Foreground="{StaticResource Brush.Accent}" Margin="0,0,0,6"/>
-                        <ComboBox x:Name="ThemeCombo" Height="28" Margin="0,0,0,14" Background="{StaticResource Brush.Control.Background}" Foreground="{StaticResource Brush.Text.Primary}">
+                        <TextBlock Text="Interface Theme" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource Brush.Accent}" Margin="0,0,0,6"/>
+                        <ComboBox x:Name="ThemeCombo" Height="28" Margin="0,0,0,14" Background="{DynamicResource Brush.Control.Background}" Foreground="{DynamicResource Brush.Text.Primary}">
                             <ComboBoxItem Content="Dark Charcoal Theme (GIS Optimized)" Tag="Dark"/>
                             <ComboBoxItem Content="Light Theme (Cartographic High-Contrast)" Tag="Light"/>
                         </ComboBox>
 
-                        <TextBlock Text="Interface Language" FontWeight="Bold" FontSize="12" Foreground="{StaticResource Brush.Accent}" Margin="0,0,0,6"/>
-                        <ComboBox x:Name="LanguageCombo" Height="28" Margin="0,0,0,14" Background="{StaticResource Brush.Control.Background}" Foreground="{StaticResource Brush.Text.Primary}">
+                        <TextBlock Text="Interface Language" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource Brush.Accent}" Margin="0,0,0,6"/>
+                        <ComboBox x:Name="LanguageCombo" Height="28" Margin="0,0,0,14" Background="{DynamicResource Brush.Control.Background}" Foreground="{DynamicResource Brush.Text.Primary}">
                             <ComboBoxItem Content="English (US/UK)" Tag="en"/>
                             <ComboBoxItem Content="العربية (Arabic - RTL)" Tag="ar"/>
                         </ComboBox>
 
-                        <CheckBox x:Name="SceneMarkersCheck" Content="Show Saved Scene Locations as Map Ground Markers" Margin="0,4" Foreground="{StaticResource Brush.Text.Primary}"/>
+                        <CheckBox x:Name="SceneMarkersCheck" Content="Show Saved Scene Locations as Map Ground Markers" Margin="0,4" Foreground="{DynamicResource Brush.Text.Primary}"/>
 
-                        <TextBlock Text="Map Credits &amp; Attribution Display" FontWeight="Bold" FontSize="12" Foreground="{StaticResource Brush.Accent}" Margin="0,10,0,6"/>
-                        <ComboBox x:Name="CreditsModeCombo" Height="28" Margin="0,0,0,8" Background="{StaticResource Brush.Control.Background}" Foreground="{StaticResource Brush.Text.Primary}">
+                        <TextBlock Text="Map Credits &amp; Attribution Display" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource Brush.Accent}" Margin="0,10,0,6"/>
+                        <ComboBox x:Name="CreditsModeCombo" Height="28" Margin="0,0,0,8" Background="{DynamicResource Brush.Control.Background}" Foreground="{DynamicResource Brush.Text.Primary}">
                             <ComboBoxItem Content="Compact (Horizontal Provider Row + Lightbox Modal)" Tag="Compact"/>
                             <ComboBoxItem Content="Expanded (Full In-Viewport Text Attribution)" Tag="Expanded"/>
                         </ComboBox>
-                        <CheckBox x:Name="ProviderLogosCheck" Content="Show Optional Provider Brand Logos (Cesium, Esri, OSM, CARTO)" Margin="0,4" Foreground="{StaticResource Brush.Text.Primary}"/>
+                        <CheckBox x:Name="ProviderLogosCheck" Content="Show Optional Provider Brand Logos (Cesium, Esri, OSM, CARTO)" Margin="0,4" Foreground="{DynamicResource Brush.Text.Primary}"/>
 
-                        <TextBlock Text="Navigation &amp; Zoom Step Factor" FontWeight="Bold" FontSize="12" Foreground="{StaticResource Brush.Accent}" Margin="0,10,0,4"/>
+                        <TextBlock Text="Navigation &amp; Zoom Step Factor" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource Brush.Accent}" Margin="0,10,0,4"/>
                         <Grid Margin="0,0,0,10">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="60"/>
                             </Grid.ColumnDefinitions>
                             <Slider x:Name="ZoomSensitivitySlider" Minimum="0.10" Maximum="0.60" Value="0.33" TickFrequency="0.05" IsSnapToTickEnabled="True" VerticalAlignment="Center"/>
-                            <TextBlock Grid.Column="1" Text="{Binding Value, ElementName=ZoomSensitivitySlider, StringFormat='{}{0:P0}'}" HorizontalAlignment="Right" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="{StaticResource Brush.Text.Primary}"/>
+                            <TextBlock Grid.Column="1" Text="{Binding Value, ElementName=ZoomSensitivitySlider, StringFormat='{}{0:P0}'}" HorizontalAlignment="Right" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text.Primary}"/>
                         </Grid>
                     </StackPanel>
                 </ScrollViewer>
@@ -167,8 +167,8 @@
             <TabItem Header="Terrain Models">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="14">
                     <StackPanel>
-                        <TextBlock Text="Default Elevation Model" FontWeight="Bold" FontSize="13" Foreground="{StaticResource Brush.Accent}" Margin="0,0,0,7"/>
-                        <ComboBox x:Name="TerrainProviderCombo" Height="30" Margin="0,0,0,8" Background="{StaticResource Brush.Control.Background}" Foreground="{StaticResource Brush.Text.Primary}">
+                        <TextBlock Text="Default Elevation Model" FontWeight="Bold" FontSize="13" Foreground="{DynamicResource Brush.Accent}" Margin="0,0,0,7"/>
+                        <ComboBox x:Name="TerrainProviderCombo" Height="30" Margin="0,0,0,8" Background="{DynamicResource Brush.Control.Background}" Foreground="{DynamicResource Brush.Text.Primary}">
                             <ComboBoxItem Content="AWS Open Data Terrarium DEM — global, free, no key" Tag="demTerrain"/>
                             <ComboBoxItem Content="WGS84 Smooth Ellipsoid — offline, no elevation" Tag="ellipsoid"/>
                             <ComboBoxItem Content="Cesium World Terrain / Copernicus GLO-30 — free ion account required" Tag="worldTerrain"/>
@@ -176,15 +176,15 @@
                             <ComboBoxItem Content="Custom Cesium Quantized-Mesh Service" Tag="custom"/>
                         </ComboBox>
                         <TextBlock Text="This selection is the model used when Terrain is enabled from the ribbon; saving Options does not toggle terrain. AWS Terrain Tiles provide global land elevation but are not guaranteed to be bare-earth everywhere. For a dedicated DTM such as FABDEM, publish it as quantized-mesh and use Custom. World Bathymetry combines GEBCO ocean depths with land terrain. Token-backed choices fall back safely to the ellipsoid if authentication fails."
-                                   TextWrapping="Wrap" FontSize="11" Foreground="{StaticResource Brush.Text.Secondary}" Margin="0,0,0,14"/>
+                                   TextWrapping="Wrap" FontSize="11" Foreground="{DynamicResource Brush.Text.Secondary}" Margin="0,0,0,14"/>
 
                         <TextBlock Text="Cesium ion access token (stored locally)" FontWeight="SemiBold" Margin="0,0,0,4"/>
-                        <PasswordBox x:Name="CesiumIonTokenBox" Height="28" Margin="0,0,0,12" Background="{StaticResource Brush.Control.Background}" Foreground="{StaticResource Brush.Text.Primary}"/>
+                        <PasswordBox x:Name="CesiumIonTokenBox" Height="28" Margin="0,0,0,12" Background="{DynamicResource Brush.Control.Background}" Foreground="{DynamicResource Brush.Text.Primary}"/>
 
                         <TextBlock Text="Custom quantized-mesh URL" FontWeight="SemiBold" Margin="0,0,0,4"/>
-                        <TextBox x:Name="CustomTerrainUrlBox" Height="28" Margin="0,0,0,8" Background="{StaticResource Brush.Control.Background}" Foreground="{StaticResource Brush.Text.Primary}"/>
+                        <TextBox x:Name="CustomTerrainUrlBox" Height="28" Margin="0,0,0,8" Background="{DynamicResource Brush.Control.Background}" Foreground="{DynamicResource Brush.Text.Primary}"/>
                         <TextBlock Text="Example: https://your-server.example/terrain/ (must expose layer.json and quantized-mesh tiles)."
-                                   TextWrapping="Wrap" FontSize="10.5" Foreground="{StaticResource Brush.Text.Secondary}"/>
+                                   TextWrapping="Wrap" FontSize="10.5" Foreground="{DynamicResource Brush.Text.Secondary}"/>
                     </StackPanel>
                 </ScrollViewer>
             </TabItem>
@@ -193,11 +193,11 @@
             <TabItem Header="Map Grid">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="14">
                     <StackPanel>
-                        <TextBlock Text="Geographic Coordinate Grid" FontWeight="Bold" FontSize="13" Foreground="{StaticResource Brush.Accent}" Margin="0,0,0,8"/>
-                        <CheckBox x:Name="GraticulesCheck" Content="Enable geographic grid" Margin="0,4" Foreground="{StaticResource Brush.Text.Primary}"/>
-                        <CheckBox x:Name="LongitudeLinesCheck" Content="Show longitude lines (meridians)" Margin="16,4,0,4" Foreground="{StaticResource Brush.Text.Primary}"/>
-                        <CheckBox x:Name="LatitudeLinesCheck" Content="Show latitude lines (parallels)" Margin="16,4,0,4" Foreground="{StaticResource Brush.Text.Primary}"/>
-                        <CheckBox x:Name="GraticuleLabelsCheck" Content="Show coordinate labels" Margin="16,4,0,4" Foreground="{StaticResource Brush.Text.Primary}"/>
+                        <TextBlock Text="Geographic Coordinate Grid" FontWeight="Bold" FontSize="13" Foreground="{DynamicResource Brush.Accent}" Margin="0,0,0,8"/>
+                        <CheckBox x:Name="GraticulesCheck" Content="Enable geographic grid" Margin="0,4" Foreground="{DynamicResource Brush.Text.Primary}"/>
+                        <CheckBox x:Name="LongitudeLinesCheck" Content="Show longitude lines (meridians)" Margin="16,4,0,4" Foreground="{DynamicResource Brush.Text.Primary}"/>
+                        <CheckBox x:Name="LatitudeLinesCheck" Content="Show latitude lines (parallels)" Margin="16,4,0,4" Foreground="{DynamicResource Brush.Text.Primary}"/>
+                        <CheckBox x:Name="GraticuleLabelsCheck" Content="Show coordinate labels" Margin="16,4,0,4" Foreground="{DynamicResource Brush.Text.Primary}"/>
                         <TextBlock Text="Grid coordinate labels (independent from status-bar Format Units)" FontWeight="SemiBold" Margin="16,8,0,4" Foreground="{DynamicResource Brush.Text.Primary}"/>
                         <ComboBox x:Name="GridLabelFormatCombo" Height="30" Margin="16,0,0,12" Background="{DynamicResource Brush.Control.Background}" Foreground="{DynamicResource Brush.Text.Primary}">
                             <ComboBoxItem Content="Degrees, minutes, seconds (DMS)" Tag="DMS"/>
@@ -205,10 +205,10 @@
                             <ComboBoxItem Content="Decimal degrees (DD)" Tag="DD"/>
                             <ComboBoxItem Content="Whole degrees only" Tag="Degrees"/>
                         </ComboBox>
-                        <CheckBox x:Name="KeyParallelsCheck" Content="Show major geographic lines &amp; points with names" Margin="16,4,0,8" Foreground="{StaticResource Brush.Text.Primary}"/>
+                        <CheckBox x:Name="KeyParallelsCheck" Content="Show major geographic lines &amp; points with names" Margin="16,4,0,8" Foreground="{DynamicResource Brush.Text.Primary}"/>
 
                         <TextBlock Text="Includes Equator, Greenwich/Prime Meridian, International Date Line, Tropics, Polar Circles, both Poles, and Grid Origin 0°/0°. Major lines override coincident regular lines."
-                                   TextWrapping="Wrap" FontSize="11" Foreground="{StaticResource Brush.Text.Secondary}" Margin="16,0,0,14"/>
+                                   TextWrapping="Wrap" FontSize="11" Foreground="{DynamicResource Brush.Text.Secondary}" Margin="16,0,0,14"/>
 
                         <TextBlock Text="Longitude interval (degrees; 0 = automatic)" FontWeight="SemiBold" Margin="0,0,0,4"/>
                         <Grid Margin="0,0,0,12">
@@ -224,7 +224,7 @@
                             <TextBlock Grid.Column="1" Text="{Binding Value, ElementName=LatitudeIntervalSlider, StringFormat='{}{0:0.#}°'}" HorizontalAlignment="Right"/>
                         </Grid>
 
-                        <CheckBox x:Name="UtmZonesCheck" Content="Show UTM zone boundaries &amp; zone numbers" Margin="0,4" Foreground="{StaticResource Brush.Text.Primary}"/>
+                        <CheckBox x:Name="UtmZonesCheck" Content="Show UTM zone boundaries &amp; zone numbers" Margin="0,4" Foreground="{DynamicResource Brush.Text.Primary}"/>
                     </StackPanel>
                 </ScrollViewer>
             </TabItem>
@@ -233,10 +233,10 @@
         <!-- Action Buttons -->
         <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0">
             <Button Content="Save Settings" Width="100" Height="28" Margin="0,0,8,0" IsDefault="True" Click="OnSaveClick"
-                    Background="{StaticResource Brush.Accent}" Foreground="#ffffff" BorderThickness="0" FontWeight="SemiBold"/>
+                    Background="{DynamicResource Brush.Accent}" Foreground="#ffffff" BorderThickness="0" FontWeight="SemiBold"/>
             <Button Content="Cancel" Width="80" Height="28" IsCancel="True"
-                    Background="{StaticResource Brush.Control.Background}" Foreground="{StaticResource Brush.Text.Primary}"
-                    BorderBrush="{StaticResource Brush.Control.Border}" BorderThickness="1"/>
+                    Background="{DynamicResource Brush.Control.Background}" Foreground="{DynamicResource Brush.Text.Primary}"
+                    BorderBrush="{DynamicResource Brush.Control.Border}" BorderThickness="1"/>
         </StackPanel>
     </Grid>
 </Window>
