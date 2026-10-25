@@ -3019,10 +3019,32 @@ namespace ZEarth.App.ViewModels
         public void UpdatePlacesOnGlobe()
         {
             var flat = new List<object>();
-            void Gather(IEnumerable<PlaceItem> items)
+            void Gather(IEnumerable<PlaceItem> items, IReadOnlyDictionary<string, string>? inheritedAssets = null)
             {
                 foreach (var item in items)
                 {
+                    // The imported KMZ root owns any embedded icon files.
+                    // Never fetch external icon URLs or read filesystem paths here.
+                    var assets = item.KmzResourcesBase64.Count > 0 ? item.KmzResourcesBase64 : inheritedAssets;
+                    string? iconDataUri = null;
+                    if (assets != null && item.ExtendedData.TryGetValue("KmlIconHref", out var href))
+                    {
+                        var relative = href.Replace('\\', '/');
+                        var ext = Path.GetExtension(relative).ToLowerInvariant();
+                        var mime = ext switch
+                        {
+                            ".png" => "image/png",
+                            ".jpg" or ".jpeg" => "image/jpeg",
+                            ".webp" => "image/webp",
+                            ".gif" => "image/gif",
+                            _ => null
+                        };
+                        if (mime != null && !relative.StartsWith("/") &&
+                            !relative.Split('/').Any(part => part is ".." or "." or "") &&
+                            !relative.Contains(':') && assets.TryGetValue(relative, out var base64) &&
+                            base64.Length <= 1_400_000)
+                            iconDataUri = $"data:{mime};base64,{base64}";
+                    }
                     if (item.IsVisible)
                     {
                         string altitudeMode = item.ExtendedData.TryGetValue("AltitudeMode", out var altitudeModeValue)
@@ -3130,6 +3152,7 @@ namespace ZEarth.App.ViewModels
                                     labelSize,
                                     showLabel,
                                     symbolShape,
+                                    iconDataUri,
                                     altitudeMode
                                 });
                             }
@@ -3148,11 +3171,12 @@ namespace ZEarth.App.ViewModels
                                 labelSize,
                                 showLabel,
                                 symbolShape,
+                                iconDataUri,
                                 altitudeMode
                             });
                         }
                     }
-                    Gather(item.Children);
+                    Gather(item.Children, assets);
                 }
             }
             Gather(MyPlaces);
