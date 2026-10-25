@@ -287,36 +287,14 @@
         </Setter>
     </Style>
 
-    <!-- Slim Modern ScrollBar Style -->
+    <!-- Restored WPF's orientation-aware native ScrollBar template (horizontal and vertical).
+         The old custom Track forced vertical direction and an 8px thumb in both axes. -->
     <Style TargetType="ScrollBar">
-        <Setter Property="Background" Value="Transparent"/>
-        <Setter Property="Foreground" Value="{StaticResource Brush.Control.Background}"/>
-        <Setter Property="Width" Value="8"/>
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="ScrollBar">
-                    <Grid Name="Bg" SnapsToDevicePixels="true">
-                        <Track Name="PART_Track" IsDirectionReversed="true">
-                            <Track.DecreaseRepeatButton>
-                                <RepeatButton Command="{x:Static ScrollBar.LineUpCommand}" Opacity="0" Focusable="false"/>
-                            </Track.DecreaseRepeatButton>
-                            <Track.IncreaseRepeatButton>
-                                <RepeatButton Command="{x:Static ScrollBar.LineDownCommand}" Opacity="0" Focusable="false"/>
-                            </Track.IncreaseRepeatButton>
-                            <Track.Thumb>
-                                <Thumb>
-                                    <Thumb.Template>
-                                        <ControlTemplate TargetType="Thumb">
-                                            <Border CornerRadius="4" Background="{StaticResource Brush.Control.Border}" Margin="1,0"/>
-                                        </ControlTemplate>
-                                    </Thumb.Template>
-                                </Thumb>
-                            </Track.Thumb>
-                        </Track>
-                    </Grid>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
+        <Setter Property="MinWidth" Value="15"/>
+        <Setter Property="MinHeight" Value="15"/>
+        <Setter Property="Background" Value="{DynamicResource Brush.Control.Background}"/>
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}"/>
+        <Setter Property="Focusable" Value="True"/>
     </Style>
 
     <!-- ComboBox Item Style (Light Theme) -->
