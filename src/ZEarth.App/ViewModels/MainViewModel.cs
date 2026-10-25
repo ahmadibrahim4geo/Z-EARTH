@@ -3431,6 +3431,8 @@ namespace ZEarth.App.ViewModels
                 : $"Off — Default: {_terrainConfig.Name}";
         }
 
+        public Task InitializeConfiguredTerrainAsync() => ActivateConfiguredTerrainAsync();
+
         private async Task ActivateConfiguredTerrainAsync()
         {
             var settings = SettingsService.Instance.Settings;
