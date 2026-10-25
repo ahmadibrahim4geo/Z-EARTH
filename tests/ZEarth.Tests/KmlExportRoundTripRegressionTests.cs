@@ -156,6 +156,24 @@ public sealed class KmlExportRoundTripRegressionTests
     }
 
     [TestMethod]
+    public void UnsupportedMultiGeometryMustRoundTripWithoutDroppingSecondaryShapes()
+    {
+        const string original = "<kml xmlns=\"http://www.opengis.net/kml/2.2\"><Document>" +
+            "<Placemark><name>Multiple geometries</name><MultiGeometry>" +
+            "<Point><coordinates>31,30,0</coordinates></Point>" +
+            "<LineString><coordinates>31,30,0 32,31,0</coordinates></LineString>" +
+            "</MultiGeometry></Placemark></Document></kml>";
+        var parsed = KmlParser.ParseDocument(XDocument.Parse(original));
+        Assert.IsTrue(parsed.Children.Single().PreservedXmlFragments.Any(x => x.Contains("MultiGeometry")));
+        var emitted = XDocument.Parse(KmlSerializer.SerializeToString(parsed));
+        var multi = emitted.Descendants().Single(x => x.Name.LocalName == "MultiGeometry");
+        Assert.AreEqual(1, multi.Descendants().Count(x => x.Name.LocalName == "Point"));
+        Assert.AreEqual(1, multi.Descendants().Count(x => x.Name.LocalName == "LineString"));
+        Assert.AreEqual(1, emitted.Descendants().Count(x => x.Name.LocalName == "Point"),
+            "Must not duplicate the simplified primary Point alongside MultiGeometry");
+    }
+
+    [TestMethod]
     public void ZearthAuthoritativeSqliteSaveOpenPreservesImportedAssetsAndKmlTimes()
     {
         var dir = Path.Combine(Path.GetTempPath(), "zearth-sqlite-kmz-" + Guid.NewGuid().ToString("N"));
