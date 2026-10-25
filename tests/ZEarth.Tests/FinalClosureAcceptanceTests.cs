@@ -166,8 +166,11 @@ namespace ZEarth.Tests
             // Verify initial defaults
             Assert.IsFalse(vm.IsSunlightEnabled, "Sunlight should default to disabled for uniform daytime view");
             Assert.IsTrue(vm.IsAtmosphereEnabled, "Atmosphere should default to enabled");
-            Assert.AreEqual(12.0, vm.TimeOfDayHours, 0.01, "Time of day should default to 12:00 (Noon)");
-            Assert.IsTrue(vm.TimeOfDayDisplay.Contains("12:00 PM"));
+            var utcNowHours = DateTime.UtcNow.TimeOfDay.TotalHours;
+            var delta = Math.Abs(vm.TimeOfDayHours - utcNowHours);
+            Assert.IsTrue(Math.Min(delta, 24 - delta) < 0.1,
+                "Sunlight should default to the real UTC device clock, not a fixed noon.");
+            StringAssert.Contains(vm.TimeOfDayDisplay, "UTC");
 
             // Test ToggleSunlightCommand
             Assert.IsTrue(vm.ToggleSunlightCommand.CanExecute(null));
