@@ -710,6 +710,8 @@ namespace ZEarth.App.ViewModels
         public ICommand SaveSearchResultToMyPlacesCommand { get; }
         public ICommand SaveSearchResultToTemporaryPlacesCommand { get; }
         public ICommand SetAsStartupSceneCommand { get; }
+        public ICommand MoveSavedSceneUpCommand { get; }
+        public ICommand MoveSavedSceneDownCommand { get; }
         public ICommand OpenPropertiesCommand { get; }
         public ICommand KeepInTemporaryCommand { get; }
         public ICommand SaveTemporaryToProjectCommand { get; }
@@ -1155,6 +1157,8 @@ namespace ZEarth.App.ViewModels
             AddSavedSceneCommand = new RelayCommand(ExecuteAddSavedScene);
             RenamePlaceCommand = new RelayCommand(ExecuteRenamePlace, () => SelectedPlace != null);
             SetAsStartupSceneCommand = new RelayCommand(p => ExecuteSetAsStartupScene(p as PlaceItem));
+            MoveSavedSceneUpCommand = new RelayCommand(() => ExecuteMoveSavedScene(-1));
+            MoveSavedSceneDownCommand = new RelayCommand(() => ExecuteMoveSavedScene(1));
             OpenPropertiesCommand = new RelayCommand(p => ExecuteOpenProperties(p as PlaceItem));
 
             KeepInTemporaryCommand = new RelayCommand(ExecuteKeepInTemporary);
@@ -2425,6 +2429,20 @@ namespace ZEarth.App.ViewModels
             OnPropertyChanged(nameof(SavedScenes));
         }
 
+        private void ExecuteMoveSavedScene(int direction)
+        {
+            if (!CurrentProject.MoveSavedScene(SelectedPlace, direction))
+            {
+                StatusMessage = "Select a saved scene that can move within Saved Scenes.";
+                return;
+            }
+
+            _projectService.IsModified = true;
+            OnPropertyChanged(nameof(MyPlaces));
+            OnPropertyChanged(nameof(SavedScenes));
+            StatusMessage = "Saved scene order updated. The first scene is the startup view.";
+        }
+
         private void ExecuteSetAsStartupScene(PlaceItem? scene)
         {
             var targetScene = scene ?? SelectedPlace;
@@ -2948,7 +2966,7 @@ namespace ZEarth.App.ViewModels
                 var dlg = new OpenFileDialog
                 {
                     Filter = "KML / KMZ Geographic Files (*.kml;*.kmz)|*.kml;*.kmz|Keyhole Markup Language (*.kml)|*.kml|Zipped KML (*.kmz)|*.kmz|All Files (*.*)|*.*",
-                    Title = "Import KML / KMZ into My Places"
+                    Title = "Import KML / KMZ into Temporary Places"
                 };
 
                 if (dlg.ShowDialog() == true)
@@ -2975,11 +2993,16 @@ namespace ZEarth.App.ViewModels
 
                     importedTree.Name = Path.GetFileName(filePath);
 
-                    _undoRedo.ExecuteAction(new AddPlaceAction(MyPlaces, importedTree));
-                    _pendingSessionItems.Add(importedTree);
+                    // Like Google Earth Pro: imports first appear in Temporary Places.
+                    // Explicit "Save to My Places" promotes them; the project/session can
+                    // retain Temporary Places without silently committing them permanently.
+                    _undoRedo.ExecuteAction(new AddPlaceAction(TemporaryPlaces, importedTree));
+                    _temporarySessionService.SaveSession(TemporaryPlaces);
+                    _projectService.IsModified = true;
                     SelectedPlace = importedTree;
                     UpdatePlacesOnGlobe();
                     OnPropertyChanged(nameof(MyPlaces));
+                    OnPropertyChanged(nameof(TemporaryPlaces));
 
                     // Collect bounding coordinates to fit view
                     var coords = new List<CoordinatePoint>();
@@ -3013,7 +3036,7 @@ namespace ZEarth.App.ViewModels
 
                     if (string.IsNullOrEmpty(directFilePath))
                     {
-                        MessageBox.Show($"File '{Path.GetFileName(filePath)}' was imported into My Places.\nRoot: {importedTree.Name} ({importedTree.Children.Count} children)\n\nYou can keep it in Temporary Places when you close Z EARTH.", "KML Import", MessageBoxButton.OK, MessageBoxImage.Information);
+                        MessageBox.Show($"File '{Path.GetFileName(filePath)}' was imported into Temporary Places.\nRoot: {importedTree.Name} ({importedTree.Children.Count} children)\n\nChoose Save to My Places to make it permanent.", "KML Import", MessageBoxButton.OK, MessageBoxImage.Information);
                     }
                 }
                 catch (Exception ex)
@@ -3236,6 +3259,16 @@ namespace ZEarth.App.ViewModels
                 }
             }
 
+            if (points == null || points.Count() < 2)
+            {
+                MessageBox.Show("Draw or select a path with at least two coordinates first. " +
+                    "A terrain elevation profile requires actual DEM samples; Z EARTH will not invent heights.",
+                    "Elevation Profile — No Valid Path", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            // Stored vertex altitudes are not equivalent to elevations sampled from
+            // the active DEM; the dialog labels their provenance explicitly.
             var dlg = new Views.ElevationProfileDialog(points)
             {
                 Owner = Application.Current?.MainWindow

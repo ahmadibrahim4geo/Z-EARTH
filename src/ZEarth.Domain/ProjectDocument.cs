@@ -164,6 +164,28 @@ namespace ZEarth.Domain
         [Obsolete("Use EnsureTemporaryPlacesFolder(). The folder now belongs to the My Places tree.")]
         public PlaceItem CreateTemporaryPlacesViewFolder() => EnsureTemporaryPlacesFolder();
 
+        /// <summary>
+        /// Move a saved scene inside the dedicated Saved Scenes folder.
+        /// The item at index zero is always the project startup scene.
+        /// System folders and ordinary placemarks cannot be reordered by this method.
+        /// </summary>
+        public bool MoveSavedScene(PlaceItem? scene, int direction)
+        {
+            if (scene == null || scene.ItemType != PlaceItemType.SavedScene ||
+                (direction != -1 && direction != 1))
+                return false;
+
+            var folder = EnsureSavedScenesFolder();
+            var oldIndex = folder.Children.IndexOf(scene);
+            var newIndex = oldIndex + direction;
+            if (oldIndex < 0 || newIndex < 0 || newIndex >= folder.Children.Count)
+                return false;
+
+            folder.Children.Move(oldIndex, newIndex);
+            SyncSavedScenes(); // Reassigns the ★ startup marker to the new first scene.
+            return true;
+        }
+
         public void SyncSavedScenes()
         {
             var folder = MyPlaces.FirstOrDefault(p => p.ItemType == PlaceItemType.Folder &&
