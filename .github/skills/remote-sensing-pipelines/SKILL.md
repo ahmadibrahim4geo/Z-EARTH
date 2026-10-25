@@ -14,6 +14,10 @@ Use for satellite scenes, Earth Engine, STAC/COG collections, cloud masking and 
 
 The [free STAC ItemCollection metadata test](../../examples/stac-offline/README.md) filters synthetic items by UTC acquisition date, approximate bbox and cloud fraction, without contacting or downloading assets. A bbox intersection is not a polygon intersection and sample fixture URLs are deliberately invalid. Real satellite imagery requires an authenticated/authorized source STAC API, pagination and asset-level verification.
 
+## Esri raster AI references
+
+[Esri raster deep learning](https://github.com/Esri/raster-deep-learning) demonstrates Python raster inference functions. Sample source code does not include rights to Image Analyst, model weights, satellite data or GPU runtimes. Verify band scales, masks, CRS and outputs, and use independently licensed inference engines when the target is standalone.
+
 ## Required workflow
 1. Confirm product/sensor/collection/processing level, acquisition dates, AOI, coverage, spatial resolution, data license, access and expected data semantics.
 2. Verify reflectance scaling, offsets, band order, radiometric processing, sun angle, saturation, nodata and **per-pixel** cloud/shadow QA; scene `CLOUD_COVER` alone is insufficient.
