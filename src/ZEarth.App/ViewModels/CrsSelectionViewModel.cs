@@ -122,6 +122,10 @@ namespace ZEarth.App.ViewModels
             SelectedCrs = _crsRegistry.GetByEpsg(initialEpsg) ?? _crsRegistry.GetByEpsg(4326);
         }
 
+        public string CatalogStatus => _crsRegistry.GetAll().Count > 1000
+            ? $"Offline EPSG/PROJ catalog: {_crsRegistry.GetAll().Count:N0} systems • geographic folders derived from areas of use"
+            : "Limited built-in CRS presets: proj.db unavailable; install the complete GDAL/PROJ runtime.";
+
         private void BuildTree()
         {
             RootNodes.Clear();
@@ -145,9 +149,10 @@ namespace ZEarth.App.ViewModels
             }
             RootNodes.Add(favNode);
 
-            // 2. Layers Node (In-Use project layer CRSs)
-            var layersNode = new CrsTreeNode { Name = "Layers (In-Use Project Layers)", IsCategory = true };
-            var inUseCodes = new[] { 4326, 32636 };
+            // Project CRS is live configuration, not fabricated EPSG:32636.
+            // Source-layer CRSs must be added only when the active layer exposes them.
+            var layersNode = new CrsTreeNode { Name = "Layers (Current Map CRS)", IsCategory = true };
+            var inUseCodes = new[] { SettingsService.Instance.Settings.MapCrsEpsg };
             foreach (var code in inUseCodes)
             {
                 var crs = _crsRegistry.GetByEpsg(code);

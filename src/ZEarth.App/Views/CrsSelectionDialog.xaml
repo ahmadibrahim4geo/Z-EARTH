@@ -30,6 +30,7 @@
                     <TextBlock Text="Map Coordinate Reference System (CRS) Browser" FontSize="15" FontWeight="Bold" Foreground="{DynamicResource Brush.Text.Primary}"/>
                     <TextBlock Text="Select a Geographic or Projected Coordinate System for 2D map reprojection, layer alignment, and coordinate readouts."
                                FontSize="11" Foreground="{DynamicResource Brush.Text.Secondary}"/>
+                    <TextBlock Text="{Binding CatalogStatus}" FontSize="10.5" TextWrapping="Wrap" Foreground="{DynamicResource Brush.Text.Secondary}" Margin="0,4,0,0"/>
                 </StackPanel>
             </StackPanel>
         </Border>

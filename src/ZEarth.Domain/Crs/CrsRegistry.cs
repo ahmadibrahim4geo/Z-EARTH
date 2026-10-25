@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.IO;
+using Microsoft.Data.Sqlite;
+using ZEarth.Domain.Gis;
 
 namespace ZEarth.Domain.Crs
 {
@@ -20,6 +23,10 @@ namespace ZEarth.Domain.Crs
         public CrsRegistry()
         {
             RegisterCoreCrs();
+            // Merge the complete installed PROJ EPSG catalog into the curated presets.
+            // Do not claim the tiny built-in list is a complete world CRS catalog.
+            foreach (var item in ProjCatalog.Value)
+                if (!_byEpsg.ContainsKey(item.EpsgCode)) Register(item);
         }
 
         private void Register(CrsDefinition crs)
@@ -312,6 +319,130 @@ namespace ZEarth.Domain.Crs
                 Datum = "Earth Gravitational Model 2008",
                 Ellipsoid = "WGS 84"
             });
+        }
+
+        // PROJ is shipped by the GDAL runtime in supported Windows builds. The
+        // catalog is read offline and cached; if missing, the caller can visibly
+        // identify the limited curated fallback rather than fabricating CRS entries.
+        private static readonly Lazy<IReadOnlyList<CrsDefinition>> ProjCatalog = new(LoadProjCatalog);
+        public int ProjCatalogCount => ProjCatalog.Value.Count;
+
+        private static string? LocateProjDatabase()
+        {
+            GdalConfiguration.EnsureInitialized();
+            var candidates = new List<string>();
+            foreach (var key in new[] { "PROJ_DATA", "PROJ_LIB" })
+            {
+                var folder = Environment.GetEnvironmentVariable(key);
+                if (!string.IsNullOrWhiteSpace(folder))
+                    candidates.Add(Path.Combine(folder, "proj.db"));
+            }
+            candidates.Add(Path.Combine(AppContext.BaseDirectory, "proj.db"));
+            candidates.Add(Path.Combine(AppContext.BaseDirectory, "share", "proj", "proj.db"));
+            candidates.Add(Path.Combine(AppContext.BaseDirectory, "runtimes", "win-x64", "native", "share", "proj", "proj.db"));
+            foreach (var file in candidates)
+                if (File.Exists(file)) return file;
+            try
+            {
+                return Directory.EnumerateFiles(AppContext.BaseDirectory, "proj.db", SearchOption.AllDirectories).FirstOrDefault();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("PROJ catalog discovery: " + ex.Message);
+                return null;
+            }
+        }
+
+        private static readonly (string Region, string Names)[] CountryRegions = {
+            ("Africa", "Algeria|Angola|Benin|Botswana|Burkina Faso|Burundi|Cabo Verde|Cape Verde|Cameroon|Central African Republic|Chad|Comoros|Congo|Democratic Republic of the Congo|Djibouti|Egypt|Equatorial Guinea|Eritrea|Eswatini|Ethiopia|Gabon|Gambia|Ghana|Guinea-Bissau|Guinea|Ivory Coast|Côte d'Ivoire|Kenya|Lesotho|Liberia|Libya|Madagascar|Malawi|Mali|Mauritania|Mauritius|Morocco|Mozambique|Namibia|Niger|Nigeria|Rwanda|Sao Tome|São Tomé|Senegal|Seychelles|Sierra Leone|Somalia|South Africa|South Sudan|Sudan|Tanzania|Togo|Tunisia|Uganda|Western Sahara|Zambia|Zimbabwe"),
+            ("Asia", "Afghanistan|Armenia|Azerbaijan|Bahrain|Bangladesh|Bhutan|Brunei|Cambodia|China|Cyprus|Georgia|India|Indonesia|Iran|Iraq|Israel|Japan|Jordan|Kazakhstan|Kuwait|Kyrgyzstan|Laos|Lebanon|Malaysia|Maldives|Mongolia|Myanmar|Nepal|North Korea|Oman|Pakistan|Palestine|Philippines|Qatar|Saudi Arabia|Singapore|South Korea|Sri Lanka|Syria|Taiwan|Tajikistan|Thailand|Timor-Leste|Turkey|Türkiye|Turkmenistan|United Arab Emirates|Uzbekistan|Vietnam|Yemen"),
+            ("Europe", "Albania|Andorra|Austria|Belarus|Belgium|Bosnia and Herzegovina|Bulgaria|Croatia|Czechia|Czech Republic|Denmark|Estonia|Finland|France|Germany|Gibraltar|Greece|Hungary|Iceland|Ireland|Italy|Kosovo|Latvia|Liechtenstein|Lithuania|Luxembourg|Malta|Moldova|Monaco|Montenegro|Netherlands|North Macedonia|Norway|Poland|Portugal|Romania|Russia|San Marino|Serbia|Slovakia|Slovenia|Spain|Sweden|Switzerland|Ukraine|United Kingdom|Vatican City"),
+            ("North America", "Anguilla|Antigua|Bahamas|Barbados|Belize|Bermuda|Canada|Cayman Islands|Costa Rica|Cuba|Dominica|Dominican Republic|El Salvador|Greenland|Grenada|Guatemala|Haiti|Honduras|Jamaica|Mexico|Nicaragua|Panama|Puerto Rico|Saint Kitts|Saint Lucia|Saint Vincent|Trinidad and Tobago|United States|US Virgin Islands"),
+            ("South America", "Argentina|Bolivia|Brazil|Chile|Colombia|Ecuador|Falkland Islands|French Guiana|Guyana|Paraguay|Peru|Suriname|Uruguay|Venezuela"),
+            ("Australia and New Zealand", "Australia|New Zealand|Papua New Guinea|Fiji|New Caledonia|Solomon Islands|Vanuatu|Samoa|Tonga|Kiribati|Tuvalu")
+        };
+
+        private static string AreaFolder(string area)
+        {
+            if (string.IsNullOrWhiteSpace(area) || area.Equals("World", StringComparison.OrdinalIgnoreCase))
+                return "World";
+            foreach (var (region, names) in CountryRegions)
+            {
+                foreach (var country in names.Split('|').OrderByDescending(x => x.Length))
+                {
+                    if (!area.StartsWith(country, StringComparison.OrdinalIgnoreCase)) continue;
+                    if (area.Length == country.Length || !char.IsLetter(area[country.Length]))
+                        return region + "/" + country;
+                }
+            }
+            foreach (var heading in new[] { "Africa", "Asia", "Europe", "North America", "South America",
+                "Australia", "Antarctica", "Arctic", "Pacific", "Oceania" })
+            {
+                if (area.Contains(heading, StringComparison.OrdinalIgnoreCase))
+                    return heading;
+            }
+            // A country/region without verified classification is kept searchable
+            // without falsely assigning it to a continent or an official Esri path.
+            return "Other Areas/" + (area.Split(" - ")[0].Trim().Replace("/", " – "));
+        }
+
+        private static IReadOnlyList<CrsDefinition> LoadProjCatalog()
+        {
+            var path = LocateProjDatabase();
+            var results = new List<CrsDefinition>();
+            if (path == null) return results;
+            try
+            {
+                var cs = new SqliteConnectionStringBuilder { DataSource = path, Mode = SqliteOpenMode.ReadOnly };
+                using var connection = new SqliteConnection(cs.ToString());
+                connection.Open();
+                foreach (var table in new[] { "geodetic_crs", "projected_crs", "vertical_crs" })
+                {
+                    using var cmd = connection.CreateCommand();
+                    // All table identifiers come from our fixed internal allowlist.
+                    cmd.CommandText = $@"SELECT CAST(t.code AS TEXT), t.name,
+                        COALESCE(e.name,'World') AS area, COALESCE(un.name,'metre') AS unit,
+                        COALESCE(t.text_definition,'') AS definition
+                        FROM {table} t
+                        LEFT JOIN usage u ON u.object_table_name='{table}'
+                          AND u.object_auth_name=t.auth_name AND u.object_code=t.code
+                        LEFT JOIN extent e ON e.auth_name=u.extent_auth_name AND e.code=u.extent_code
+                        LEFT JOIN axis ax ON ax.coordinate_system_auth_name=t.coordinate_system_auth_name
+                          AND ax.coordinate_system_code=t.coordinate_system_code AND ax.coordinate_system_order=1
+                        LEFT JOIN unit_of_measure un ON un.auth_name=ax.uom_auth_name AND un.code=ax.uom_code
+                        WHERE t.auth_name='EPSG' AND t.deprecated=0
+                        {(table == "geodetic_crs" ? "AND t.type LIKE 'geographic %'" : "")}
+                        ORDER BY CAST(t.code AS INTEGER)";
+                    using var rd = cmd.ExecuteReader();
+                    while (rd.Read())
+                    {
+                        if (!int.TryParse(rd.GetString(0), out var code) || code <= 0) continue;
+                        var name = rd.GetString(1);
+                        var area = rd.GetString(2);
+                        var unit = rd.GetString(3);
+                        var vertical = table == "vertical_crs";
+                        var projected = table == "projected_crs";
+                        var prefix = vertical ? "Vertical Coordinate Systems" :
+                            projected ? "Projected Coordinate Systems" : "Geographic Coordinate Systems";
+                        var group = projected && name.Contains("UTM zone", StringComparison.OrdinalIgnoreCase)
+                            ? "World/UTM Zone Series" : AreaFolder(area);
+                        var result = new CrsDefinition(code, name, area, projected, unit, prefix + "/" + group)
+                        {
+                            IsVerticalOnly = vertical,
+                            Datum = "See EPSG definition",
+                            Ellipsoid = "See EPSG definition",
+                            Wkt = rd.GetString(4)
+                        };
+                        if (!results.Any(x => x.EpsgCode == code)) results.Add(result);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("PROJ CRS catalog unavailable: " + ex.Message);
+                results.Clear(); // never pass off partial data as a full catalog
+            }
+            return results;
         }
 
         public IReadOnlyList<CrsDefinition> GetAll() => _crsList.AsReadOnly();
