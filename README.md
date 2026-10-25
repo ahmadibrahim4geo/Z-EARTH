@@ -6,6 +6,12 @@ Open-source-oriented **Windows desktop GIS development project** using **.NET 10
 
 **Developer:** Ahmed Ibrahim. [الدليل بالعربية](README.ar.md) · [Agent guide](AGENTS.md) · [User manual EN](docs/USER_MANUAL_EN.md) · [User manual AR](docs/USER_MANUAL_AR.md) · [Licensing and privacy](LEGAL_AND_PRIVACY_NOTICES.md).
 
+## Download the Windows EXE (Portable Preview)
+
+The GitHub source repository previously **did not publish its compiled .exe**; green Actions builds only uploaded unit-test logs. The [Windows portable preview guide](docs/PORTABLE_PREVIEW.md) now explains how to download the **latest successful main-branch Actions artifact** named `Z-EARTH-v2.2.4-win-x64-portable-preview`, extract it, and launch `Z EARTH.exe` with bundled Cesium assets.
+
+[Open the latest build / download artifacts](https://github.com/ahmadibrahim4geo/Z-EARTH/actions/workflows/build-and-test.yml). The unsigned self-contained **preview** is subject to CI publication/30-day retention; it is not a production GitHub Release. Native Windows GPU/WebView2 checks remain necessary. Existing release notes labelled v1.0.0 are historical and should not be mistaken for the current 2.2.4 source.
+
 ## Fresh clone: free prerequisites
 
 - Windows 10/11 x64 and **.NET 10 SDK** for source development.
