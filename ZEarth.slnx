@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/ZEarth.App/ZEarth.App.csproj" />
+    <Project Path="src/ZEarth.Domain/ZEarth.Domain.csproj" />
+    <Project Path="src/ZEarth.Globe/ZEarth.Globe.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ZEarth.Tests/ZEarth.Tests.csproj" />
+  </Folder>
+</Solution>

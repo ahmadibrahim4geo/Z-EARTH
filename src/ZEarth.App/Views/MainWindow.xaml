@@ -1,0 +1,1482 @@
+<Window x:Class="ZEarth.App.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
+        xmlns:domain="clr-namespace:ZEarth.Domain;assembly=ZEarth.Domain"
+        xmlns:sys="clr-namespace:System;assembly=System.Runtime"
+        mc:Ignorable="d"
+        Title="{Binding WindowTitle}"
+        Height="850" Width="1380"
+        MinHeight="650" MinWidth="980"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource Brush.Window.Background}"
+        Foreground="{StaticResource Brush.Text.Primary}"
+        FontFamily="Segoe UI">
+
+    <!-- Global Keyboard Accelerators (ZE-008, ZE-009, ZE-011) -->
+    <Window.InputBindings>
+        <KeyBinding Key="N" Modifiers="Control" Command="{Binding NewProjectCommand}"/>
+        <KeyBinding Key="O" Modifiers="Control" Command="{Binding OpenProjectCommand}"/>
+        <KeyBinding Key="S" Modifiers="Control" Command="{Binding SaveProjectCommand}"/>
+        <KeyBinding Key="Z" Modifiers="Control" Command="{Binding UndoCommand}"/>
+        <KeyBinding Key="Y" Modifiers="Control" Command="{Binding RedoCommand}"/>
+        <KeyBinding Key="B" Modifiers="Control" Command="{Binding ToggleSidebarCollapseCommand}"/>
+        <KeyBinding Key="T" Modifiers="Control" Command="{Binding ToggleThemeCommand}"/>
+        <KeyBinding Key="D" Modifiers="Control+Shift" Command="{Binding ToggleSidebarDockCommand}"/>
+        <KeyBinding Key="Home" Command="{Binding HomeCommand}"/>
+        <KeyBinding Key="E" Modifiers="Control+Shift" Command="{Binding FullExtentCommand}"/>
+        <KeyBinding Key="F" Command="{Binding FitSelectionCommand}"/>
+        <KeyBinding Key="Left" Modifiers="Alt" Command="{Binding PreviousExtentCommand}"/>
+        <KeyBinding Key="Right" Modifiers="Alt" Command="{Binding NextExtentCommand}"/>
+        <KeyBinding Key="F1" Command="{Binding AboutCommand}"/>
+    </Window.InputBindings>
+
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+        <!-- Places TreeView Item Template -->
+        <HierarchicalDataTemplate DataType="{x:Type domain:PlaceItem}" ItemsSource="{Binding Children}">
+            <StackPanel Orientation="Horizontal" Margin="2,1">
+                <StackPanel.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem Header="Fly To" Command="{Binding DataContext.FlyToPlaceCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}">
+                            <MenuItem.Icon>
+                                <Path Data="{StaticResource Icon.FlyTo}" Style="{StaticResource MenuItemIconStyle}"/>
+                            </MenuItem.Icon>
+                        </MenuItem>
+                        <MenuItem Header="Save to My Places" Command="{Binding DataContext.SaveToMyPlacesCommand, RelativeSource={RelativeSource AncestorType=Window}}">
+                            <MenuItem.Icon>
+                                <Path Data="{StaticResource Icon.Save}" Style="{StaticResource MenuItemIconStyle}"/>
+                            </MenuItem.Icon>
+                        </MenuItem>
+                        <Separator/>
+                        <MenuItem Header="Add Placemark" Command="{Binding DataContext.AddPlacemarkCommand, RelativeSource={RelativeSource AncestorType=Window}}">
+                            <MenuItem.Icon>
+                                <Path Data="{StaticResource Icon.Placemark}" Style="{StaticResource MenuItemIconStyle}"/>
+                            </MenuItem.Icon>
+                        </MenuItem>
+                        <MenuItem Header="Add Folder" Command="{Binding DataContext.AddFolderCommand, RelativeSource={RelativeSource AncestorType=Window}}">
+                            <MenuItem.Icon>
+                                <Path Data="{StaticResource Icon.Folder}" Style="{StaticResource MenuItemIconStyle}"/>
+                            </MenuItem.Icon>
+                        </MenuItem>
+                        <Separator/>
+                        <MenuItem Header="Delete" Command="{Binding DataContext.DeletePlaceCommand, RelativeSource={RelativeSource AncestorType=Window}}">
+                            <MenuItem.Icon>
+                                <Path Data="{StaticResource Icon.Trash}" Style="{StaticResource MenuItemIconStyle}"/>
+                            </MenuItem.Icon>
+                        </MenuItem>
+                    </ContextMenu>
+                </StackPanel.ContextMenu>
+                <CheckBox IsChecked="{Binding IsVisible}" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                <Path Data="{StaticResource Icon.Folder}" Style="{StaticResource RibbonSmallIconStyle}" Margin="0,0,5,0"
+                      Visibility="{Binding Children.Count, Converter={x:Null}}"/>
+                <TextBlock Text="{Binding Name}" Foreground="{StaticResource Brush.Text.Primary}" FontSize="12" VerticalAlignment="Center"/>
+            </StackPanel>
+        </HierarchicalDataTemplate>
+
+        <!-- Ribbon Group Border & Header Style -->
+        <Style x:Key="RibbonGroupBorderStyle" TargetType="Border">
+            <Setter Property="BorderBrush" Value="{StaticResource Brush.Ribbon.Border}"/>
+            <Setter Property="BorderThickness" Value="0,0,1,0"/>
+            <Setter Property="Padding" Value="6,4,6,2"/>
+            <Setter Property="Margin" Value="0,0,2,0"/>
+        </Style>
+
+        <Style x:Key="RibbonGroupHeaderStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="Foreground" Value="{StaticResource Brush.Text.Muted}"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="0,2,0,0"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Background="{StaticResource Brush.Window.Background}">
+        <Grid.RowDefinitions>
+            <!-- Row 0: Title Bar & Quick Access Toolbar -->
+            <RowDefinition Height="36"/>
+            <!-- Row 1: GIS Ribbon Interface -->
+            <RowDefinition Height="Auto"/>
+            <!-- Row 2: Main Workspace (Sidebar + Splitter + Globe Viewport) -->
+            <RowDefinition Height="*"/>
+            <!-- Row 3: Two-Row Professional Status Bar (CRS-01..08) -->
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- ==================== ROW 0: TITLE BAR & QUICK ACCESS ==================== -->
+        <Border Grid.Row="0" Background="{StaticResource Brush.Window.Background}"
+                BorderBrush="{StaticResource Brush.Ribbon.Border}" BorderThickness="0,0,0,1" Padding="8,0">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <!-- Brand & Approved Logo -->
+                    <ColumnDefinition Width="Auto"/>
+                    <!-- Quick Access Commands -->
+                    <ColumnDefinition Width="Auto"/>
+                    <!-- Document Title -->
+                    <ColumnDefinition Width="*"/>
+                    <!-- 3D/2D View Mode Pill -->
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Approved Branding Header -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="2,0,14,0">
+                    <Image Source="/Assets/zearth_approved_icon.png" Width="20" Height="20" Margin="0,0,8,0"
+                           RenderOptions.BitmapScalingMode="HighQuality"/>
+                    <TextBlock Text="Z" FontWeight="Bold" FontSize="14" Foreground="#009bff"/>
+                    <TextBlock Text=" E" FontWeight="Bold" FontSize="14" Foreground="{StaticResource Brush.Text.Primary}"/>
+                    <Grid Margin="0.5,0">
+                        <TextBlock Text="A" FontWeight="Bold" FontSize="14" Foreground="{StaticResource Brush.Text.Primary}"/>
+                        <Polygon Points="4,7 5.5,4 7,7" Fill="#009bff"/>
+                    </Grid>
+                    <TextBlock Text="RTH" FontWeight="Bold" FontSize="14" Foreground="{StaticResource Brush.Text.Primary}"/>
+                    <TextBlock Text=" | DESKTOP GIS" FontSize="10.5" FontWeight="SemiBold" Foreground="{StaticResource Brush.Accent}"
+                               VerticalAlignment="Center" Margin="5,0,0,0"/>
+                </StackPanel>
+
+                <!-- Quick Access Toolbar Buttons -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Style="{StaticResource QuickAccessBtnStyle}" Command="{Binding NewProjectCommand}" ToolTip="New Project (Ctrl+N)">
+                        <Path Data="{StaticResource Icon.New}" Style="{StaticResource RibbonSmallIconStyle}"/>
+                    </Button>
+                    <Button Style="{StaticResource QuickAccessBtnStyle}" Command="{Binding OpenProjectCommand}" ToolTip="Open Project (Ctrl+O)">
+                        <Path Data="{StaticResource Icon.Open}" Style="{StaticResource RibbonSmallIconStyle}"/>
+                    </Button>
+                    <Button Style="{StaticResource QuickAccessBtnStyle}" Command="{Binding SaveProjectCommand}" ToolTip="Save Project (Ctrl+S)">
+                        <Path Data="{StaticResource Icon.Save}" Style="{StaticResource RibbonSmallIconStyle}"/>
+                    </Button>
+                    <Rectangle Width="1" Height="14" Fill="{StaticResource Brush.Ribbon.Border}" Margin="4,0"/>
+                    <Button Style="{StaticResource QuickAccessBtnStyle}" Command="{Binding UndoCommand}" ToolTip="Undo (Ctrl+Z)">
+                        <Path Data="{StaticResource Icon.Undo}" Style="{StaticResource RibbonSmallIconStyle}"/>
+                    </Button>
+                    <Button Style="{StaticResource QuickAccessBtnStyle}" Command="{Binding RedoCommand}" ToolTip="Redo (Ctrl+Y)">
+                        <Path Data="{StaticResource Icon.Redo}" Style="{StaticResource RibbonSmallIconStyle}"/>
+                    </Button>
+                    <Rectangle Width="1" Height="14" Fill="{StaticResource Brush.Ribbon.Border}" Margin="4,0"/>
+                    <Button Style="{StaticResource QuickAccessBtnStyle}" Command="{Binding HomeCommand}" ToolTip="Home View (Home)">
+                        <Path Data="{StaticResource Icon.Home}" Style="{StaticResource RibbonSmallIconStyle}"/>
+                    </Button>
+                    <Button Style="{StaticResource QuickAccessBtnStyle}" Command="{Binding FullExtentCommand}" ToolTip="Full Global Extent (Ctrl+Shift+E)">
+                        <Path Data="{StaticResource Icon.FullGlobe}" Style="{StaticResource RibbonSmallIconStyle}"/>
+                    </Button>
+                    <Button Style="{StaticResource QuickAccessBtnStyle}" Command="{Binding PreviousExtentCommand}" ToolTip="Previous Extent (Alt+Left)">
+                        <Path Data="{StaticResource Icon.PrevExtent}" Style="{StaticResource RibbonSmallIconStyle}"/>
+                    </Button>
+                    <Button Style="{StaticResource QuickAccessBtnStyle}" Command="{Binding NextExtentCommand}" ToolTip="Next Extent (Alt+Right)">
+                        <Path Data="{StaticResource Icon.NextExtent}" Style="{StaticResource RibbonSmallIconStyle}"/>
+                    </Button>
+                    <Rectangle Width="1" Height="14" Fill="{StaticResource Brush.Ribbon.Border}" Margin="4,0"/>
+                    <Button Style="{StaticResource QuickAccessBtnStyle}" Command="{Binding ToggleThemeCommand}" ToolTip="{Binding ThemeToggleLabel}">
+                        <Path Data="{StaticResource Icon.ThemeToggle}" Style="{StaticResource RibbonSmallIconStyle}"/>
+                    </Button>
+                    <Button Style="{StaticResource QuickAccessBtnStyle}" Command="{Binding ToggleSidebarCollapseCommand}" ToolTip="{Binding CollapseToggleLabel}">
+                        <Path Data="{StaticResource Icon.SidebarToggle}" Style="{StaticResource RibbonSmallIconStyle}"/>
+                    </Button>
+                </StackPanel>
+
+                <!-- Center Document Title -->
+                <TextBlock Grid.Column="2" Text="{Binding WindowTitle}" FontSize="11.5" Foreground="{StaticResource Brush.Text.Muted}"
+                           HorizontalAlignment="Center" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+
+                <!-- Right Controls: View Mode & Theme Toggle -->
+                <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Border Background="{StaticResource Brush.Sidebar.Background}" CornerRadius="12"
+                            BorderBrush="{StaticResource Brush.Control.Border}" BorderThickness="1" Padding="3,1">
+                        <StackPanel Orientation="Horizontal">
+                            <RadioButton Content="3D Globe" GroupName="SceneModeGroup" IsChecked="{Binding Is3DMode, Mode=TwoWay}"
+                                         Foreground="{StaticResource Brush.Text.Primary}" FontWeight="SemiBold" FontSize="11" Margin="4,0"/>
+                            <RadioButton Content="2D Map" GroupName="SceneModeGroup" IsChecked="{Binding Is2DMode, Mode=TwoWay}"
+                                         Foreground="{StaticResource Brush.Text.Primary}" FontWeight="SemiBold" FontSize="11" Margin="4,0"/>
+                        </StackPanel>
+                    </Border>
+                    <Button Style="{StaticResource QuickAccessBtnStyle}" Command="{Binding ToggleThemeCommand}"
+                            ToolTip="{Binding ThemeToggleLabel}" Margin="6,0,0,0">
+                        <Path Data="{StaticResource Icon.ThemeToggle}" Style="{StaticResource RibbonSmallIconStyle}"/>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ==================== ROW 1: GIS RIBBON INTERFACE ==================== -->
+        <Border Grid.Row="1" Background="{StaticResource Brush.Ribbon.Background}"
+                BorderBrush="{StaticResource Brush.Ribbon.Border}" BorderThickness="0,0,0,1">
+            <TabControl SelectedIndex="{Binding SelectedRibbonTab}" Background="Transparent" BorderThickness="0">
+                <TabControl.Resources>
+                    <Style TargetType="TabItem">
+                        <Setter Property="Foreground" Value="{StaticResource Brush.Text.Secondary}"/>
+                        <Setter Property="FontSize" Value="12"/>
+                        <Setter Property="FontWeight" Value="SemiBold"/>
+                        <Setter Property="Padding" Value="14,6"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="TabItem">
+                                    <Border Name="tabHeader" Background="Transparent" BorderBrush="Transparent" BorderThickness="0,2,0,0"
+                                            Padding="{TemplateBinding Padding}">
+                                        <ContentPresenter ContentSource="Header" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="tabHeader" Property="Background" Value="{StaticResource Brush.Control.Background}"/>
+                                            <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}"/>
+                                        </Trigger>
+                                        <Trigger Property="IsSelected" Value="True">
+                                            <Setter TargetName="tabHeader" Property="Background" Value="{StaticResource Brush.Sidebar.Background}"/>
+                                            <Setter TargetName="tabHeader" Property="BorderBrush" Value="{StaticResource Brush.Accent}"/>
+                                            <Setter Property="Foreground" Value="{StaticResource Brush.Accent}"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </TabControl.Resources>
+
+                <!-- TAB 0: PROJECT -->
+                <TabItem Header="Project">
+                    <StackPanel Orientation="Horizontal" Height="90" Background="{StaticResource Brush.Ribbon.Background}" Margin="4,2">
+                        <!-- Group: File Management -->
+                        <Border Style="{StaticResource RibbonGroupBorderStyle}">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <StackPanel Grid.Row="0" Orientation="Horizontal">
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding NewProjectCommand}" ToolTip="Create new empty GIS project (Ctrl+N)">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <TextBlock Text="📄" FontSize="20" HorizontalAlignment="Center" Foreground="{StaticResource Brush.Accent}"/>
+                                            <TextBlock Text="New" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding OpenProjectCommand}" ToolTip="Open existing project (Ctrl+O)">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <TextBlock Text="📂" FontSize="20" HorizontalAlignment="Center" Foreground="#fbbf24"/>
+                                            <TextBlock Text="Open" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding SaveProjectCommand}" ToolTip="Save project changes (Ctrl+S)">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <TextBlock Text="💾" FontSize="20" HorizontalAlignment="Center" Foreground="#34d399"/>
+                                            <TextBlock Text="Save" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding SaveAsProjectCommand}" ToolTip="Save project with a new name">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <TextBlock Text="📑" FontSize="20" HorizontalAlignment="Center" Foreground="{StaticResource Brush.Text.Secondary}"/>
+                                            <TextBlock Text="Save As" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Button>
+                                </StackPanel>
+                                <TextBlock Grid.Row="1" Text="Project File" Style="{StaticResource RibbonGroupHeaderStyle}"/>
+                            </Grid>
+                        </Border>
+
+                        <!-- Group: Undo / Redo (Sprint 3) -->
+                        <Border Style="{StaticResource RibbonGroupBorderStyle}">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <StackPanel Grid.Row="0" Orientation="Horizontal">
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding UndoCommand}" ToolTip="Undo Last Action (Ctrl+Z)">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <Path Data="{StaticResource Icon.Undo}" Style="{StaticResource RibbonLargeIconStyle}" Fill="{StaticResource Brush.Accent}"/>
+                                            <TextBlock Text="Undo" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding RedoCommand}" ToolTip="Redo Reverted Action (Ctrl+Y)">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <Path Data="{StaticResource Icon.Redo}" Style="{StaticResource RibbonLargeIconStyle}" Fill="{StaticResource Brush.Accent}"/>
+                                            <TextBlock Text="Redo" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Button>
+                                </StackPanel>
+                                <TextBlock Grid.Row="1" Text="History" Style="{StaticResource RibbonGroupHeaderStyle}"/>
+                            </Grid>
+                        </Border>
+
+                        <!-- Group: Import / Export -->
+                        <Border Style="{StaticResource RibbonGroupBorderStyle}">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <StackPanel Grid.Row="0" Orientation="Horizontal">
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding ImportKmlCommand}" ToolTip="Import KML / KMZ into My Places">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <Path Data="{StaticResource Icon.KmlImport}" Style="{StaticResource RibbonLargeIconStyle}" Fill="{StaticResource Brush.Accent}"/>
+                                            <TextBlock Text="Import KML" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding ExportKmlCommand}" ToolTip="Export current Places hierarchy to KML 2.2">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <Path Data="{StaticResource Icon.KmlExport}" Style="{StaticResource RibbonLargeIconStyle}" Fill="#f472b6"/>
+                                            <TextBlock Text="Export KML" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding ExportKmzCommand}" ToolTip="Export current Places hierarchy to compressed KMZ bundle">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <Path Data="{StaticResource Icon.KmzExport}" Style="{StaticResource RibbonLargeIconStyle}" Fill="#38bdf8"/>
+                                            <TextBlock Text="Export KMZ" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Button>
+                                </StackPanel>
+                                <TextBlock Grid.Row="1" Text="Interchange" Style="{StaticResource RibbonGroupHeaderStyle}"/>
+                            </Grid>
+                        </Border>
+                    </StackPanel>
+                </TabItem>
+
+                <!-- TAB 1: NAVIGATION -->
+                <TabItem Header="Navigation">
+                    <StackPanel Orientation="Horizontal" Height="90" Background="{StaticResource Brush.Ribbon.Background}" Margin="4,2">
+                        <!-- Group: Standard Views -->
+                        <Border Style="{StaticResource RibbonGroupBorderStyle}">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <StackPanel Grid.Row="0" Orientation="Horizontal">
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding HomeCommand}" ToolTip="{Binding HomeTooltip}">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <Path Data="{StaticResource Icon.Home}" Style="{StaticResource RibbonLargeIconStyle}" Fill="{StaticResource Brush.Accent}"/>
+                                            <TextBlock Text="Home" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding FullExtentCommand}" ToolTip="Full Global Planetary View (Ctrl+Shift+E)">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <Path Data="{StaticResource Icon.FullGlobe}" Style="{StaticResource RibbonLargeIconStyle}" Fill="#38bdf8"/>
+                                            <TextBlock Text="Full Extent" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding FitSelectionCommand}" ToolTip="Fit Selection / Features to Viewport (F)">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <Path Data="{StaticResource Icon.FitSelection}" Style="{StaticResource RibbonLargeIconStyle}" Fill="#fbbf24"/>
+                                            <TextBlock Text="Fit View" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <StackPanel Orientation="Vertical" VerticalAlignment="Center" Margin="2,0">
+                                        <Button Style="{StaticResource RibbonSmallBtnStyle}" Command="{Binding PreviousExtentCommand}" ToolTip="Previous Extent (Alt+Left)">
+                                            <StackPanel Orientation="Horizontal">
+                                                <Path Data="{StaticResource Icon.PrevExtent}" Style="{StaticResource RibbonSmallIconStyle}" Fill="{StaticResource Brush.Accent}" Margin="0,0,4,0"/>
+                                                <TextBlock Text="Previous"/>
+                                            </StackPanel>
+                                        </Button>
+                                        <Button Style="{StaticResource RibbonSmallBtnStyle}" Command="{Binding NextExtentCommand}" ToolTip="Next Extent (Alt+Right)">
+                                            <StackPanel Orientation="Horizontal">
+                                                <Path Data="{StaticResource Icon.NextExtent}" Style="{StaticResource RibbonSmallIconStyle}" Fill="{StaticResource Brush.Accent}" Margin="0,0,4,0"/>
+                                                <TextBlock Text="Next"/>
+                                            </StackPanel>
+                                        </Button>
+                                    </StackPanel>
+                                </StackPanel>
+                                <TextBlock Grid.Row="1" Text="Extent History" Style="{StaticResource RibbonGroupHeaderStyle}"/>
+                            </Grid>
+                        </Border>
+
+                        <!-- Group: Camera & Orientation -->
+                        <Border Style="{StaticResource RibbonGroupBorderStyle}">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <StackPanel Grid.Row="0" Orientation="Horizontal">
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding ResetNorthCommand}" ToolTip="Reset Heading to True North (N)">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <Path Data="{StaticResource Icon.NorthCompass}" Style="{StaticResource RibbonLargeIconStyle}" Fill="#ef4444"/>
+                                            <TextBlock Text="North Up" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding ResetPitchCommand}" ToolTip="Reset Camera Pitch to Nadir (-90° Top-Down)">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <Path Data="{StaticResource Icon.ResetTilt}" Style="{StaticResource RibbonLargeIconStyle}" Fill="{StaticResource Brush.Accent}"/>
+                                            <TextBlock Text="Nadir Pitch" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <StackPanel Orientation="Vertical" VerticalAlignment="Center" Margin="2,0">
+                                        <Button Style="{StaticResource RibbonSmallBtnStyle}" Command="{Binding ZoomInCommand}" ToolTip="Zoom In (+)">
+                                            <StackPanel Orientation="Horizontal">
+                                                <Path Data="{StaticResource Icon.Add}" Style="{StaticResource RibbonSmallIconStyle}" Fill="#34d399" Margin="0,0,4,0"/>
+                                                <TextBlock Text="Zoom In"/>
+                                            </StackPanel>
+                                        </Button>
+                                        <Button Style="{StaticResource RibbonSmallBtnStyle}" Command="{Binding ZoomOutCommand}" ToolTip="Zoom Out (-)">
+                                            <StackPanel Orientation="Horizontal">
+                                                <Path Data="{StaticResource Icon.ClearMeasure}" Style="{StaticResource RibbonSmallIconStyle}" Fill="#fbbf24" Margin="0,0,4,0"/>
+                                                <TextBlock Text="Zoom Out"/>
+                                            </StackPanel>
+                                        </Button>
+                                    </StackPanel>
+                                </StackPanel>
+                                <TextBlock Grid.Row="1" Text="Camera Controls" Style="{StaticResource RibbonGroupHeaderStyle}"/>
+                            </Grid>
+                        </Border>
+
+                        <!-- Group: View Mode -->
+                        <Border Style="{StaticResource RibbonGroupBorderStyle}">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <StackPanel Grid.Row="0" Orientation="Horizontal">
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding Set3DModeCommand}" ToolTip="Switch to 3D Spherical Globe View">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <Path Data="{StaticResource Icon.FullGlobe}" Style="{StaticResource RibbonLargeIconStyle}" Fill="{StaticResource Brush.Accent}"/>
+                                            <TextBlock Text="3D Globe" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding Set2DModeCommand}" ToolTip="Switch to 2D Planar Flat Map View">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <Path Data="{StaticResource Icon.VectorData}" Style="{StaticResource RibbonLargeIconStyle}" Fill="{StaticResource Brush.Accent}"/>
+                                            <TextBlock Text="2D Map" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Button>
+                                </StackPanel>
+                                <TextBlock Grid.Row="1" Text="Projection Mode" Style="{StaticResource RibbonGroupHeaderStyle}"/>
+                            </Grid>
+                        </Border>
+
+                        <!-- Group: Spatial Reference & Formats (ZE-030, ZE-033) -->
+                        <Border Style="{StaticResource RibbonGroupBorderStyle}">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <StackPanel Grid.Row="0" Orientation="Horizontal">
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding SelectCrsCommand}" ToolTip="Browse &amp; Select Map Coordinate Reference System (EPSG:4326, Egypt Belts, UTM)">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <Path Data="{StaticResource Icon.CrsGlobe}" Style="{StaticResource RibbonLargeIconStyle}" Fill="{StaticResource Brush.Accent}"/>
+                                            <TextBlock Text="Map CRS" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding ToggleCoordinateFormatCommand}" ToolTip="Cycle Coordinate Format: Decimal Degrees, DMS, UTM, MGRS">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <Path Data="{StaticResource Icon.FormatUnits}" Style="{StaticResource RibbonLargeIconStyle}" Fill="#fbbf24"/>
+                                            <TextBlock Text="Format Units" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Button>
+                                </StackPanel>
+                                <TextBlock Grid.Row="1" Text="Reference System" Style="{StaticResource RibbonGroupHeaderStyle}"/>
+                            </Grid>
+                        </Border>
+                    </StackPanel>
+                </TabItem>
+
+                <!-- TAB 2: VIEW (ZE-009, ZE-011) -->
+                <TabItem Header="View">
+                    <StackPanel Orientation="Horizontal" Height="90" Background="{StaticResource Brush.Ribbon.Background}" Margin="4,2">
+                        <!-- Group: Appearance & Themes (ZE-011) -->
+                        <Border Style="{StaticResource RibbonGroupBorderStyle}">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <StackPanel Grid.Row="0" Orientation="Horizontal">
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding ToggleThemeCommand}" ToolTip="{Binding ThemeToggleLabel}">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <TextBlock Text="{Binding ThemeToggleIcon}" FontSize="20" HorizontalAlignment="Center"/>
+                                            <TextBlock Text="Theme" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Button>
+                                </StackPanel>
+                                <TextBlock Grid.Row="1" Text="Appearance" Style="{StaticResource RibbonGroupHeaderStyle}"/>
+                            </Grid>
+                        </Border>
+
+                        <!-- Group: Panels & Docking (ZE-009) -->
+                        <Border Style="{StaticResource RibbonGroupBorderStyle}">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <StackPanel Grid.Row="0" Orientation="Horizontal">
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding ToggleSidebarDockCommand}" ToolTip="{Binding DockToggleLabel}">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <TextBlock Text="{Binding DockToggleIcon}" FontSize="20" HorizontalAlignment="Center" Foreground="{StaticResource Brush.Accent}"/>
+                                            <TextBlock Text="Dock" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding ToggleSidebarCollapseCommand}" ToolTip="{Binding CollapseToggleLabel}">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <TextBlock Text="{Binding CollapseToggleIcon}" FontSize="20" HorizontalAlignment="Center" Foreground="#38bdf8"/>
+                                            <TextBlock Text="Sidebar" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Button>
+                                </StackPanel>
+                                <TextBlock Grid.Row="1" Text="Panels" Style="{StaticResource RibbonGroupHeaderStyle}"/>
+                            </Grid>
+                        </Border>
+
+                        <!-- Group: Viewport Mode -->
+                        <Border Style="{StaticResource RibbonGroupBorderStyle}">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <StackPanel Grid.Row="0" Orientation="Horizontal">
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding Set3DModeCommand}" ToolTip="Switch to 3D Spherical Globe View">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <Path Data="{StaticResource Icon.FullGlobe}" Style="{StaticResource RibbonLargeIconStyle}" Fill="{StaticResource Brush.Accent}"/>
+                                            <TextBlock Text="3D Globe" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding Set2DModeCommand}" ToolTip="Switch to 2D Planar Flat Map View">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <Path Data="{StaticResource Icon.VectorData}" Style="{StaticResource RibbonLargeIconStyle}" Fill="{StaticResource Brush.Accent}"/>
+                                            <TextBlock Text="2D Map" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Button>
+                                </StackPanel>
+                                <TextBlock Grid.Row="1" Text="Projection Mode" Style="{StaticResource RibbonGroupHeaderStyle}"/>
+                            </Grid>
+                        </Border>
+
+                        <!-- Coordinate grid belongs to View, not Reference/Borders layers. -->
+                        <Border Style="{StaticResource RibbonGroupBorderStyle}">
+                            <Grid>
+                                <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                <StackPanel Grid.Row="0" Orientation="Horizontal">
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding ToggleGraticulesCommand}" ToolTip="Show or hide the adaptive coordinate grid">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <TextBlock Text="▦" FontSize="22" Foreground="{StaticResource Brush.Accent}" HorizontalAlignment="Center"/>
+                                            <TextBlock Text="Show Grid" FontSize="11" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding OptionsCommand}" ToolTip="Configure grid labels, key parallels and UTM zones">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <TextBlock Text="⚙" FontSize="20" Foreground="{StaticResource Brush.Text.Secondary}" HorizontalAlignment="Center"/>
+                                            <TextBlock Text="Grid Options" FontSize="11" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Button>
+                                </StackPanel>
+                                <TextBlock Grid.Row="1" Text="Coordinate Grid" Style="{StaticResource RibbonGroupHeaderStyle}"/>
+                            </Grid>
+                        </Border>
+
+                        <!-- Group: Environment & Solar Lighting (Sunlight, Time Slider & Atmosphere) -->
+                        <Border Style="{StaticResource RibbonGroupBorderStyle}">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <StackPanel Grid.Row="0" Orientation="Horizontal">
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding ToggleSunlightCommand}" ToolTip="Show sunlight across the landscape. Use the time slider to set the time of day.">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <Path Data="{StaticResource Icon.Sunlight}" Style="{StaticResource RibbonLargeIconStyle}" Fill="{Binding SunlightIconBrush}"/>
+                                            <TextBlock Text="Sunlight" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding ToggleAtmosphereCommand}" ToolTip="Show or hide the atmospheric glow and ground haze.">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <Path Data="{StaticResource Icon.Atmosphere}" Style="{StaticResource RibbonLargeIconStyle}" Fill="{Binding AtmosphereIconBrush}"/>
+                                            <TextBlock Text="Atmosphere" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <StackPanel Orientation="Vertical" VerticalAlignment="Center" Width="135" Margin="4,2,4,2">
+                                        <Grid>
+                                            <TextBlock Text="Time of Day" FontSize="10" Foreground="{StaticResource Brush.Text.Secondary}" HorizontalAlignment="Left"/>
+                                            <TextBlock Text="{Binding TimeOfDayDisplay}" FontSize="9.5" FontWeight="SemiBold" Foreground="{StaticResource Brush.Accent}" HorizontalAlignment="Right"/>
+                                        </Grid>
+                                        <Slider Minimum="0" Maximum="24" SmallChange="0.25" LargeChange="1.0"
+                                                Value="{Binding TimeOfDayHours, Mode=TwoWay}"
+                                                IsEnabled="{Binding IsSunlightEnabled}"
+                                                ToolTip="Drag to adjust time of day across the globe"
+                                                Margin="0,3,0,0"/>
+                                        <Grid Margin="0,2,0,0">
+                                            <TextBlock Text="00:00" FontSize="8.5" Foreground="{StaticResource Brush.Text.Secondary}" HorizontalAlignment="Left"/>
+                                            <TextBlock Text="12:00" FontSize="8.5" Foreground="{StaticResource Brush.Text.Secondary}" HorizontalAlignment="Center"/>
+                                            <TextBlock Text="24:00" FontSize="8.5" Foreground="{StaticResource Brush.Text.Secondary}" HorizontalAlignment="Right"/>
+                                        </Grid>
+                                    </StackPanel>
+                                </StackPanel>
+                                <TextBlock Grid.Row="1" Text="Lighting &amp; Atmosphere" Style="{StaticResource RibbonGroupHeaderStyle}"/>
+                            </Grid>
+                        </Border>
+
+                        <!-- Group: Dynamic North Compass (Addendum 07) -->
+                        <Border Style="{StaticResource RibbonGroupBorderStyle}">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <StackPanel Grid.Row="0" Orientation="Horizontal">
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding SetCompassModeCommand}" CommandParameter="cardinal" ToolTip="Compass Mode: Cardinal Rose (N/E/S/W)">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <Path Data="{StaticResource Icon.Compass}" Style="{StaticResource RibbonLargeIconStyle}" Fill="#ef4444"/>
+                                            <TextBlock Text="Cardinal" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding SetCompassModeCommand}" CommandParameter="heading" ToolTip="Compass Mode: Heading Degrees (0°-359°)">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <Path Data="{StaticResource Icon.Compass}" Style="{StaticResource RibbonLargeIconStyle}" Fill="#38bdf8"/>
+                                            <TextBlock Text="Heading" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding SetCompassModeCommand}" CommandParameter="qibla" ToolTip="Compass Mode: Geodesic Qibla Direction to Mecca Kaaba">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <Path Data="{StaticResource Icon.Compass}" Style="{StaticResource RibbonLargeIconStyle}" Fill="#22c55e"/>
+                                            <TextBlock Text="Qibla" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Button>
+                                </StackPanel>
+                                <TextBlock Grid.Row="1" Text="Compass Mode" Style="{StaticResource RibbonGroupHeaderStyle}"/>
+                            </Grid>
+                        </Border>
+
+                        <!-- Group: Spatial Reference & Formats (ZE-030, ZE-033) -->
+                        <Border Style="{StaticResource RibbonGroupBorderStyle}">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <StackPanel Grid.Row="0" Orientation="Horizontal">
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding SelectCrsCommand}" ToolTip="Browse &amp; Select Map Coordinate Reference System (EPSG:4326, Egypt Belts, UTM)">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <Path Data="{StaticResource Icon.CrsGlobe}" Style="{StaticResource RibbonLargeIconStyle}" Fill="{StaticResource Brush.Accent}"/>
+                                            <TextBlock Text="Map CRS" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding ToggleCoordinateFormatCommand}" ToolTip="Cycle Coordinate Format: Decimal Degrees, DMS, UTM, MGRS">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <Path Data="{StaticResource Icon.FormatUnits}" Style="{StaticResource RibbonLargeIconStyle}" Fill="#fbbf24"/>
+                                            <TextBlock Text="Format Units" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Button>
+                                </StackPanel>
+                                <TextBlock Grid.Row="1" Text="Reference System" Style="{StaticResource RibbonGroupHeaderStyle}"/>
+                            </Grid>
+                        </Border>
+                    </StackPanel>
+                </TabItem>
+
+                <!-- TAB 3: DRAWING -->
+                <TabItem Header="Drawing">
+                    <StackPanel Orientation="Horizontal" Height="90" Background="{StaticResource Brush.Ribbon.Background}" Margin="4,2">
+                        <!-- Group: Vector Annotation -->
+                        <Border Style="{StaticResource RibbonGroupBorderStyle}">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <StackPanel Grid.Row="0" Orientation="Horizontal">
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding DrawPlacemarkCommand}" ToolTip="Drop Placemark pin at current camera position">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <Path Data="{StaticResource Icon.Placemark}" Style="{StaticResource RibbonLargeIconStyle}" Fill="#ef4444"/>
+                                            <TextBlock Text="Placemark" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding DrawLineCommand}" ToolTip="Draw multi-segment path or line on globe">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <Path Data="{StaticResource Icon.Path}" Style="{StaticResource RibbonLargeIconStyle}" Fill="{StaticResource Brush.Accent}"/>
+                                            <TextBlock Text="Path" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding DrawPolygonCommand}" ToolTip="Draw closed geographic polygon">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <Path Data="{StaticResource Icon.Polygon}" Style="{StaticResource RibbonLargeIconStyle}" Fill="#a78bfa"/>
+                                            <TextBlock Text="Polygon" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding DrawCircleCommand}" ToolTip="Draw geographic radius circle with area and circumference">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <Path Data="{StaticResource Icon.Circle}" Style="{StaticResource RibbonLargeIconStyle}" Fill="#fb923c"/>
+                                            <TextBlock Text="Circle" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Button>
+                                </StackPanel>
+                                <TextBlock Grid.Row="1" Text="Geometry" Style="{StaticResource RibbonGroupHeaderStyle}"/>
+                            </Grid>
+                        </Border>
+
+                        <!-- Group: Overlays -->
+                        <Border Style="{StaticResource RibbonGroupBorderStyle}">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <StackPanel Grid.Row="0" Orientation="Horizontal">
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding OverlayImageCommand}" ToolTip="Georeferenced ground image raster overlay (draped on terrain)">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <Path Data="{StaticResource Icon.GroundOverlay}" Style="{StaticResource RibbonLargeIconStyle}" Fill="{StaticResource Brush.Accent}"/>
+                                            <TextBlock Text="Overlay" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding Model3DCommand}" ToolTip="Import 3D model [glTF / Collada]">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <Path Data="{StaticResource Icon.Model3D}" Style="{StaticResource RibbonLargeIconStyle}" Fill="#38bdf8"/>
+                                            <TextBlock Text="3D Model" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Button>
+                                </StackPanel>
+                                <TextBlock Grid.Row="1" Text="3D Entities" Style="{StaticResource RibbonGroupHeaderStyle}"/>
+                            </Grid>
+                        </Border>
+                    </StackPanel>
+                </TabItem>
+
+                <!-- TAB 4: MEASUREMENT -->
+                <TabItem Header="Measurement">
+                    <StackPanel Orientation="Horizontal" Height="90" Background="{StaticResource Brush.Ribbon.Background}" Margin="4,2">
+                        <!-- Group 1: Geodesic Tools (ZE-046, ZE-047) -->
+                        <Border Style="{StaticResource RibbonGroupBorderStyle}">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <StackPanel Grid.Row="0" Orientation="Horizontal">
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding MeasureDistanceCommand}" ToolTip="Interactive geodesic line distance and 3D slope measurement (ZE-046, ZE-047)">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <Path Data="{StaticResource Icon.MeasureDistance}" Style="{StaticResource RibbonLargeIconStyle}" Fill="{StaticResource Brush.Accent}"/>
+                                            <TextBlock Text="Distance" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding MeasureAreaCommand}" ToolTip="Polygon surface area &amp; perimeter measurement (ZE-046)">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <Path Data="{StaticResource Icon.MeasureArea}" Style="{StaticResource RibbonLargeIconStyle}" Fill="#34d399"/>
+                                            <TextBlock Text="Area" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding ElevationProfileCommand}" ToolTip="Topographic elevation profile along measured path">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <Path Data="{StaticResource Icon.ElevationProfile}" Style="{StaticResource RibbonLargeIconStyle}" Fill="#38bdf8"/>
+                                            <TextBlock Text="Profile" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding ClearMeasurementCommand}" ToolTip="Clear active measurement overlays and results">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <Path Data="{StaticResource Icon.ClearMeasure}" Style="{StaticResource RibbonLargeIconStyle}" Fill="#f87171"/>
+                                            <TextBlock Text="Clear" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Button>
+                                </StackPanel>
+                                <TextBlock Grid.Row="1" Text="Geodesic Tools" Style="{StaticResource RibbonGroupHeaderStyle}"/>
+                            </Grid>
+                        </Border>
+
+                        <!-- Group 2: Snapping Engine (ZE-042, ZE-043, ZE-044) -->
+                        <Border Style="{StaticResource RibbonGroupBorderStyle}">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="6,0" VerticalAlignment="Center">
+                                    <StackPanel Orientation="Vertical" Margin="0,0,10,0" VerticalAlignment="Center">
+                                        <CheckBox Content="Enable Snapping" IsChecked="{Binding IsSnapEnabled}" FontWeight="SemiBold" Margin="0,0,0,3"/>
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <TextBlock Text="Ground Tol:" FontSize="10.5" Foreground="{StaticResource Brush.Text.Secondary}" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                            <ComboBox SelectedValue="{Binding SnapToleranceTag}" SelectedValuePath="Tag" Width="72" Height="22" FontSize="10.5">
+                                                <ComboBoxItem Content="1 m" Tag="1"/>
+                                                <ComboBoxItem Content="3 m" Tag="3"/>
+                                                <ComboBoxItem Content="5 m" Tag="5" IsSelected="True"/>
+                                                <ComboBoxItem Content="10 m" Tag="10"/>
+                                            </ComboBox>
+                                        </StackPanel>
+                                    </StackPanel>
+                                    <StackPanel Orientation="Vertical" VerticalAlignment="Center" IsEnabled="{Binding IsSnapEnabled}">
+                                        <CheckBox Content="Vertex / Endpoints" IsChecked="{Binding SnapToVertices}" FontSize="10" Margin="0,1"/>
+                                        <CheckBox Content="Segment Midpoints" IsChecked="{Binding SnapToMidpoints}" FontSize="10" Margin="0,1"/>
+                                        <CheckBox Content="Edge Nearest Projection" IsChecked="{Binding SnapToEdges}" FontSize="10" Margin="0,1"/>
+                                    </StackPanel>
+                                </StackPanel>
+                                <TextBlock Grid.Row="1" Text="Snapping Engine" Style="{StaticResource RibbonGroupHeaderStyle}"/>
+                            </Grid>
+                        </Border>
+
+                        <!-- Group 3: Active Readout Card -->
+                        <Border Style="{StaticResource RibbonGroupBorderStyle}" MinWidth="260">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <StackPanel Grid.Row="0" VerticalAlignment="Center" Margin="8,0">
+                                    <TextBlock Text="GEODESIC METRICS (WGS 84)" FontSize="9.5" FontWeight="Bold" Foreground="{StaticResource Brush.Accent}" Margin="0,0,0,2"/>
+                                    <TextBlock Text="{Binding ActiveMeasurementInfo}" FontSize="11" TextWrapping="Wrap" MaxWidth="290" Foreground="{StaticResource Brush.Text.Primary}"/>
+                                </StackPanel>
+                                <TextBlock Grid.Row="1" Text="Telemetry" Style="{StaticResource RibbonGroupHeaderStyle}"/>
+                            </Grid>
+                        </Border>
+                    </StackPanel>
+                </TabItem>
+
+                <!-- TAB 5: LAYERS (ZE-048, ZE-049, ZE-052) -->
+                <TabItem Header="Basemap">
+                    <ScrollViewer Height="90" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled"
+                                  Background="{StaticResource Brush.Ribbon.Background}" Margin="4,2">
+                        <StackPanel Orientation="Horizontal">
+                            <!-- Every supported basemap is rendered directly in the ribbon, grouped by provider. -->
+                            <ItemsControl ItemsSource="{Binding BasemapRibbonGroups}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Style="{StaticResource RibbonGroupBorderStyle}">
+                                            <Grid>
+                                                <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                                <ItemsControl Grid.Row="0" ItemsSource="{Binding Items}">
+                                                    <ItemsControl.ItemsPanel>
+                                                        <ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate>
+                                                    </ItemsControl.ItemsPanel>
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <Button Style="{StaticResource RibbonLargeBtnStyle}"
+                                                                    Command="{Binding DataContext.SelectBasemapCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                    CommandParameter="{Binding Id}" ToolTip="{Binding ToolTip}">
+                                                                <StackPanel HorizontalAlignment="Center">
+                                                                    <Grid Width="25" Height="25">
+                                                                        <Path Data="{StaticResource Icon.FullGlobe}" Style="{StaticResource RibbonLargeIconStyle}" Fill="#38bdf8"/>
+                                                                        <Border Background="#15803d" CornerRadius="7" Width="15" Height="15"
+                                                                                HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                                                                                Visibility="{Binding IsDefault, Converter={StaticResource BoolToVisibilityConverter}}">
+                                                                            <TextBlock Text="✓" Foreground="White" FontWeight="Bold" FontSize="10"
+                                                                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                                        </Border>
+                                                                    </Grid>
+                                                                    <TextBlock Text="{Binding Name}" FontSize="9.5" HorizontalAlignment="Center"
+                                                                               TextAlignment="Center" TextWrapping="Wrap" Width="82" MaxHeight="26" Margin="0,2,0,0"/>
+                                                                </StackPanel>
+                                                            </Button>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                                <TextBlock Grid.Row="1" Text="{Binding ProviderName}" Style="{StaticResource RibbonGroupHeaderStyle}"/>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+
+                            <!-- Group: Custom Imagery Layers (ZE-052) -->
+                            <Border Style="{StaticResource RibbonGroupBorderStyle}">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <StackPanel Grid.Row="0" Orientation="Horizontal">
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding AddImageryLayerCommand}" ToolTip="Connect to external WMS, WMTS, or XYZ Tile Service (ZE-052)">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <Path Data="{StaticResource Icon.Add}" Style="{StaticResource RibbonLargeIconStyle}" Fill="#f59e0b"/>
+                                            <TextBlock Text="Add Layer" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Button>
+                                </StackPanel>
+                                <TextBlock Grid.Row="1" Text="Custom Services" Style="{StaticResource RibbonGroupHeaderStyle}"/>
+                            </Grid>
+                            </Border>
+
+                            <!-- Group: Overlays -->
+                            <Border Style="{StaticResource RibbonGroupBorderStyle}">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <StackPanel Grid.Row="0" Orientation="Vertical" VerticalAlignment="Center" Margin="4,0">
+                                    <CheckBox Content="Political Borders &amp; Coastlines" IsChecked="{Binding IsBordersVisible}" Margin="0,2"/>
+                                </StackPanel>
+                                <TextBlock Grid.Row="1" Text="Standard Overlays" Style="{StaticResource RibbonGroupHeaderStyle}"/>
+                            </Grid>
+                            </Border>
+                        </StackPanel>
+                    </ScrollViewer>
+                </TabItem>
+
+                <!-- Dedicated historical imagery workspace -->
+                <TabItem Header="Historical Imagery">
+                    <StackPanel Orientation="Horizontal" Height="90" Background="{StaticResource Brush.Ribbon.Background}" Margin="4,2">
+                        <Border Style="{StaticResource RibbonGroupBorderStyle}">
+                            <Grid>
+                                <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                <StackPanel Grid.Row="0" Orientation="Horizontal">
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding HistoricalImageryCommand}" ToolTip="Open a compact live timeline for the Esri World Imagery Wayback archive">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <Path Data="{StaticResource Icon.BasemapGallery}" Style="{StaticResource RibbonLargeIconStyle}" Fill="#a78bfa"/>
+                                            <TextBlock Text="Open Timeline" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <StackPanel VerticalAlignment="Center" Margin="10,0" MaxWidth="330">
+                                        <TextBlock Text="Esri World Imagery Wayback" FontWeight="Bold" Foreground="{StaticResource Brush.Text.Primary}"/>
+                                        <TextBlock Text="Drag the date slider or choose an exact release; the globe updates immediately." FontSize="10" TextWrapping="Wrap" Foreground="{StaticResource Brush.Text.Secondary}"/>
+                                    </StackPanel>
+                                </StackPanel>
+                                <TextBlock Grid.Row="1" Text="Historical Satellite Imagery" Style="{StaticResource RibbonGroupHeaderStyle}"/>
+                            </Grid>
+                        </Border>
+                    </StackPanel>
+                </TabItem>
+
+                <!-- TAB 6: TERRAIN (ZE-050, ZE-051, AC-019) -->
+                <TabItem Header="Terrain">
+                    <StackPanel Orientation="Horizontal" Height="90" Background="{StaticResource Brush.Ribbon.Background}" Margin="4,2">
+                        <!-- Group 1: Elevation Model Selection -->
+                        <Border Style="{StaticResource RibbonGroupBorderStyle}">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <StackPanel Grid.Row="0" Orientation="Horizontal">
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding ToggleTerrainCommand}" ToolTip="Turn the configured terrain model on or off. Choose the default model in Options.">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <Path Data="{StaticResource Icon.Terrain3D}" Style="{StaticResource RibbonLargeIconStyle}" Fill="{Binding TerrainIconBrush}"/>
+                                            <TextBlock Text="Terrain" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                            <TextBlock Text="{Binding TerrainToggleState}" FontSize="9" FontWeight="Bold" HorizontalAlignment="Center" Foreground="{Binding TerrainIconBrush}"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <StackPanel VerticalAlignment="Center" Margin="6,0">
+                                        <TextBlock Text="Active Elevation Model:" FontSize="10" Foreground="{StaticResource Brush.Text.Secondary}"/>
+                                        <TextBlock Text="{Binding TerrainProviderType}" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource Brush.Text.Primary}" MaxWidth="160" TextWrapping="Wrap"/>
+                                    </StackPanel>
+                                </StackPanel>
+                                <TextBlock Grid.Row="1" Text="Elevation Model" Style="{StaticResource RibbonGroupHeaderStyle}"/>
+                            </Grid>
+                        </Border>
+
+                        <!-- Group 2: Vertical Exaggeration (ZE-051, AC-019) -->
+                        <Border Style="{StaticResource RibbonGroupBorderStyle}">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="6,0" VerticalAlignment="Center" IsEnabled="{Binding IsTerrainEnabled}">
+                                    <StackPanel Orientation="Vertical" Margin="0,0,10,0" VerticalAlignment="Center">
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                            <TextBlock Text="Exaggeration:" FontSize="11" Foreground="{StaticResource Brush.Text.Secondary}" Margin="0,0,6,0"/>
+                                            <TextBlock Text="{Binding VerticalExaggerationDisplay}" FontWeight="Bold" FontSize="12" Foreground="{StaticResource Brush.Accent}"/>
+                                        </StackPanel>
+                                        <Slider Minimum="0.2" Maximum="5.0" SmallChange="0.1" LargeChange="0.5" Width="130"
+                                                Value="{Binding VerticalExaggeration, Mode=TwoWay}"
+                                                ToolTip="Scale visual terrain relief without modifying geodetic measurements (AC-019)"/>
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <Button Content="1.0x" Command="{Binding SetVerticalExaggerationCommand}" CommandParameter="1.0" Width="36" Height="24" Margin="2,0"/>
+                                        <Button Content="2.0x" Command="{Binding SetVerticalExaggerationCommand}" CommandParameter="2.0" Width="36" Height="24" Margin="2,0"/>
+                                        <Button Content="3.0x" Command="{Binding SetVerticalExaggerationCommand}" CommandParameter="3.0" Width="36" Height="24" Margin="2,0"/>
+                                        <Button Content="5.0x" Command="{Binding SetVerticalExaggerationCommand}" CommandParameter="5.0" Width="36" Height="24" Margin="2,0"/>
+                                        <Button Content="Reset" Command="{Binding ResetVerticalExaggerationCommand}" Width="44" Height="24" Margin="4,0,2,0" Background="{StaticResource Brush.Control.Background}"/>
+                                    </StackPanel>
+                                </StackPanel>
+                                <TextBlock Grid.Row="1" Text="Vertical Exaggeration (AC-019)" Style="{StaticResource RibbonGroupHeaderStyle}"/>
+                            </Grid>
+                        </Border>
+                    </StackPanel>
+                </TabItem>
+
+                <!-- TAB 7: TOOLS -->
+                <TabItem Header="Tools">
+                    <StackPanel Orientation="Horizontal" Height="90" Background="{StaticResource Brush.Ribbon.Background}" Margin="4,2">
+                        <Border Style="{StaticResource RibbonGroupBorderStyle}">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <StackPanel Grid.Row="0" Orientation="Horizontal">
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding ImportVectorCommand}" ToolTip="Import ESRI Shapefile (.shp), GeoPackage (.gpkg), or GeoJSON (.geojson) (ZE-053)">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <Path Data="{StaticResource Icon.VectorData}" Style="{StaticResource RibbonLargeIconStyle}" Fill="#38bdf8"/>
+                                            <TextBlock Text="Vector Data" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding ToggleLanguageCommand}" ToolTip="Toggle UI Language (English / العربية) and RTL layout (ZE-055)">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <Path Data="{StaticResource Icon.CrsGlobe}" Style="{StaticResource RibbonLargeIconStyle}" Fill="{StaticResource Brush.Accent}"/>
+                                            <TextBlock Text="{Binding CurrentLanguageText}" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding CoordinateConverterCommand}" ToolTip="Bidirectional coordinate converter between DD, DMS, UTM, and MGRS">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <Path Data="{StaticResource Icon.CoordConverter}" Style="{StaticResource RibbonLargeIconStyle}" Fill="{StaticResource Brush.Accent}"/>
+                                            <TextBlock Text="Coord Conv" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding TakeScreenshotCommand}" ToolTip="Export high-resolution map snapshot to file">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <Path Data="{StaticResource Icon.CameraSnapshot}" Style="{StaticResource RibbonLargeIconStyle}" Fill="#38bdf8"/>
+                                            <TextBlock Text="Snapshot" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding DiagnosticsCommand}" ToolTip="Display runtime diagnostics and memory logs">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <Path Data="{StaticResource Icon.Diagnostics}" Style="{StaticResource RibbonLargeIconStyle}" Fill="#f472b6"/>
+                                            <TextBlock Text="Diagnostics" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding OptionsCommand}" ToolTip="Configure application preferences, measurement units, snapping, and basemaps">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <Path Data="{StaticResource Icon.Options}" Style="{StaticResource RibbonLargeIconStyle}" Fill="{StaticResource Brush.Text.Secondary}"/>
+                                            <TextBlock Text="Options" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Button>
+                                </StackPanel>
+                                <TextBlock Grid.Row="1" Text="Utilities" Style="{StaticResource RibbonGroupHeaderStyle}"/>
+                            </Grid>
+                        </Border>
+                    </StackPanel>
+                </TabItem>
+
+                <!-- TAB 8: HELP -->
+                <TabItem Header="Help">
+                    <StackPanel Orientation="Horizontal" Height="90" Background="{StaticResource Brush.Ribbon.Background}" Margin="4,2">
+                        <Border Style="{StaticResource RibbonGroupBorderStyle}">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <StackPanel Grid.Row="0" Orientation="Horizontal">
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding AboutCommand}" ToolTip="About Z EARTH Desktop and licensing">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <Path Data="{StaticResource Icon.About}" Style="{StaticResource RibbonLargeIconStyle}" Fill="{StaticResource Brush.Accent}"/>
+                                            <TextBlock Text="About" FontSize="11" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                    </Button>
+                                </StackPanel>
+                                <TextBlock Grid.Row="1" Text="Information" Style="{StaticResource RibbonGroupHeaderStyle}"/>
+                            </Grid>
+                        </Border>
+                    </StackPanel>
+                </TabItem>
+            </TabControl>
+        </Border>
+
+        <!-- ==================== ROW 2: MAIN WORKSPACE (SIDEBAR + SPLITTER + VIEWPORT) ==================== -->
+        <Grid Grid.Row="2" x:Name="WorkspaceGrid">
+            <Grid.ColumnDefinitions>
+                <!-- Column 0: Left Column (Sidebar when docked left, or Viewport when docked right) -->
+                <ColumnDefinition x:Name="ColLeft" Width="330" MinWidth="0" MaxWidth="520"/>
+                <!-- Column 1: Resizable Splitter -->
+                <ColumnDefinition x:Name="ColSplitter" Width="4"/>
+                <!-- Column 2: Right Column (Viewport when docked left, or Sidebar when docked right) -->
+                <ColumnDefinition x:Name="ColRight" Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Collapsed Sidebar Reveal Button (Left Edge) -->
+            <Button x:Name="RevealSidebarLeftBtn" Grid.Column="0" Command="{Binding ToggleSidebarCollapseCommand}"
+                    Visibility="Collapsed" Width="26" HorizontalAlignment="Left" VerticalAlignment="Stretch"
+                    Background="{StaticResource Brush.Ribbon.Background}" BorderBrush="{StaticResource Brush.Sidebar.Border}"
+                    BorderThickness="0,0,1,0" ToolTip="Expand Places &amp; Layers Sidebar (Ctrl+B)" Cursor="Hand">
+                <Path Data="{StaticResource Icon.NextExtent}" Style="{StaticResource RibbonSmallIconStyle}" Fill="{StaticResource Brush.Accent}"/>
+            </Button>
+
+            <!-- ==================== SIDEBAR PANELS ==================== -->
+            <!-- ==================== COLUMN 0: SIDEBAR (SIDEBAR-01 Scope) ==================== -->
+            <Border x:Name="SidebarBorder" Grid.Column="0" Background="{StaticResource Brush.Sidebar.Background}"
+                    BorderBrush="{StaticResource Brush.Sidebar.Border}" BorderThickness="0,0,1,0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <!-- Header Toolbar: Title, Expand/Collapse All, Dock, Pin -->
+                        <RowDefinition Height="34"/>
+                        <!-- Two supported top-level sections: Search and My Places -->
+                        <RowDefinition Height="*"/>
+                        <!-- Basemap controls live in the Basemap ribbon tab. -->
+                        <RowDefinition Height="0"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Row 0: Sidebar Header Toolbar -->
+                    <Border Grid.Row="0" Background="{StaticResource Brush.Ribbon.Background}"
+                            BorderBrush="{StaticResource Brush.Control.Border}" BorderThickness="0,0,0,1" Padding="8,4">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock Text="🌐 " FontSize="12" Foreground="{StaticResource Brush.Accent}"/>
+                                <TextBlock Text="EXPLORER" FontWeight="Bold" FontSize="11.5" Foreground="{StaticResource Brush.Text.Primary}" VerticalAlignment="Center"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                <Button Style="{StaticResource QuickAccessBtnStyle}" Command="{Binding ExpandAllSectionsCommand}" ToolTip="Expand All Sections">
+                                    <TextBlock Text="⊞" FontSize="12" FontWeight="Bold"/>
+                                </Button>
+                                <Button Style="{StaticResource QuickAccessBtnStyle}" Command="{Binding CollapseAllSectionsCommand}" ToolTip="Collapse All Sections">
+                                    <TextBlock Text="⊟" FontSize="12" FontWeight="Bold"/>
+                                </Button>
+                                <Rectangle Width="1" Height="14" Fill="{StaticResource Brush.Control.Border}" Margin="3,0"/>
+                                <Button Style="{StaticResource QuickAccessBtnStyle}" Command="{Binding ToggleSidebarDockCommand}" ToolTip="{Binding DockToggleLabel}">
+                                    <TextBlock Text="{Binding DockToggleIcon}" FontSize="12"/>
+                                </Button>
+                                <Button Style="{StaticResource QuickAccessBtnStyle}" Command="{Binding ToggleSidebarCollapseCommand}" ToolTip="{Binding CollapseToggleLabel}">
+                                    <TextBlock Text="{Binding CollapseToggleIcon}" FontSize="11"/>
+                                </Button>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <!-- Row 1: Unified Scrollable 4-Section Sidebar Container -->
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="6,6,6,6">
+                        <StackPanel>
+
+                            <!-- ==================== SECTION 1: SEARCH ==================== -->
+                            <Expander IsExpanded="{Binding IsSearchExpanded, Mode=TwoWay}" Margin="0,0,0,8"
+                                      Background="{StaticResource Brush.Control.Background}"
+                                      BorderBrush="{StaticResource Brush.Control.Border}" BorderThickness="1">
+                                <Expander.Header>
+                                    <DockPanel LastChildFill="True">
+                                        <TextBlock Text="🔍 " FontSize="12"/>
+                                        <TextBlock Text="Search" FontWeight="Bold" FontSize="12" Foreground="{StaticResource Brush.Text.Primary}"/>
+                                    </DockPanel>
+                                </Expander.Header>
+
+                                <Border Background="{StaticResource Brush.Window.Background}" Padding="8" BorderThickness="0,1,0,0" BorderBrush="{StaticResource Brush.Control.Border}">
+                                    <StackPanel>
+                                        <!-- Search Mode Tabs: [By Name] [By Coordinates] -->
+                                        <Grid Margin="0,0,0,8">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <!-- By Name Toggle Button -->
+                                            <RadioButton Grid.Column="0" Content="By Name" Style="{StaticResource SidebarTabBtnStyle}"
+                                                         IsChecked="{Binding SelectedSearchMode, Converter={x:Null}, Mode=OneWay}"
+                                                         Click="SearchModeByName_Click" Height="24" FontSize="11"/>
+
+                                            <!-- By Coordinates Toggle Button -->
+                                            <RadioButton Grid.Column="1" Content="By Coordinates" Style="{StaticResource SidebarTabBtnStyle}"
+                                                         Click="SearchModeByCoordinates_Click" Height="24" FontSize="11"/>
+                                        </Grid>
+
+                                        <!-- MODE 0: BY NAME PANEL -->
+                                        <StackPanel x:Name="SearchByNamePanel">
+                                            <Grid Margin="0,0,0,6">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+
+                                                <TextBox Text="{Binding SearchNameQuery, UpdateSourceTrigger=PropertyChanged}"
+                                                         Style="{StaticResource SearchTextBoxStyle}"
+                                                         KeyDown="SearchByNameBox_KeyDown"
+                                                         ToolTip="Enter city or place name (e.g., 'Cairo', 'القاهرة', 'Giza')"/>
+
+                                                <Button Grid.Column="1" Command="{Binding SearchByNameCommand}"
+                                                        Width="30" Height="26" Margin="4,0,0,0"
+                                                        Background="{StaticResource Brush.Control.Background}"
+                                                        Foreground="{StaticResource Brush.Accent}"
+                                                        BorderBrush="{StaticResource Brush.Control.Border}"
+                                                        BorderThickness="1" Cursor="Hand" ToolTip="Search local places and online geocoder (Enter)">
+                                                    🔍
+                                                </Button>
+                                            </Grid>
+                                            <TextBlock Text="Searches My Places + Temporary first, then online Photon."
+                                                       FontSize="9.5" Foreground="{StaticResource Brush.Text.Muted}" Margin="1,0,0,6"/>
+                                        </StackPanel>
+
+                                        <!-- MODE 1: BY COORDINATES PANEL (X STRICTLY ABOVE Y) -->
+                                        <StackPanel x:Name="SearchByCoordsPanel" Visibility="Collapsed">
+                                            <!-- CRS Selector -->
+                                            <TextBlock Text="Target CRS / Projection:" FontSize="10.5" FontWeight="SemiBold" Foreground="{StaticResource Brush.Text.Secondary}" Margin="0,0,0,2"/>
+                                            <ComboBox ItemsSource="{Binding AvailableSearchCrsList}"
+                                                      SelectedValue="{Binding SelectedSearchCrsEpsg, Mode=TwoWay}"
+                                                      SelectedValuePath="Epsg"
+                                                      DisplayMemberPath="Display"
+                                                      Height="24" FontSize="10.5" Margin="0,0,0,8"
+                                                      Background="{StaticResource Brush.Control.Background}"
+                                                      Foreground="{StaticResource Brush.Text.Primary}"
+                                                      BorderBrush="{StaticResource Brush.Control.Border}"/>
+
+                                            <!-- Field 1: X Coordinate (STRICTLY ABOVE Y) -->
+                                            <TextBlock Text="{Binding SearchCoordinateXLabel}" FontSize="10.5" FontWeight="SemiBold"
+                                                       Foreground="{StaticResource Brush.Accent}" Margin="0,0,0,2"/>
+                                            <TextBox Text="{Binding SearchCoordinateX, UpdateSourceTrigger=PropertyChanged}"
+                                                     Height="24" Padding="4,2" FontSize="11" Margin="0,0,0,6"
+                                                     Background="{StaticResource Brush.Control.Background}"
+                                                     Foreground="{StaticResource Brush.Text.Primary}"
+                                                     BorderBrush="{StaticResource Brush.Control.Border}"
+                                                     BorderThickness="1"
+                                                     ToolTip="{Binding CoordinateFormatPlaceholderX}"/>
+
+                                            <!-- Field 2: Y Coordinate (STRICTLY BELOW X) -->
+                                            <TextBlock Text="{Binding SearchCoordinateYLabel}" FontSize="10.5" FontWeight="SemiBold"
+                                                       Foreground="{StaticResource Brush.Accent}" Margin="0,0,0,2"/>
+                                            <TextBox Text="{Binding SearchCoordinateY, UpdateSourceTrigger=PropertyChanged}"
+                                                     Height="24" Padding="4,2" FontSize="11" Margin="0,0,0,8"
+                                                     Background="{StaticResource Brush.Control.Background}"
+                                                     Foreground="{StaticResource Brush.Text.Primary}"
+                                                     BorderBrush="{StaticResource Brush.Control.Border}"
+                                                     BorderThickness="1"
+                                                     ToolTip="{Binding CoordinateFormatPlaceholderY}"/>
+
+                                            <!-- Locate Button -->
+                                            <Button Command="{Binding LocateCoordinatesCommand}" Content="🎯 Locate / Fly To"
+                                                    Height="26" FontWeight="SemiBold" FontSize="11"
+                                                    Background="{StaticResource Brush.Accent}" Foreground="#FFFFFF"
+                                                    BorderThickness="0" Cursor="Hand" Margin="0,0,0,6"/>
+                                        </StackPanel>
+
+                                        <!-- Validation / Status Message -->
+                                        <TextBlock Text="{Binding CoordinateValidationMessage}" TextWrapping="Wrap"
+                                                   FontSize="10" Margin="0,2,0,6">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Foreground" Value="#ef4444"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsCoordinateValidationSuccess}" Value="True">
+                                                            <Setter Property="Foreground" Value="#22c55e"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+
+                                        <!-- Search Results List -->
+                                        <ItemsControl ItemsSource="{Binding SearchResults}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border Background="{StaticResource Brush.Control.Background}"
+                                                            BorderBrush="{StaticResource Brush.Control.Border}" BorderThickness="1"
+                                                            CornerRadius="3" Padding="6,4" Margin="0,2">
+                                                        <Grid>
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="*"/>
+                                                                <ColumnDefinition Width="Auto"/>
+                                                            </Grid.ColumnDefinitions>
+                                                            <Grid.RowDefinitions>
+                                                                <RowDefinition Height="Auto"/>
+                                                                <RowDefinition Height="Auto"/>
+                                                                <RowDefinition Height="Auto"/>
+                                                            </Grid.RowDefinitions>
+
+                                                            <!-- Row 0: Title and Source Badge -->
+                                                            <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal">
+                                                                <TextBlock Text="{Binding Icon}" FontSize="11" Margin="0,0,4,0"/>
+                                                                <TextBlock Text="{Binding Title}" FontWeight="Bold" FontSize="11.5" Foreground="{StaticResource Brush.Text.Primary}" TextTrimming="CharacterEllipsis"/>
+                                                            </StackPanel>
+
+                                                            <Border Grid.Row="0" Grid.Column="1" Background="{StaticResource Brush.Window.Background}" CornerRadius="2" Padding="4,1">
+                                                                <TextBlock Text="{Binding SourceBadge}" FontSize="9" FontWeight="SemiBold" Foreground="{StaticResource Brush.Accent}"/>
+                                                            </Border>
+
+                                                            <!-- Row 1: Subtitle / Address -->
+                                                            <TextBlock Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Text="{Binding Subtitle}"
+                                                                       FontSize="10" Foreground="{StaticResource Brush.Text.Muted}" TextTrimming="CharacterEllipsis" Margin="0,2"/>
+
+                                                            <!-- Row 2: Action Buttons -->
+                                                            <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="0,4,0,0">
+                                                                <Button Content="✈ Fly To" Command="{Binding DataContext.FlyToSearchResultCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}"
+                                                                        Padding="6,1" FontSize="10" Margin="0,0,4,0"
+                                                                        Background="{StaticResource Brush.Accent}" Foreground="#FFFFFF" BorderThickness="0" Cursor="Hand"/>
+                                                                <Button Content="💾 My Places" Command="{Binding DataContext.SaveSearchResultToMyPlacesCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}"
+                                                                        Padding="6,1" FontSize="10" Margin="0,0,4,0"
+                                                                        Background="{StaticResource Brush.Control.Background}" Foreground="{StaticResource Brush.Text.Primary}" BorderBrush="{StaticResource Brush.Control.Border}" BorderThickness="1" Cursor="Hand"/>
+                                                            </StackPanel>
+                                                        </Grid>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+                                </Border>
+                            </Expander>
+
+                            <!-- ==================== SECTION 2: MY PLACES ==================== -->
+                            <Expander IsExpanded="{Binding IsMyPlacesExpanded, Mode=TwoWay}" Margin="0,0,0,8"
+                                      Background="{StaticResource Brush.Control.Background}"
+                                      BorderBrush="{StaticResource Brush.Control.Border}" BorderThickness="1">
+                                <Expander.Header>
+                                    <DockPanel LastChildFill="True">
+                                        <TextBlock Text="📁 " FontSize="12"/>
+                                        <TextBlock Text="My Places" FontWeight="Bold" FontSize="12" Foreground="{StaticResource Brush.Text.Primary}"/>
+                                        <TextBlock Text="[Persistent]" FontSize="10" Foreground="{StaticResource Brush.Text.Muted}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                    </DockPanel>
+                                </Expander.Header>
+
+                                <Border Background="{StaticResource Brush.Window.Background}" Padding="6" BorderThickness="0,1,0,0" BorderBrush="{StaticResource Brush.Control.Border}">
+                                    <StackPanel>
+                                        <!-- Toolbar (Parity Framework - EXP-01) -->
+                                        <Border Background="{StaticResource Brush.Control.Background}" CornerRadius="3" Padding="4,2" Margin="0,0,0,6">
+                                            <StackPanel Orientation="Horizontal">
+                                                <Button Style="{StaticResource QuickAccessBtnStyle}" Command="{Binding AddPlacemarkCommand}" ToolTip="Add new Placemark (📍)">📍</Button>
+                                                <Button Style="{StaticResource QuickAccessBtnStyle}" Command="{Binding DrawLineCommand}" ToolTip="Add Path/Line (〰️)">〰️</Button>
+                                                <Button Style="{StaticResource QuickAccessBtnStyle}" Command="{Binding DrawPolygonCommand}" ToolTip="Add Polygon (⬡)">⬡</Button>
+                                                <Button Style="{StaticResource QuickAccessBtnStyle}" Command="{Binding AddFolderCommand}" ToolTip="Add new Folder (📁)">📁</Button>
+                                                <Button Style="{StaticResource QuickAccessBtnStyle}" Command="{Binding AddSavedSceneCommand}" ToolTip="Save viewpoint as Scene (🎬)">🎬</Button>
+                                                <Button Style="{StaticResource QuickAccessBtnStyle}" Command="{Binding ImportKmlCommand}" ToolTip="Import KML/KMZ (📥)">📥</Button>
+                                                <Rectangle Width="1" Height="14" Fill="{StaticResource Brush.Control.Border}" Margin="4,0"/>
+                                                <Button Style="{StaticResource QuickAccessBtnStyle}" Command="{Binding SaveProjectCommand}" ToolTip="Save Active Project (💾)">💾</Button>
+                                                <Button Style="{StaticResource QuickAccessBtnStyle}" Command="{Binding ExportSelectedItemCommand}" ToolTip="Export Selected Item to KML/KMZ (📤)">📤</Button>
+                                                <Button Style="{StaticResource QuickAccessBtnStyle}" Command="{Binding ExportAllMyPlacesCommand}" ToolTip="Export All My Places (📦)">📦</Button>
+                                                <Button Style="{StaticResource QuickAccessBtnStyle}" Command="{Binding DeletePlaceCommand}" ToolTip="Delete Selected (🗑)">🗑</Button>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <!-- My Places TreeView (Saved Scenes is the first folder inside My Places) -->
+                                        <TreeView ItemsSource="{Binding MyPlaces}" MaxHeight="320"
+                                                  Background="{StaticResource Brush.Window.Background}"
+                                                  BorderBrush="{StaticResource Brush.Control.Border}" BorderThickness="1"
+                                                  VirtualizingStackPanel.IsVirtualizing="True"
+                                                  VirtualizingStackPanel.VirtualizationMode="Recycling"
+                                                  SelectedItemChanged="TreeView_SelectedItemChanged"
+                                                  MouseDoubleClick="TreeView_MouseDoubleClick"
+                                                  PreviewMouseLeftButtonDown="TreeView_PreviewMouseLeftButtonDown"
+                                                  PreviewMouseRightButtonDown="TreeView_PreviewMouseRightButtonDown"
+                                                  Padding="2">
+                                            <TreeView.ItemTemplate>
+                                                <HierarchicalDataTemplate DataType="{x:Type domain:PlaceItem}" ItemsSource="{Binding Children}">
+                                                    <Grid Margin="1,1">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                        </Grid.ColumnDefinitions>
+
+                                                        <CheckBox Grid.Column="0" IsChecked="{Binding IsVisible, Mode=TwoWay}" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                                        <TextBlock Grid.Column="1" Text="{Binding Glyph}" Foreground="{Binding EffectiveColorHex}" FontSize="12" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                                        <TextBlock Grid.Column="2" Text="{Binding Name}" FontSize="11.5" Foreground="{StaticResource Brush.Text.Primary}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+
+                                                        <!-- In-row Fly To button -->
+                                                        <Button Grid.Column="3" Content="✈" ToolTip="Fly To / Zoom to Extent"
+                                                                Command="{Binding DataContext.FlyToPlaceCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}"
+                                                                Width="18" Height="18" Padding="0" FontSize="10" Margin="4,0,2,0"
+                                                                Background="Transparent" Foreground="{StaticResource Brush.Accent}" BorderThickness="0" Cursor="Hand"/>
+                                                    </Grid>
+                                                </HierarchicalDataTemplate>
+                                            </TreeView.ItemTemplate>
+
+                                            <!-- Context Menu on Nodes (Parity Framework - EXP-01..05) -->
+                                            <TreeView.ContextMenu>
+                                                <ContextMenu>
+                                                    <MenuItem Header="✈ Fly To / Zoom to Extent" Command="{Binding FlyToPlaceCommand}"/>
+                                                    <MenuItem Header="⚙ Properties..." Command="{Binding OpenPropertiesCommand}"/>
+                                                    <MenuItem Header="★ Set as Startup Scene" Command="{Binding SetAsStartupSceneCommand}"/>
+                                                    <Separator/>
+                                                    <MenuItem Header="📍 Add Placemark" Command="{Binding AddPlacemarkCommand}"/>
+                                                    <MenuItem Header="〰️ Add Path" Command="{Binding DrawLineCommand}"/>
+                                                    <MenuItem Header="⬡ Add Polygon" Command="{Binding DrawPolygonCommand}"/>
+                                                    <MenuItem Header="📁 Add Folder" Command="{Binding AddFolderCommand}"/>
+                                                    <MenuItem Header="🎬 Add Saved Scene" Command="{Binding AddSavedSceneCommand}"/>
+                                                    <MenuItem Header="📥 Import KML/KMZ..." Command="{Binding ImportKmlCommand}"/>
+                                                    <Separator/>
+                                                    <MenuItem Header="💾 Save Active Project" Command="{Binding SaveProjectCommand}"/>
+                                                    <MenuItem Header="📤 Export Selected Item..." Command="{Binding ExportSelectedItemCommand}"/>
+                                                    <MenuItem Header="📦 Export All My Places..." Command="{Binding ExportAllMyPlacesCommand}"/>
+                                                    <MenuItem Header="🗑 Delete" Command="{Binding DeletePlaceCommand}"/>
+                                                </ContextMenu>
+                                            </TreeView.ContextMenu>
+                                        </TreeView>
+
+                                    </StackPanel>
+                                </Border>
+                            </Expander>
+
+                        </StackPanel>
+                    </ScrollViewer>
+
+                </Grid>
+            </Border>
+
+            <!-- ==================== COLUMN 1: RESIZABLE SPLITTER ==================== -->
+            <GridSplitter x:Name="WorkspaceSplitter" Grid.Column="1" Width="4" HorizontalAlignment="Center" VerticalAlignment="Stretch"
+                          Background="{StaticResource Brush.Ribbon.Border}" Cursor="SizeWE"/>
+
+            <!-- ==================== COLUMN 2: GEOGRAPHIC GLOBE VIEWPORT ==================== -->
+            <Border x:Name="ViewportBorder" Grid.Column="2" Background="#000000">
+                <wv2:WebView2 x:Name="GlobeWebView"/>
+            </Border>
+
+            <!-- Collapsed Sidebar Reveal Button (Right Edge) -->
+            <Button x:Name="RevealSidebarRightBtn" Grid.Column="2" Command="{Binding ToggleSidebarCollapseCommand}"
+                    Visibility="Collapsed" Width="26" HorizontalAlignment="Right" VerticalAlignment="Stretch"
+                    Background="{StaticResource Brush.Ribbon.Background}" BorderBrush="{StaticResource Brush.Sidebar.Border}"
+                    BorderThickness="1,0,0,0" ToolTip="Expand Places &amp; Layers Sidebar (Ctrl+B)" Cursor="Hand">
+                <Path Data="{StaticResource Icon.PrevExtent}" Style="{StaticResource RibbonSmallIconStyle}" Fill="{StaticResource Brush.Accent}"/>
+            </Button>
+        </Grid>
+
+        <!-- ==================== ROW 3: TWO-ROW STATUS BAR (P0 - CRS-01..08) ==================== -->
+        <Border Grid.Row="3" Background="{StaticResource Brush.StatusBar.Background}"
+                BorderBrush="{StaticResource Brush.StatusBar.Border}" BorderThickness="0,1,0,0" Padding="8,3">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- Upper Row: Center Coordinates | Eye Altitude | Heading | CRS / View Mode -->
+                <Grid Grid.Row="0" Margin="0,1">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Button Grid.Column="0" Command="{Binding ToggleCoordinateFormatCommand}" Style="{StaticResource StatusBarBtnStyle}"
+                            ToolTip="Map Center: ground target under screen center. Click to cycle coordinate format (DD, DMS, UTM, MGRS)">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="🎯 " FontSize="11" Foreground="{StaticResource Brush.Accent}"/>
+                            <TextBlock Text="{Binding StatusCenterCoordinates}" FontWeight="SemiBold" FontSize="11" Foreground="{StaticResource Brush.Text.Primary}"/>
+                            <TextBlock Text=" | Eye: " FontSize="11" Foreground="{StaticResource Brush.Text.Muted}" Margin="6,0,0,0"/>
+                            <TextBlock Text="{Binding StatusAltitude}" FontWeight="SemiBold" FontSize="11" Foreground="{StaticResource Brush.Text.Primary}"/>
+                            <TextBlock Text=" | Head: " FontSize="11" Foreground="{StaticResource Brush.Text.Muted}" Margin="6,0,0,0"/>
+                            <TextBlock Text="{Binding StatusHeading}" FontWeight="SemiBold" FontSize="11" Foreground="{StaticResource Brush.Text.Primary}"/>
+                        </StackPanel>
+                    </Button>
+
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button Command="{Binding SelectCrsCommand}" Style="{StaticResource StatusBarBtnStyle}"
+                                ToolTip="Click to select Coordinate Reference System (CRS)">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock Text="CRS: " FontSize="11" Foreground="{StaticResource Brush.Text.Muted}"/>
+                                <TextBlock Text="{Binding StatusCrs}" FontWeight="SemiBold" FontSize="11" Foreground="{StaticResource Brush.Accent}"/>
+                            </StackPanel>
+                        </Button>
+                        <TextBlock Text=" | " FontSize="11" Foreground="{StaticResource Brush.Text.Muted}" Margin="4,0"/>
+                        <TextBlock Text="{Binding StatusViewMode}" FontWeight="SemiBold" FontSize="11" Foreground="{StaticResource Brush.Accent}" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Lower Row: Live Cursor Tracking | Status | Developer Attribution -->
+                <Grid Grid.Row="1" Margin="0,1">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="👆 " FontSize="11" Foreground="{StaticResource Brush.Accent}"/>
+                        <TextBlock Text="{Binding StatusCursorCoordinates}" FontSize="11" Foreground="{StaticResource Brush.Text.Secondary}" Margin="0,0,8,0"/>
+                        <TextBlock Text=" | " FontSize="11" Foreground="{StaticResource Brush.Text.Muted}" Margin="0,0,8,0"/>
+                        <TextBlock Text="{Binding StatusCursorElevation}" FontSize="11" Foreground="{StaticResource Brush.Text.Secondary}"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="12,0">
+                        <TextBlock Text="{Binding StatusMessage}" FontSize="10.5" Foreground="{StaticResource Brush.Text.Muted}"
+                                   VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                        <TextBlock Text=" ⟳" FontSize="11" Foreground="{StaticResource Brush.Accent}" Margin="6,0,0,0" VerticalAlignment="Center"
+                                   ToolTip="Working…"
+                                   Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="Developed by " FontSize="11" Foreground="{StaticResource Brush.Text.Muted}"/>
+                        <TextBlock Text="Ahmad Ibrahim" FontWeight="SemiBold" FontSize="11" Foreground="{StaticResource Brush.Accent}"/>
+                    </StackPanel>
+                </Grid>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

@@ -1,0 +1,54 @@
+<Window x:Class="ZEarth.App.Views.HistoricalImageryDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Historical Imagery — Esri Wayback" Width="640" Height="330"
+        MinWidth="560" MinHeight="300" WindowStartupLocation="CenterOwner" ResizeMode="CanResizeWithGrip"
+        Background="{DynamicResource Brush.Window.Background}" Foreground="{DynamicResource Brush.Text.Primary}"
+        FontFamily="Segoe UI" Loaded="OnLoaded">
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <StackPanel>
+            <TextBlock Text="Esri World Imagery Wayback" FontSize="17" FontWeight="Bold"/>
+            <TextBlock Text="Move the timeline to preview each available historical release directly on the globe."
+                       Margin="0,3,0,10" Foreground="{DynamicResource Brush.Text.Secondary}"/>
+        </StackPanel>
+        <Border Grid.Row="1" Background="{DynamicResource Brush.Ribbon.Background}"
+                BorderBrush="{DynamicResource Brush.Ribbon.Border}" BorderThickness="1" CornerRadius="7" Padding="14">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="Year" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                <ComboBox x:Name="YearCombo" Grid.Row="0" Grid.Column="1" Width="120" HorizontalAlignment="Left"
+                          Height="29" SelectionChanged="OnYearSelectionChanged"/>
+                <TextBlock x:Name="SelectedDateText" Grid.Row="0" Grid.Column="2" FontSize="15" FontWeight="Bold"
+                           Foreground="{DynamicResource Brush.Accent}" VerticalAlignment="Center" Margin="14,0,0,0"/>
+                <Slider x:Name="ReleaseSlider" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,14,0,4"
+                        Minimum="0" Maximum="1" TickFrequency="1" IsSnapToTickEnabled="True"
+                        ValueChanged="OnTimelineValueChanged"/>
+                <DockPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" LastChildFill="False">
+                    <TextBlock x:Name="OldestDateText" FontSize="10" Foreground="{DynamicResource Brush.Text.Muted}"/>
+                    <TextBlock x:Name="NewestDateText" FontSize="10" Foreground="{DynamicResource Brush.Text.Muted}" DockPanel.Dock="Right"/>
+                </DockPanel>
+                <TextBlock Grid.Row="3" Grid.Column="0" Text="Exact release" VerticalAlignment="Center" Margin="0,12,8,0"/>
+                <ComboBox x:Name="ReleaseCombo" Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="2" Height="29" Margin="0,12,0,0"
+                          DisplayMemberPath="DisplayName" SelectionChanged="OnReleaseSelectionChanged"/>
+            </Grid>
+        </Border>
+        <Grid Grid.Row="2" Margin="0,10,0,0">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+            <TextBlock x:Name="StatusText" VerticalAlignment="Center" Foreground="{DynamicResource Brush.Text.Secondary}"/>
+            <Button Grid.Column="1" Content="Use Selected Date" Width="130" Height="30" Margin="8,0"
+                    Click="OnApplyClick" Background="{DynamicResource Brush.Accent}" Foreground="White" BorderThickness="0"/>
+            <Button Grid.Column="2" Content="Close" Width="80" Height="30" IsCancel="True"/>
+        </Grid>
+    </Grid>
+</Window>

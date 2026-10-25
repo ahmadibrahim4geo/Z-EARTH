@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Z EARTH Desktop - CesiumJS Geographic Viewport</title>
+  <script>
+    window.addEventListener('error', function(e) {
+      var errObj = {
+        event: 'js.error',
+        message: 'FATAL_JS_ERROR: ' + e.message + ' at ' + (e.filename || 'unknown') + ':' + e.lineno + ':' + e.colno,
+        stack: e.error ? e.error.stack : ''
+      };
+      if (window.chrome && window.chrome.webview) {
+        window.chrome.webview.postMessage(JSON.stringify(errObj));
+      }
+    });
+    window.addEventListener('unhandledrejection', function(e) {
+      var errObj = {
+        event: 'js.error',
+        message: 'UNHANDLED_PROMISE: ' + (e.reason ? (e.reason.message || e.reason) : 'unknown'),
+        stack: (e.reason && e.reason.stack) ? e.reason.stack : ''
+      };
+      if (window.chrome && window.chrome.webview) {
+        window.chrome.webview.postMessage(JSON.stringify(errObj));
+      }
+    });
+  </script>
+  <link rel="stylesheet" href="cesium/Widgets/widgets.css">
+  <link rel="stylesheet" href="globe.css">
+</head>
+<body>
+  <div id="viewport-container">
+    <!-- Cesium 3D Viewport Host -->
+    <div id="cesium-container"></div>
+
+    <!-- Top Left Mode Pill -->
+    <div class="hud-overlay mode-pill">
+      <div id="btn-3d" class="mode-tab active" title="Switch to 3D Globe View">3D Globe</div>
+      <div id="btn-2d" class="mode-tab" title="Switch to 2D Map View">2D Map</div>
+    </div>
+
+    <!-- Top Right Nav Controls -->
+    <div id="nav-controls" class="nav-controls">
+      <!-- Expanded 3-Mode Compass & Navigation Widget (Addendum 07) -->
+      <div id="nav-compass-widget" class="nav-compass-widget">
+        <!-- Compact Mode Switcher -->
+        <div class="compass-mode-bar" id="compass-mode-bar">
+          <button id="btn-mode-cardinal" class="compass-mode-btn active" title="Cardinal Rose (N/E/S/W)">Card</button>
+          <button id="btn-mode-heading" class="compass-mode-btn" title="Heading Degrees (0°-359°)">Head</button>
+          <button id="btn-mode-qibla" class="compass-mode-btn" title="Geodesic Qibla Direction (Mecca Kaaba)">Qibla</button>
+        </div>
+
+        <!-- Compass Dial Interactive Area (Click to Reset North, Double-Click to Reset Tilt) -->
+        <div id="compass-dial-container" class="compass-dial-container" title="Click to Reset North (N) | Double-Click to Reset Tilt">
+          <!-- Rotating compass ring (rotated by the engine on every heading change) -->
+          <div id="compass-ring" class="compass-ring" aria-hidden="true"></div>
+          <!-- Mode 1: Cardinal Dial -->
+          <div id="view-cardinal" class="compass-view">
+            <div id="cardinal-rose" class="cardinal-rose">
+              <span class="cardinal-mark mark-n">N</span>
+              <span class="cardinal-mark mark-e">E</span>
+              <span class="cardinal-mark mark-s">S</span>
+              <span class="cardinal-mark mark-w">W</span>
+              <div class="compass-needle" id="compass-needle">
+                <div class="compass-needle-n"></div>
+                <div class="compass-needle-s"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Mode 2: Heading Degrees Dial -->
+          <div id="view-heading" class="compass-view" style="display: none;">
+            <div class="heading-dial">
+              <div id="heading-rose" class="cardinal-rose">
+                <span class="cardinal-mark mark-n">N</span>
+                <span class="cardinal-mark mark-e">E</span>
+                <span class="cardinal-mark mark-s">S</span>
+                <span class="cardinal-mark mark-w">W</span>
+                <div id="heading-needle" class="heading-needle">
+                  <div class="heading-needle-arrow"></div>
+                </div>
+              </div>
+              <div class="heading-value-badge" id="heading-value-badge">0°</div>
+            </div>
+          </div>
+
+          <!-- Mode 3: Geodesic Qibla Dial -->
+          <div id="view-qibla" class="compass-view" style="display: none;">
+            <div class="qibla-dial" id="qibla-dial">
+              <div id="qibla-rose" class="cardinal-rose">
+                <span class="cardinal-mark mark-n">N</span>
+                <span class="cardinal-mark mark-e">E</span>
+                <span class="cardinal-mark mark-s">S</span>
+                <span class="cardinal-mark mark-w">W</span>
+                <div id="qibla-needle" class="qibla-needle">
+                  <div class="qibla-arrow" title="Qibla Bearing"></div>
+                  <div class="qibla-marker" title="Kaaba, Mecca">🕋</div>
+                </div>
+              </div>
+              <div class="qibla-badge" id="qibla-badge">
+                <div class="qibla-title">Qibla / القبلة</div>
+                <div class="qibla-bearing" id="qibla-bearing-text">136°</div>
+              </div>
+            </div>
+            <div class="qibla-warning" id="qibla-warning" style="display: none;">Point at Earth / وجه نحو الأرض</div>
+          </div>
+        </div>
+
+        <!-- North Reset Action Button -->
+        <button id="btn-north-reset" class="compass-north-btn" title="Reset North Up (N)">North Up</button>
+      </div>
+
+      <!-- Zoom and Extent HUD Buttons -->
+      <div class="hud-btn-group">
+        <button id="btn-zoom-in" class="hud-btn" title="Zoom In (+)">+</button>
+        <button id="btn-zoom-out" class="hud-btn" title="Zoom Out (-)">−</button>
+        <button id="btn-home" class="hud-btn" title="Home View (Home)">⌂</button>
+        <button id="btn-full-extent" class="hud-btn" title="Full Global Extent (Ctrl+Shift+E)">🌐</button>
+      </div>
+    </div>
+
+    <!-- Two-Basemap Swipe Comparison Overlay (Addendum 07) -->
+    <div id="swipe-container" class="swipe-container" style="display: none;">
+      <!-- Draggable Split Divider Line -->
+      <div id="swipe-divider" class="swipe-divider" style="left: 50%;">
+        <div id="swipe-handle" class="swipe-handle" title="Drag horizontally to compare basemaps">
+          <span class="swipe-arrow-left">◀</span>
+          <span class="swipe-arrow-right">▶</span>
+        </div>
+      </div>
+      <!-- Floating Badges -->
+      <div id="swipe-left-badge" class="hud-overlay swipe-badge swipe-left-badge">Left Basemap</div>
+      <div id="swipe-right-badge" class="hud-overlay swipe-badge swipe-right-badge">Right Basemap</div>
+      <!-- Exit Button -->
+      <button id="btn-exit-swipe" class="hud-overlay btn-exit-swipe" title="Exit Swipe comparison mode">✕ Exit Compare</button>
+    </div>
+
+    <!-- Floating Sunlight & Time-of-Day Slider Widget (Google Earth Pro Style) -->
+    <div id="sunlight-hud" class="sunlight-hud" style="display: none;">
+      <div class="sunlight-header">
+        <div class="sunlight-brand">
+          <span class="sunlight-icon">☀️</span>
+          <span class="sunlight-title">Sunlight &amp; Time</span>
+        </div>
+        <div class="sunlight-header-actions">
+          <button id="btn-sunlight-play" class="sunlight-btn sunlight-play-btn" title="Play / Pause Time Animation">▶</button>
+          <button id="btn-sunlight-now" class="sunlight-btn" title="Set to Current Real-World Time (UTC)">Now</button>
+          <span id="sunlight-time-label" class="sunlight-time-label">12:00 PM (UTC)</span>
+          <button id="btn-sunlight-close" class="sunlight-close-btn" title="Close Sunlight HUD">✕</button>
+        </div>
+      </div>
+      <div class="sunlight-slider-row">
+        <span class="time-marker">00:00</span>
+        <input type="range" id="sunlight-slider" min="0" max="24" step="0.1" value="12" class="sunlight-range" />
+        <span class="time-marker">24:00</span>
+      </div>
+      <div class="sunlight-presets">
+        <button class="sunlight-preset-btn" data-time="6">Dawn (06:00)</button>
+        <button class="sunlight-preset-btn" data-time="12">Noon (12:00)</button>
+        <button class="sunlight-preset-btn" data-time="18">Dusk (18:00)</button>
+        <button class="sunlight-preset-btn" data-time="0">Midnight (00:00)</button>
+      </div>
+    </div>
+
+    <!-- Compact Compliant Data Provider Attribution Dock (Addendum 02) -->
+    <div id="credits-dock" class="credits-dock">
+      <div id="provider-logos-row" class="provider-logos-row">
+        <span class="provider-badge logo-cesium" title="CesiumJS 3D Globe Engine">Cesium</span>
+        <span class="provider-badge logo-esri" id="badge-esri" title="Esri ArcGIS World Imagery">Esri</span>
+        <span class="provider-badge logo-osm" id="badge-osm" title="OpenStreetMap Contributors">OSM</span>
+        <span class="provider-badge logo-carto" id="badge-carto" title="CARTO Voyager Basemaps">CARTO</span>
+        <button id="btn-credits-modal" class="credits-btn" title="View Full Data Source Attributions &amp; Legal Licenses">Credits &amp; Sources</button>
+      </div>
+    </div>
+
+    <!-- Credits & Attributions Modal Lightbox -->
+    <div id="credits-modal" class="credits-modal" style="display: none;">
+      <div class="credits-modal-content">
+        <div class="credits-modal-header">
+          <span class="credits-modal-title">Z EARTH Desktop GIS — Data Sources &amp; Legal Credits</span>
+          <button id="btn-credits-close" class="credits-modal-close" title="Close">✕</button>
+        </div>
+        <div class="credits-modal-body">
+          <div class="credit-section">
+            <h4>CesiumJS 3D Engine</h4>
+            <p>CesiumJS is licensed under the Apache 2.0 License. © 2011–2026 Cesium GS, Inc. WGS84 ellipsoidal globe virtualization and 3D tiles rendering.</p>
+          </div>
+          <div class="credit-section">
+            <h4>Esri World Imagery &amp; Reference Layers</h4>
+            <p>Source: Esri, Maxar, Earthstar Geographics, USDA FSA, USGS, Aerogrid, IGN, IGP, and the GIS User Community. Licensed for desktop visualization and reference.</p>
+          </div>
+          <div class="credit-section">
+            <h4>OpenStreetMap</h4>
+            <p>© OpenStreetMap contributors. OpenStreetMap is open data, licensed under the Open Data Commons Open Database License (ODbL) by the OpenStreetMap Foundation (OSMF).</p>
+          </div>
+          <div class="credit-section">
+            <h4>Natural Earth II &amp; Offline Datasets</h4>
+            <p>Natural Earth raster and vector map data are in the Public Domain. Bundled for offline, network-free operation.</p>
+          </div>
+          <div class="credit-section">
+            <h4>CARTO &amp; Positron / Voyager</h4>
+            <p>© CARTO • Map tiles by CARTO under CC BY 4.0 license with data by OpenStreetMap.</p>
+          </div>
+          <div class="credit-section">
+            <h4>MaxRev GDAL / PROJ</h4>
+            <p>Geodetic CRS projections, Krüger Transverse Mercator series, and raster/vector readers powered by GDAL &amp; PROJ (MIT/X/LGPL licenses).</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Right Engine Identification Watermark -->
+    <div id="engine-badge" class="hud-overlay engine-badge" style="display:none">
+      Engine: CesiumJS 1.146 (WGS84 Ellipsoid) • WebView2 Bridge
+    </div>
+
+    <!-- Live Cursor / Camera Coordinate Readout (updated by the engine; CRS-02) -->
+    <div id="coord-display" class="hud-overlay coord-display" style="display:none">WGS84 0.0000° N | 0.0000° E</div>
+
+    <!-- Compatibility target for attribution telemetry; visual credits use the compact dock. -->
+    <div id="attribution-pill" aria-hidden="true" style="display:none"></div>
+
+    <!-- Snap Target Visual Cue Glyph (ZE-044, SN-01) -->
+    <div id="snap-glyph" class="snap-glyph">
+      <div id="snap-marker" class="snap-marker"></div>
+      <div id="snap-tooltip" class="snap-tooltip">Snap: Vertex</div>
+    </div>
+
+    <!-- Active Measurement Floating HUD (ZE-046, ZE-047, U-01) -->
+    <div id="measurement-hud" class="measurement-hud">
+      <div class="measure-header-row">
+        <div class="measure-title" id="measure-title">📏 Geodesic Distance Measurement</div>
+        <select id="measure-unit-select" class="measure-unit-select" title="Select display unit">
+          <option value="AutoMetric">Auto Metric (m / km)</option>
+          <option value="Meters">Meters (m)</option>
+          <option value="Kilometers">Kilometers (km)</option>
+          <option value="AutoImperial">Auto Imperial (ft / mi)</option>
+          <option value="Feet">Feet (ft)</option>
+          <option value="Miles">Miles (mi)</option>
+          <option value="NauticalMiles">Nautical Miles (nmi)</option>
+          <option value="Hectares">Hectares (ha)</option>
+          <option value="Acres">Acres (ac)</option>
+          <option value="EgyptianFeddan">Feddan (fed)</option>
+        </select>
+      </div>
+      <div class="measure-body" id="measure-body">Click on map or placemarks to measure.</div>
+      <div class="measure-algorithm" id="measure-algorithm">Algorithm: WGS84 Geodesic (Vincenty / Excess)</div>
+      <div class="measure-actions">
+        <button id="btn-measure-finish" class="measure-btn" title="Finish current measurement (Enter)">Finish</button>
+        <button id="btn-measure-clear" class="measure-btn" title="Clear measurement (Esc)">Clear</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CesiumJS Runtime & Viewport Engine -->
+  <script src="cesium/Cesium.js"></script>
+  <script src="cesium-engine.js"></script>
+</body>
+</html>

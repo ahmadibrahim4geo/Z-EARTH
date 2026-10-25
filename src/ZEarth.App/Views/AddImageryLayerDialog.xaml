@@ -1,0 +1,86 @@
+<Window x:Class="ZEarth.App.Views.AddImageryLayerDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Add Imagery / Map Layer"
+        Height="460" Width="640"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Background="{DynamicResource Brush.Window.Background}"
+        Foreground="{DynamicResource Brush.Text.Primary}"
+        FontFamily="Segoe UI">
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,16">
+            <TextBlock Text="Connect to Imagery / Map Layer" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Accent}"/>
+            <TextBlock Text="Connect to an external Web Map Service (WMS), WMTS, or Slippy/XYZ raster tile cache."
+                       FontSize="12" Foreground="{DynamicResource Brush.Text.Secondary}" Margin="0,4,0,0"/>
+        </StackPanel>
+
+        <!-- Form Fields -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel Orientation="Vertical">
+                <!-- Layer Name -->
+                <TextBlock Text="Layer Display Name:" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                <TextBox x:Name="TxtLayerName" Height="28" Padding="6,2" VerticalContentAlignment="Center"
+                         Background="{DynamicResource Brush.Control.Background}"
+                         Foreground="{DynamicResource Brush.Text.Primary}"
+                         BorderBrush="{DynamicResource Brush.Control.Border}"
+                         BorderThickness="1" Margin="0,0,0,12" Text="Custom Map Layer"/>
+
+                <!-- Service Type -->
+                <TextBlock Text="Service Protocol / Type:" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                <ComboBox x:Name="CmbProviderType" Height="28" Margin="0,0,0,12"
+                          Background="{DynamicResource Brush.Control.Background}"
+                          Foreground="{DynamicResource Brush.Text.Primary}"
+                          SelectedIndex="0">
+                    <ComboBoxItem Content="XYZ / Slippy Raster Tile Server ({z}/{x}/{y})" Tag="XyzTileServer"/>
+                    <ComboBoxItem Content="WMS (Web Map Service)" Tag="WmsServer"/>
+                    <ComboBoxItem Content="WMTS (Web Map Tile Service)" Tag="WmtsServer"/>
+                </ComboBox>
+
+                <!-- URL Template -->
+                <TextBlock Text="Server URL Template:" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                <TextBox x:Name="TxtUrlTemplate" Height="28" Padding="6,2" VerticalContentAlignment="Center"
+                         Background="{DynamicResource Brush.Control.Background}"
+                         Foreground="{DynamicResource Brush.Text.Primary}"
+                         BorderBrush="{DynamicResource Brush.Control.Border}"
+                         BorderThickness="1" Margin="0,0,0,4"
+                         Text="https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png"/>
+                <TextBlock Text="Example: https://tile.server.org/{z}/{x}/{y}.png or WMS GetMap endpoint"
+                           FontSize="10.5" Foreground="{DynamicResource Brush.Text.Muted}" Margin="0,0,0,12"/>
+
+                <!-- Attribution -->
+                <TextBlock Text="Attribution / Copyright:" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                <TextBox x:Name="TxtAttribution" Height="28" Padding="6,2" VerticalContentAlignment="Center"
+                         Background="{DynamicResource Brush.Control.Background}"
+                         Foreground="{DynamicResource Brush.Text.Primary}"
+                         BorderBrush="{DynamicResource Brush.Control.Border}"
+                         BorderThickness="1" Margin="0,0,0,12" Text="© OpenStreetMap, © CARTO"/>
+
+                <!-- Quick Presets -->
+                <TextBlock Text="Quick Public Presets:" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text.Secondary}" Margin="0,0,0,6"/>
+                <WrapPanel Margin="0,0,0,8">
+                    <Button Content="CartoDB Voyager" Click="PresetCartoVoyager_Click" Height="24" Padding="8,2" Margin="0,0,6,6"/>
+                    <Button Content="Stamen Toner Lite" Click="PresetStamenToner_Click" Height="24" Padding="8,2" Margin="0,0,6,6"/>
+                    <Button Content="USGS Imagery" Click="PresetUsgs_Click" Height="24" Padding="8,2" Margin="0,0,6,6"/>
+                </WrapPanel>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Actions -->
+        <Border Grid.Row="2" Padding="0,16,0,0" BorderBrush="{DynamicResource Brush.Control.Border}" BorderThickness="0,1,0,0">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="Add Layer" Click="BtnAdd_Click" IsDefault="True" Width="100" Height="30" Margin="0,0,8,0"
+                        Background="{DynamicResource Brush.Accent}" Foreground="#ffffff" FontWeight="SemiBold"/>
+                <Button Content="Cancel" Click="BtnCancel_Click" IsCancel="True" Width="80" Height="30"
+                        Background="{DynamicResource Brush.Control.Background}" Foreground="{DynamicResource Brush.Text.Primary}"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>

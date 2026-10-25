@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>ZEarth.Globe</RootNamespace>
+    <AssemblyName>ZEarth.Globe</AssemblyName>
+    <Version>0.1.0</Version>
+    <Authors>Ahmad Ibrahim</Authors>
+    <Company>Z EARTH Desktop</Company>
+    <Product>Z EARTH Desktop GIS</Product>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ZEarth.Domain\ZEarth.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Assets\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="iconCardGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e2c44"/>
+      <stop offset="50%" stop-color="#111c2e"/>
+      <stop offset="100%" stop-color="#090f1a"/>
+    </linearGradient>
+
+    <linearGradient id="iconBorderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00d2ff"/>
+      <stop offset="50%" stop-color="#0066cc"/>
+      <stop offset="100%" stop-color="#003366"/>
+    </linearGradient>
+
+    <radialGradient id="globeGrad" cx="40%" cy="35%" r="65%">
+      <stop offset="0%" stop-color="#1dc7ea"/>
+      <stop offset="45%" stop-color="#0072c6"/>
+      <stop offset="80%" stop-color="#002b5c"/>
+      <stop offset="100%" stop-color="#00142b"/>
+    </radialGradient>
+
+    <linearGradient id="zGlowGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00ffff"/>
+      <stop offset="50%" stop-color="#0099ff"/>
+      <stop offset="100%" stop-color="#0055ff"/>
+    </linearGradient>
+
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+
+  <!-- Rounded-square background -->
+  <rect x="16" y="16" width="480" height="480" rx="96" fill="url(#iconCardGrad)" stroke="url(#iconBorderGrad)" stroke-width="4"/>
+  <rect x="24" y="24" width="464" height="464" rx="88" fill="none" stroke="#00ffff" stroke-width="1.5" opacity="0.4"/>
+
+  <!-- Globe sphere -->
+  <circle cx="256" cy="256" r="170" fill="url(#globeGrad)"/>
+
+  <!-- Graticules -->
+  <ellipse cx="256" cy="256" rx="170" ry="68" fill="none" stroke="#66d9ff" stroke-width="2.5" opacity="0.4"/>
+  <ellipse cx="256" cy="256" rx="68" ry="170" fill="none" stroke="#66d9ff" stroke-width="2.5" opacity="0.4"/>
+  <line x1="86" y1="256" x2="426" y2="256" stroke="#66d9ff" stroke-width="2.5" opacity="0.5"/>
+  <line x1="256" y1="86" x2="256" y2="426" stroke="#66d9ff" stroke-width="2.5" opacity="0.5"/>
+
+  <!-- Stylized Z -->
+  <path d="M 160 170 L 350 170 L 190 330 L 352 330" fill="none" stroke="url(#zGlowGrad)" stroke-width="32" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow)"/>
+  <path d="M 160 170 L 350 170 L 190 330 L 352 330" fill="none" stroke="#ffffff" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" opacity="0.95"/>
+</svg>

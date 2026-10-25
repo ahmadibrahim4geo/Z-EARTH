@@ -1,0 +1,80 @@
+<Window x:Class="ZEarth.App.Views.GraticuleOptionsDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Coordinate Grid Options"
+        Width="460" SizeToContent="Height"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Background="{StaticResource Brush.Window.Background}"
+        Foreground="{StaticResource Brush.Text.Primary}"
+        FontFamily="Segoe UI">
+
+    <Grid Margin="18">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Margin="0,0,0,10">
+            <TextBlock Text="Coordinate Grid (Geographic Graticule)" FontWeight="Bold" FontSize="14" Margin="0,0,0,2"/>
+            <TextBlock Text="Control how the latitude/longitude grid is drawn on the globe — including the named key lines (Equator, Tropics, Polar Circles, Prime Meridian, Dateline), the graticule spacing per axis, and global UTM zone boundaries."
+                       FontSize="11" TextWrapping="Wrap" Foreground="{StaticResource Brush.Text.Secondary}"/>
+        </StackPanel>
+
+        <StackPanel Grid.Row="1" Margin="0,4">
+            <CheckBox x:Name="LabelsCheck" Content="Show degree labels on grid lines" Margin="0,3"/>
+            <CheckBox x:Name="MajorOnlyCheck" Content="Show key named lines only (Equator, Tropics, Polar Circles, Prime Meridian, Dateline)" Margin="0,3"/>
+            <CheckBox x:Name="KeyParallelsCheck" Content="Keep the named key lines visible along the normal grid" IsChecked="True" Margin="0,3"/>
+            <CheckBox x:Name="UtmZonesCheck" Content="Show global UTM zone boundaries and zone labels (like Google Earth Pro)" Margin="0,3"/>
+        </StackPanel>
+
+        <UniformGrid Grid.Row="2" Columns="2" Margin="0,10,0,4">
+            <StackPanel Margin="0,0,6,0">
+                <TextBlock Text="Latitude step (parallels):" FontSize="11" Foreground="{StaticResource Brush.Text.Secondary}" Margin="0,0,0,3"/>
+                <ComboBox x:Name="LatSpacingCombo" Height="24" FontSize="11">
+                    <ComboBoxItem Content="Every 1°" Tag="1"/>
+                    <ComboBoxItem Content="Every 2°" Tag="2"/>
+                    <ComboBoxItem Content="Every 3°" Tag="3"/>
+                    <ComboBoxItem Content="Every 4°" Tag="4"/>
+                    <ComboBoxItem Content="Every 5°" Tag="5"/>
+                    <ComboBoxItem Content="Every 10°" Tag="10" IsSelected="True"/>
+                    <ComboBoxItem Content="Every 15°" Tag="15"/>
+                    <ComboBoxItem Content="Every 20°" Tag="20"/>
+                    <ComboBoxItem Content="Every 30°" Tag="30"/>
+                </ComboBox>
+            </StackPanel>
+            <StackPanel Margin="6,0,0,0">
+                <TextBlock Text="Longitude step (meridians):" FontSize="11" Foreground="{StaticResource Brush.Text.Secondary}" Margin="0,0,0,3"/>
+                <ComboBox x:Name="LonSpacingCombo" Height="24" FontSize="11">
+                    <ComboBoxItem Content="Every 1°" Tag="1"/>
+                    <ComboBoxItem Content="Every 2°" Tag="2"/>
+                    <ComboBoxItem Content="Every 3°" Tag="3"/>
+                    <ComboBoxItem Content="Every 4°" Tag="4"/>
+                    <ComboBoxItem Content="Every 5°" Tag="5"/>
+                    <ComboBoxItem Content="Every 10°" Tag="10"/>
+                    <ComboBoxItem Content="Every 15°" Tag="15" IsSelected="True"/>
+                    <ComboBoxItem Content="Every 20°" Tag="20"/>
+                    <ComboBoxItem Content="Every 30°" Tag="30"/>
+                </ComboBox>
+            </StackPanel>
+        </UniformGrid>
+
+        <Border Grid.Row="3" Background="{StaticResource Brush.Control.Background}" CornerRadius="4" Padding="8,5" Margin="0,8">
+            <TextBlock Text="Tip: the live UTM zone of the map center is always shown in the bottom-left coordinate readout."
+                       FontSize="10.5" Foreground="{StaticResource Brush.Text.Secondary}"/>
+        </Border>
+
+        <DockPanel Grid.Row="5" Margin="0,10,0,0" LastChildFill="False">
+            <Button DockPanel.Dock="Right" Content="OK" Width="84" Height="28" Click="OnOkClick" IsDefault="True"
+                    Background="{StaticResource Brush.Control.Background}" Foreground="{StaticResource Brush.Text.Primary}"
+                    BorderBrush="{StaticResource Brush.Control.Border}" BorderThickness="1"/>
+            <Button DockPanel.Dock="Right" Content="Cancel" Width="84" Height="28" Margin="0,0,8,0" IsCancel="True"
+                    Background="{StaticResource Brush.Control.Background}" Foreground="{StaticResource Brush.Text.Primary}"
+                    BorderBrush="{StaticResource Brush.Control.Border}" BorderThickness="1"/>
+        </DockPanel>
+    </Grid>
+</Window>

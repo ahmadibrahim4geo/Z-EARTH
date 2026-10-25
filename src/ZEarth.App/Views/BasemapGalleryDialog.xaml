@@ -1,0 +1,198 @@
+<Window x:Class="ZEarth.App.Views.BasemapGalleryDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Basemap Gallery &amp; Comparison"
+        Height="650" Width="840"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResizeWithGrip"
+        Background="{DynamicResource Brush.Window.Background}"
+        Foreground="{DynamicResource Brush.Text.Primary}"
+        FontFamily="Segoe UI">
+
+    <Window.Resources>
+        <Style TargetType="RadioButton" BasedOn="{StaticResource SidebarTabBtnStyle}">
+            <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}"/>
+            <Setter Property="Background" Value="{DynamicResource Brush.Control.Background}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource Brush.Control.Border}"/>
+        </Style>
+        <Style TargetType="ComboBox">
+            <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}"/>
+            <Setter Property="Background" Value="{DynamicResource Brush.Control.Background}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource Brush.Control.Border}"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Border Grid.Row="0" Background="{DynamicResource Brush.Ribbon.Background}" CornerRadius="6" Padding="12" Margin="0,0,0,10"
+                BorderBrush="{DynamicResource Brush.Ribbon.Border}" BorderThickness="1">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <Path Data="{StaticResource Icon.BasemapGallery}" Style="{StaticResource RibbonIconPathStyle}" Width="24" Height="24" Margin="0,0,12,0"/>
+                <StackPanel>
+                    <TextBlock Text="Basemap &amp; Satellite Imagery Gallery" FontWeight="Bold" FontSize="15" Foreground="{DynamicResource Brush.Text.Primary}"/>
+                    <TextBlock Text="Select a high-resolution cartographic or satellite base layer, or launch two-basemap Swipe comparison." FontSize="11" Foreground="{DynamicResource Brush.Text.Secondary}"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <!-- Search and Category Filters -->
+        <Grid Grid.Row="1" Margin="0,0,0,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="220"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Search box -->
+            <TextBox x:Name="TxtSearch" Grid.Column="0" Height="28" Padding="6,2" VerticalContentAlignment="Center"
+                     Background="{DynamicResource Brush.Control.Background}"
+                     Foreground="{DynamicResource Brush.Text.Primary}"
+                     BorderBrush="{DynamicResource Brush.Control.Border}"
+                     BorderThickness="1" TextChanged="OnSearchTextChanged"
+                     ToolTip="Filter basemaps by name, provider, or category..."/>
+
+            <!-- Source Filter Buttons -->
+            <WrapPanel Grid.Column="1" Margin="8,0,0,0" VerticalAlignment="Center">
+                <RadioButton Content="All Sources" IsChecked="True" Checked="OnSourceFilterChecked" Tag="All" Margin="0,0,4,4" Height="26" Padding="8,2"/>
+                <RadioButton Content="Esri ArcGIS" Checked="OnSourceFilterChecked" Tag="Esri" Margin="0,0,4,4" Height="26" Padding="8,2" FontWeight="SemiBold"/>
+                <RadioButton Content="OpenStreetMap" Checked="OnSourceFilterChecked" Tag="OSM" Margin="0,0,4,4" Height="26" Padding="8,2"/>
+                <RadioButton Content="Carto" Checked="OnSourceFilterChecked" Tag="Carto" Margin="0,0,4,4" Height="26" Padding="8,2"/>
+                <RadioButton Content="Offline Fallback" Checked="OnSourceFilterChecked" Tag="Offline" Margin="0,0,4,4" Height="26" Padding="8,2"/>
+            </WrapPanel>
+        </Grid>
+
+        <!-- Compare / Swipe Section -->
+        <Expander Grid.Row="2" Header="⇄ Compare Basemaps (Two-Basemap Swipe Comparison)"
+                  Background="{DynamicResource Brush.Ribbon.Background}"
+                  BorderBrush="{DynamicResource Brush.Ribbon.Border}"
+                  BorderThickness="1" Margin="0,0,0,10" Padding="8">
+            <Grid Margin="4,8,4,4">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Left Basemap (A) -->
+                <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                    <TextBlock Text="Basemap A (Left Side):" FontSize="11" FontWeight="SemiBold" Margin="0,0,0,4" Foreground="{DynamicResource Brush.Text.Primary}"/>
+                    <ComboBox x:Name="CmbSwipeLeft" Height="28"/>
+                </StackPanel>
+
+                <!-- Swap icon -->
+                <Button Grid.Column="1" Content="⇄" Click="OnSwapSwipeClick" Width="32" Height="28" Margin="0,18,8,0"
+                        ToolTip="Swap Left and Right Basemaps" Background="{DynamicResource Brush.Control.Background}"
+                        Foreground="{DynamicResource Brush.Text.Primary}" BorderBrush="{DynamicResource Brush.Control.Border}"/>
+
+                <!-- Right Basemap (B) -->
+                <StackPanel Grid.Column="2" Margin="0,0,8,0">
+                    <TextBlock Text="Basemap B (Right Side):" FontSize="11" FontWeight="SemiBold" Margin="0,0,0,4" Foreground="{DynamicResource Brush.Text.Primary}"/>
+                    <ComboBox x:Name="CmbSwipeRight" Height="28"/>
+                </StackPanel>
+
+                <!-- Launch Swipe Button -->
+                <Button Grid.Column="3" Content="Start Swipe" Click="OnStartSwipeClick" Width="100" Height="28" Margin="0,18,0,0"
+                        Background="{DynamicResource Brush.Accent}" Foreground="#FFFFFF" FontWeight="SemiBold"
+                        ToolTip="Launch side-by-side hardware-accelerated Swipe comparison"/>
+            </Grid>
+        </Expander>
+
+        <!-- Basemaps Cards ItemsControl with Thumbnails -->
+        <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto">
+            <ItemsControl x:Name="BasemapsItemsControl">
+                <ItemsControl.GroupStyle>
+                    <GroupStyle>
+                        <GroupStyle.HeaderTemplate>
+                            <DataTemplate>
+                                <Border Background="{DynamicResource Brush.Control.Background}" BorderBrush="{DynamicResource Brush.Control.Border}" BorderThickness="0,0,0,1" Padding="10,7" Margin="4,8,4,2">
+                                    <TextBlock Text="{Binding Name}" FontSize="13" FontWeight="Bold" Foreground="{DynamicResource Brush.Accent}"/>
+                                </Border>
+                            </DataTemplate>
+                        </GroupStyle.HeaderTemplate>
+                        <GroupStyle.Panel>
+                            <ItemsPanelTemplate><WrapPanel Orientation="Horizontal"/></ItemsPanelTemplate>
+                        </GroupStyle.Panel>
+                    </GroupStyle>
+                </ItemsControl.GroupStyle>
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel Orientation="Horizontal"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Width="385" Height="145" Margin="6" Background="{DynamicResource Brush.Ribbon.Background}"
+                                BorderBrush="{DynamicResource Brush.Ribbon.Border}" BorderThickness="1" CornerRadius="6" Padding="10">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="105"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <!-- Visual Thumbnail Box -->
+                                <Border Grid.Column="0" CornerRadius="4" Margin="0,0,10,0"
+                                        Background="{Binding ThumbnailBackground}" BorderBrush="{DynamicResource Brush.Control.Border}" BorderThickness="1">
+                                    <Grid>
+                                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                            <TextBlock Text="{Binding ThumbnailIcon}" FontSize="28" HorizontalAlignment="Center" Margin="0,0,0,3"/>
+                                            <Border Background="#CC000000" CornerRadius="3" Padding="4,1">
+                                                <TextBlock Text="{Binding SourceName}" FontSize="8.5" FontWeight="Bold" Foreground="#FFFFFF" HorizontalAlignment="Center"/>
+                                            </Border>
+                                        </StackPanel>
+                                        <Border VerticalAlignment="Bottom" Background="#CC000000" Padding="2,1">
+                                            <TextBlock Text="{Binding CategoryName}" FontSize="8" Foreground="#E2E8F0" HorizontalAlignment="Center"/>
+                                        </Border>
+                                    </Grid>
+                                </Border>
+
+                                <!-- Details Column -->
+                                <Grid Grid.Column="1">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="*"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+
+                                    <!-- Title & Status Badge -->
+                                    <DockPanel Grid.Row="0" LastChildFill="True" Margin="0,0,0,4">
+                                        <Border DockPanel.Dock="Right" CornerRadius="3" Padding="5,1" Background="{DynamicResource Brush.Control.Background}">
+                                            <TextBlock Text="{Binding StatusText}" FontSize="9.5" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Accent}"/>
+                                        </Border>
+                                        <TextBlock Text="{Binding Name}" FontWeight="Bold" FontSize="11.5" TextTrimming="CharacterEllipsis" Foreground="{DynamicResource Brush.Text.Primary}"/>
+                                    </DockPanel>
+
+                                    <!-- Attribution / Description -->
+                                    <TextBlock Grid.Row="1" Text="{Binding Attribution}" FontSize="10" TextWrapping="Wrap" TextTrimming="CharacterEllipsis"
+                                               Foreground="{DynamicResource Brush.Text.Secondary}" Margin="0,2,0,4"/>
+
+                                    <!-- Provider Type & Select Button -->
+                                    <DockPanel Grid.Row="2" LastChildFill="False">
+                                        <TextBlock DockPanel.Dock="Left" Text="{Binding LayerType}" FontSize="9.5" Foreground="{DynamicResource Brush.Text.Secondary}" VerticalAlignment="Center"/>
+                                        <Button DockPanel.Dock="Right" Content="Select Basemap" Padding="12,2" Height="24" FontSize="11"
+                                                Background="{DynamicResource Brush.Accent}" Foreground="#ffffff" BorderThickness="0"
+                                                Click="OnSelectBasemapClick" Tag="{Binding Id}"/>
+                                    </DockPanel>
+                                </Grid>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+
+        <!-- Close Button -->
+        <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+            <Button Content="Close" Width="85" Height="28" IsCancel="True"
+                    Background="{DynamicResource Brush.Control.Background}" Foreground="{DynamicResource Brush.Text.Primary}"
+                    BorderBrush="{DynamicResource Brush.Control.Border}" BorderThickness="1"/>
+        </StackPanel>
+    </Grid>
+</Window>

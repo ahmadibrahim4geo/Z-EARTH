@@ -1,0 +1,199 @@
+<Window x:Class="ZEarth.App.Views.PropertiesDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Feature Properties — Z EARTH Desktop"
+        Width="760" Height="620"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource Brush.Window.Background}"
+        Foreground="{DynamicResource Brush.Text.Primary}">
+
+    <Window.Resources>
+        <Style TargetType="TabItem">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="14,8"/>
+            <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <!-- Header -->
+            <RowDefinition Height="Auto"/>
+            <!-- Feature Name Header Edit -->
+            <RowDefinition Height="Auto"/>
+            <!-- Tabs -->
+            <RowDefinition Height="*"/>
+            <!-- Footer Buttons -->
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <DockPanel Grid.Row="0" Margin="0,0,0,12">
+            <TextBlock Text="🏷 Feature Properties" FontSize="16" FontWeight="Bold" Foreground="{DynamicResource Brush.Accent}"/>
+            <TextBlock x:Name="FeatureTypeBadge" Text="[Placemark]" FontSize="11" Foreground="{DynamicResource Brush.Text.Muted}"
+                       VerticalAlignment="Center" Margin="10,0,0,0"/>
+        </DockPanel>
+
+        <!-- Feature Name Edit -->
+        <Grid Grid.Row="1" Margin="0,0,0,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="Name:" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,10,0"/>
+            <TextBox Grid.Column="1" x:Name="NameTextBox" Height="28" Padding="6,4"
+                     Background="{DynamicResource Brush.Control.Background}"
+                     Foreground="{DynamicResource Brush.Text.Primary}"
+                     BorderBrush="{DynamicResource Brush.Control.Border}"
+                     BorderThickness="1"/>
+        </Grid>
+
+        <!-- Description, attributes and cartographic style -->
+        <TabControl Grid.Row="2" Background="{DynamicResource Brush.Window.Background}"
+                    BorderBrush="{DynamicResource Brush.Control.Border}">
+
+            <!-- TAB 1: Description / HTML -->
+            <TabItem Header="📄 Description / HTML">
+                <Grid Margin="10">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Rendered Sanitized Preview Header -->
+                    <DockPanel Grid.Row="0" Margin="0,0,0,6">
+                        <TextBlock Text="Rendered HTML (Sanitized Preview):" FontWeight="SemiBold" FontSize="11" Foreground="{DynamicResource Brush.Accent}"/>
+                        <TextBlock Text="Scripts &amp; unsafe tags stripped" FontSize="10" Foreground="{DynamicResource Brush.Text.Muted}" HorizontalAlignment="Right"/>
+                    </DockPanel>
+
+                    <!-- Safe WebBrowser Preview -->
+                    <Border Grid.Row="1" BorderBrush="{DynamicResource Brush.Control.Border}" BorderThickness="1" CornerRadius="4" Margin="0,0,0,10">
+                        <WebBrowser x:Name="DescriptionWebBrowser"/>
+                    </Border>
+
+                    <!-- Raw/Editable Description Text -->
+                    <TextBlock Grid.Row="2" Text="Description Source / Text:" FontWeight="SemiBold" FontSize="11" Foreground="{DynamicResource Brush.Text.Secondary}" Margin="0,0,0,4"/>
+                    <TextBox Grid.Row="3" x:Name="RawDescriptionTextBox" AcceptsReturn="True" TextWrapping="Wrap"
+                             VerticalScrollBarVisibility="Auto" Padding="6"
+                             Background="{DynamicResource Brush.Control.Background}"
+                             Foreground="{DynamicResource Brush.Text.Primary}"
+                             BorderBrush="{DynamicResource Brush.Control.Border}"
+                             BorderThickness="1"
+                             TextChanged="RawDescriptionTextBox_TextChanged"/>
+                </Grid>
+            </TabItem>
+
+            <!-- TAB 2: Attributes -->
+            <TabItem Header="📊 Attributes">
+                <Grid Margin="10">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <DockPanel Grid.Row="0" Margin="0,0,0,8">
+                        <TextBlock Text="Structured Attributes &amp; ExtendedData:" FontWeight="SemiBold" FontSize="11" Foreground="{DynamicResource Brush.Accent}"/>
+                        <Button DockPanel.Dock="Right" Content="➕ Add Attribute" Click="AddAttribute_Click"
+                                Padding="8,2" FontSize="11"
+                                Background="{DynamicResource Brush.Control.Background}"
+                                Foreground="{DynamicResource Brush.Text.Primary}"
+                                BorderBrush="{DynamicResource Brush.Control.Border}"/>
+                    </DockPanel>
+
+                    <DataGrid Grid.Row="1" x:Name="AttributesDataGrid" AutoGenerateColumns="False"
+                              CanUserAddRows="False" CanUserDeleteRows="True"
+                              BeginningEdit="AttributesDataGrid_BeginningEdit"
+                              Background="{DynamicResource Brush.Control.Background}"
+                              Foreground="{DynamicResource Brush.Text.Primary}"
+                              BorderBrush="{DynamicResource Brush.Control.Border}"
+                              BorderThickness="1" GridLinesVisibility="Horizontal"
+                              HorizontalGridLinesBrush="{DynamicResource Brush.Control.Border}">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Attribute Name" Binding="{Binding Name}" Width="180"/>
+                            <DataGridTextColumn Header="Value" Binding="{Binding Value}" Width="*"/>
+                            <DataGridTextColumn Header="Category" Binding="{Binding Category}" Width="120" IsReadOnly="True"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <TextBlock Grid.Row="2" Text="Unicode, Arabic, SchemaData and unknown KML XML are preserved faithfully on save."
+                               FontSize="10" Foreground="{DynamicResource Brush.Text.Muted}" Margin="0,6,0,0"/>
+                </Grid>
+            </TabItem>
+
+            <!-- TAB 3: Style / Symbology -->
+            <TabItem Header="🎨 Style &amp; Altitude">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <Grid Margin="14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="170"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0" Text="Feature color (hex):" Margin="0,6" VerticalAlignment="Center"/>
+                        <TextBox Grid.Row="0" Grid.Column="1" x:Name="ColorHexTextBox" Height="28" Padding="6,3"
+                                 Background="{DynamicResource Brush.Control.Background}" Foreground="{DynamicResource Brush.Text.Primary}"
+                                 BorderBrush="{DynamicResource Brush.Control.Border}"/>
+
+                        <TextBlock Grid.Row="1" Text="Point symbol:" Margin="0,6" VerticalAlignment="Center"/>
+                        <ComboBox Grid.Row="1" Grid.Column="1" x:Name="SymbolShapeComboBox" Height="28" SelectedIndex="0"
+                                  Background="{DynamicResource Brush.Control.Background}" Foreground="{DynamicResource Brush.Text.Primary}">
+                            <ComboBoxItem Content="Circle"/><ComboBoxItem Content="Pin"/><ComboBoxItem Content="Square"/>
+                            <ComboBoxItem Content="Triangle"/><ComboBoxItem Content="Star"/>
+                        </ComboBox>
+
+                        <TextBlock Grid.Row="2" Text="Line / outline width:" Margin="0,6" VerticalAlignment="Center"/>
+                        <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal">
+                            <Slider x:Name="LineWidthSlider" Minimum="1" Maximum="12" Value="3" TickFrequency="1" IsSnapToTickEnabled="True" Width="280"/>
+                            <TextBlock Text="{Binding ElementName=LineWidthSlider, Path=Value, StringFormat={}{0:F0}px}" Margin="10,0" VerticalAlignment="Center"/>
+                        </StackPanel>
+
+                        <TextBlock Grid.Row="3" Text="Fill opacity:" Margin="0,6" VerticalAlignment="Center"/>
+                        <StackPanel Grid.Row="3" Grid.Column="1" Orientation="Horizontal">
+                            <Slider x:Name="FillOpacitySlider" Minimum="0" Maximum="1" Value="0.4" TickFrequency="0.1" Width="280"/>
+                            <TextBlock Text="{Binding ElementName=FillOpacitySlider, Path=Value, StringFormat={}{0:P0}}" Margin="10,0" VerticalAlignment="Center"/>
+                        </StackPanel>
+
+                        <TextBlock Grid.Row="4" Text="Label size:" Margin="0,6" VerticalAlignment="Center"/>
+                        <StackPanel Grid.Row="4" Grid.Column="1" Orientation="Horizontal">
+                            <Slider x:Name="LabelSizeSlider" Minimum="8" Maximum="32" Value="12" TickFrequency="1" IsSnapToTickEnabled="True" Width="280"/>
+                            <TextBlock Text="{Binding ElementName=LabelSizeSlider, Path=Value, StringFormat={}{0:F0}px}" Margin="10,0" VerticalAlignment="Center"/>
+                        </StackPanel>
+
+                        <TextBlock Grid.Row="5" Text="Altitude mode:" Margin="0,6" VerticalAlignment="Center"/>
+                        <ComboBox Grid.Row="5" Grid.Column="1" x:Name="AltitudeModeComboBox" Height="28" SelectedIndex="0"
+                                  Background="{DynamicResource Brush.Control.Background}" Foreground="{DynamicResource Brush.Text.Primary}">
+                            <ComboBoxItem Content="ClampToGround"/><ComboBoxItem Content="RelativeToGround"/><ComboBoxItem Content="Absolute"/>
+                        </ComboBox>
+
+                        <CheckBox Grid.Row="6" Grid.Column="1" x:Name="ShowLabelCheckBox" Content="Show feature label" IsChecked="True" Margin="0,10"/>
+                        <TextBlock Grid.Row="7" Grid.ColumnSpan="2" Margin="0,12,0,0" TextWrapping="Wrap"
+                                   Foreground="{DynamicResource Brush.Text.Muted}"
+                                   Text="ClampToGround is the safe default. Absolute altitude should only be used for features with a verified height reference."/>
+                    </Grid>
+                </ScrollViewer>
+            </TabItem>
+        </TabControl>
+
+        <!-- Footer Buttons -->
+        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0">
+            <Button Content="Save &amp; Apply" Width="100" Height="28" FontWeight="SemiBold"
+                    Background="{DynamicResource Brush.Accent}" Foreground="#FFFFFF"
+                    BorderThickness="0" Margin="0,0,8,0" Click="SaveButton_Click"/>
+            <Button Content="Cancel" Width="80" Height="28"
+                    Background="{DynamicResource Brush.Control.Background}"
+                    Foreground="{DynamicResource Brush.Text.Primary}"
+                    BorderBrush="{DynamicResource Brush.Control.Border}"
+                    BorderThickness="1" Click="CancelButton_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>
