@@ -143,9 +143,13 @@ namespace ZEarth.Tests
 
             var loaded = await service.LoadAsync(path);
             Assert.IsNotNull(loaded);
-            Assert.AreEqual(1, loaded.MyPlaces.Count);
+            // The current project schema *also* retains two protected root folders.
+            // Confirm user content survives without mistaking these required roots for duplicates.
+            Assert.IsTrue(loaded.MyPlaces.Any(p => p.Id == "folder_saved_scenes"));
+            Assert.IsTrue(loaded.MyPlaces.Any(p => p.Id == "folder_temporary_places"));
+            Assert.AreEqual(1, loaded.MyPlaces.Count(p => p.Name == "Level 1 Folder"));
 
-            var l1 = loaded.MyPlaces[0];
+            var l1 = loaded.MyPlaces.Single(p => p.Name == "Level 1 Folder");
             Assert.AreEqual("Level 1 Folder", l1.Name);
             var l2 = l1.Children.FirstOrDefault();
             Assert.IsNotNull(l2);

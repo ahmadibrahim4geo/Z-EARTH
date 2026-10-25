@@ -324,8 +324,8 @@ namespace ZEarth.App.ViewModels
             {
                 if (SetProperty(ref _isSunlightEnabled, value))
                 {
+                    // Change appearance only when the engine echoed a state or an action was acknowledged.
                     OnPropertyChanged(nameof(SunlightIconBrush));
-                    _ = _globeBridge.SetSunlightAsync(value, _timeOfDayHours);
                 }
             }
         }
@@ -343,7 +343,6 @@ namespace ZEarth.App.ViewModels
                 if (SetProperty(ref _isAtmosphereEnabled, value))
                 {
                     OnPropertyChanged(nameof(AtmosphereIconBrush));
-                    _ = _globeBridge.SetAtmosphereAsync(value);
                 }
             }
         }
@@ -1112,8 +1111,8 @@ namespace ZEarth.App.ViewModels
                 if (p is string m && !string.IsNullOrEmpty(m)) CompassMode = m;
             });
 
-            ToggleSunlightCommand = new RelayCommand(() => IsSunlightEnabled = !IsSunlightEnabled);
-            ToggleAtmosphereCommand = new RelayCommand(() => IsAtmosphereEnabled = !IsAtmosphereEnabled);
+            ToggleSunlightCommand = AsyncCommand(ExecuteToggleSunlightAsync, "Toggle sunlight");
+            ToggleAtmosphereCommand = AsyncCommand(ExecuteToggleAtmosphereAsync, "Toggle atmosphere");
 
             // Project Commands (Sprint 3 & Sprint 4)
             NewProjectCommand = new RelayCommand(ExecuteNewProject);
@@ -1284,6 +1283,24 @@ namespace ZEarth.App.ViewModels
             // Seed initial camera history
             _cameraHistory.Add(CurrentCamera.Clone());
             _historyIndex = 0;
+        }
+
+        private async Task ExecuteToggleSunlightAsync()
+        {
+            var desired = !IsSunlightEnabled;
+            if (await _globeBridge.SetSunlightAsync(desired, _timeOfDayHours))
+                IsSunlightEnabled = desired;
+            else
+                StatusMessage = "Sunlight not changed — globe request failed or timed out.";
+        }
+
+        private async Task ExecuteToggleAtmosphereAsync()
+        {
+            var desired = !IsAtmosphereEnabled;
+            if (await _globeBridge.SetAtmosphereAsync(desired))
+                IsAtmosphereEnabled = desired;
+            else
+                StatusMessage = "Atmosphere not changed — globe request failed or timed out.";
         }
 
         private void ExecuteToggleTheme()

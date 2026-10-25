@@ -160,6 +160,7 @@ namespace ZEarth.Tests
         public void EnvironmentControls_SunlightAndAtmosphere_CommandsAndDefaults()
         {
             var bridge = new ZEarth.Globe.GlobeBridge();
+            var engine = FakeGlobeEngine.Attach(bridge);
             var vm = new ZEarth.App.ViewModels.MainViewModel(new ZEarth.App.Services.ProjectService(), bridge);
 
             // Verify initial defaults
@@ -172,6 +173,7 @@ namespace ZEarth.Tests
             Assert.IsTrue(vm.ToggleSunlightCommand.CanExecute(null));
             vm.ToggleSunlightCommand.Execute(null);
             Assert.IsTrue(vm.IsSunlightEnabled);
+            Assert.IsTrue(engine.Any("environment.setSunlight"));
 
             // Test TimeOfDay clamping and formatting
             vm.TimeOfDayHours = 18.5;
@@ -182,6 +184,7 @@ namespace ZEarth.Tests
             Assert.IsTrue(vm.ToggleAtmosphereCommand.CanExecute(null));
             vm.ToggleAtmosphereCommand.Execute(null);
             Assert.IsFalse(vm.IsAtmosphereEnabled);
+            Assert.IsTrue(engine.Any("environment.setAtmosphere"));
             vm.ToggleAtmosphereCommand.Execute(null);
             Assert.IsTrue(vm.IsAtmosphereEnabled);
         }

@@ -441,6 +441,8 @@ namespace ZEarth.Domain.Layers
             // Category 7: Parks & Recreation
             _layers.Add(new ReferenceLayerItem
             {
+                // Historical ID retained for saved-project compatibility. This record is OSM
+                // parks via Overpass, *not* the NASA GIBS observation layer.
                 Id = "ref_earth_observation_gibs",
                 Category = ReferenceLayerCategory.ParksAndRecreation,
                 CategoryName = "Parks & Recreation",

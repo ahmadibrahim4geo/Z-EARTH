@@ -74,7 +74,7 @@ namespace ZEarth.Domain.Imagery
                 IsVisible = true,
                 Opacity = 1.0,
                 ExtentDescription = "Global (Levels 0-19)",
-                StatusMessage = "Ready (Online)"
+                StatusMessage = "Configured (provider connectivity and fair-use conditions apply)"
             });
 
             // 3. OpenStreetMap Humanitarian style
@@ -130,7 +130,7 @@ namespace ZEarth.Domain.Imagery
                 IsVisible = false,
                 Opacity = 1.0,
                 ExtentDescription = "Global (Levels 0-17)",
-                StatusMessage = "Ready (Online)"
+                StatusMessage = "Configured (provider connectivity and fair-use conditions apply)"
             });
 
             // 4. CartoDB Dark Matter
@@ -150,7 +150,7 @@ namespace ZEarth.Domain.Imagery
                 IsVisible = false,
                 Opacity = 1.0,
                 ExtentDescription = "Global (Levels 0-19)",
-                StatusMessage = "Ready (Online)"
+                StatusMessage = "Configured (provider connectivity and fair-use conditions apply)"
             });
 
             // 5. CartoDB Positron (Light)
@@ -170,7 +170,7 @@ namespace ZEarth.Domain.Imagery
                 IsVisible = false,
                 Opacity = 1.0,
                 ExtentDescription = "Global (Levels 0-19)",
-                StatusMessage = "Ready (Online)"
+                StatusMessage = "Configured (provider connectivity and fair-use conditions apply)"
             });
 
             _registeredLayers.Add(new ImageryLayer(
@@ -186,7 +186,7 @@ namespace ZEarth.Domain.Imagery
                 Order = 6,
                 IsVisible = false,
                 ExtentDescription = "Global modern cartography",
-                StatusMessage = "Ready (Online)"
+                StatusMessage = "Configured (provider connectivity and fair-use conditions apply)"
             });
 
             // 6. Esri World Imagery (Satellite, no labels)

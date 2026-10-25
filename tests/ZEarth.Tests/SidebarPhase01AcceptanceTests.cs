@@ -226,7 +226,7 @@ namespace ZEarth.Tests
         [TestMethod]
         public void SB14_ReferenceLayers_NineMandatoryCategories_AndRealLayersExist()
         {
-            // Requirement 5 & SB-14, SB-15, SB-16: 9 mandatory categories in exact order with real layers
+            // Current nine categories after intentional 2.1 reference layer taxonomy cleanup.
             var catalog = new ReferenceLayerCatalog();
             var grouped = catalog.GetGroupedCategories();
 
@@ -235,10 +235,10 @@ namespace ZEarth.Tests
                 "Borders & Labels",
                 "Places & Geographic Names",
                 "Roads & Transportation",
-                "Weather & Climate",
-                "Geology & Landforms",
+                "Weather",
+                "Gallery & Knowledge",
                 "Water & Hydrology",
-                "Earth Observation",
+                "Parks & Recreation",
                 "Buildings & Infrastructure",
                 "Natural Hazards"
             };
@@ -259,12 +259,19 @@ namespace ZEarth.Tests
             Assert.IsNotNull(places);
             Assert.IsTrue(places.IsConfigured);
 
-            // Real NASA GIBS Earth Observation Layer check
-            var gibs = catalog.FindById("ref_earth_observation_gibs");
+            // NASA imagery is a Weather layer; the old observation-named ID is a legacy parks record.
+            var gibs = catalog.FindById("ref_weather_climate");
             Assert.IsNotNull(gibs);
             Assert.IsTrue(gibs.IsConfigured);
             StringAssert.Contains(gibs.Url, "gibs.earthdata.nasa.gov");
+            Assert.AreEqual("WmtsGibs", gibs.LayerType);
             Assert.IsFalse(string.IsNullOrEmpty(gibs.Attribution));
+
+            // Keep the legacy ID for previously saved projects, but never claim it is NASA imagery.
+            var parks = catalog.FindById("ref_earth_observation_gibs");
+            Assert.IsNotNull(parks);
+            Assert.AreEqual("OverpassGeoJson", parks.LayerType);
+            StringAssert.Contains(parks.Url, "overpass");
 
             // All 9 categories now have active online providers
             var weather = grouped[3].Layers.First();
