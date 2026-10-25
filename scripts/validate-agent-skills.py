@@ -11,8 +11,8 @@ ROOT = Path(__file__).resolve().parents[1]
 SKILLS = ROOT / ".github" / "skills"
 SNAPSHOT = ROOT / "docs" / "GIS_SKILLS_SNAPSHOT.json"
 ADAPTER = SKILLS / "zearth-google-earth-pro-workflows" / "SKILL.md"
-PINNED_SKILL_COUNT = 19
-PINNED_REFERENCE_COUNT = 51
+PINNED_SKILL_COUNT = 21
+PINNED_REFERENCE_COUNT = 54
 
 
 def git_blob_sha(path: Path) -> str:
@@ -47,9 +47,9 @@ def main():
 
     rows = manifest.get("files", [])
     if manifest.get("skill_count") != PINNED_SKILL_COUNT:
-        errors.append("Expected 19 pinned upstream GIS skills")
+        errors.append(f"Expected {PINNED_SKILL_COUNT} pinned upstream GIS skills")
     if manifest.get("reference_count") != PINNED_REFERENCE_COUNT:
-        errors.append("Expected 51 pinned GIS reference/catalog files")
+        errors.append(f"Expected {PINNED_REFERENCE_COUNT} pinned GIS reference/catalog files")
     if len(rows) != PINNED_SKILL_COUNT + PINNED_REFERENCE_COUNT:
         errors.append("Unexpected pinned snapshot inventory size")
     if not re.fullmatch(r"[a-f0-9]{40}", manifest.get("source_commit", "")):
@@ -91,6 +91,22 @@ def main():
             target = (path.parent / link).resolve()
             if not target.is_relative_to(ROOT) or not target.is_file():
                 errors.append("Broken skill link: {} -> {}".format(path.relative_to(ROOT), link))
+
+    # Offline helpers must be present for the two imported cross-cutting skills.
+    # Their existence is not evidence that the executable automatically calls them.
+    for rel in (
+        ".github/scripts/intent_router.py",
+        ".github/scripts/development_journal.py",
+        ".github/tests/test_intent_orchestrator.py",
+        ".github/tests/test_development_journal.py",
+        ".github/examples/intent-orchestrator/example-plan.json",
+        ".github/examples/intent-orchestrator/README.md",
+        ".github/examples/development-journal/README.md",
+        ".github/skills/zearth-agent-workflow/SKILL.md",
+        "docs/ZEARTH_AGENT_WORKFLOW.md",
+    ):
+        if not (ROOT / rel).is_file():
+            errors.append("Missing required agent workflow companion: " + rel)
 
     for rel in (
         ".github/references/google-earth-pro-engineering.md",
