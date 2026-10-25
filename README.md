@@ -51,6 +51,12 @@ The agent picks the task-specific chain. Example: *Sunlight toggle not working* 
 
 Newly cloned agents must not conflate T2 with T3/T4. Follow [release evidence checklist](docs/FRESH_CLONE_VALIDATION.md).
 
+## Google Earth Pro parity & engineering roadmap
+
+Our project targets the useful **Google Earth Pro Desktop** workflows (saved camera scenes and ordered My Places, Temporary Places, KML/KMZ, name/coordinate search, 3D terrain, profiles, measurement, drawing, themes, imagery). The [detailed parity matrix](docs/GOOGLE_EARTH_PRO_PARITY.md) separates implemented fixes from still-planned features. Unlike the previous draft, profile elevation is never *fabricated* from sine waves; the current chart is clearly labelled **stored path vertex Z** until true active-DEM sampling is implemented.
+
+**REA source availability:** the developer's `rea/` folder is gitignored and no matching connected repository was found. No proprietary Google Earth binaries or extracted code are bundled.
+
 ## Current limitations
 
 This source review is not a promise that all basemap providers work or every feature is production ready. External tile servers require real connectivity and provider rights, and paid Cesium ion services are **optional**. Windows GPU UI acceptance is required. Build/test CI is only a prerequisite.

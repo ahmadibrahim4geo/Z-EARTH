@@ -2,6 +2,10 @@
 
 This repository is a **Windows desktop GIS application**; code inspection alone is never proof that the globe works. Preserve the official product name **Z EARTH**, stable `ZEarth.*` namespaces, dark gray primary style, English default UI, a complete Arabic UI, and **one canonical Preview folder**. Never bypass build/test failures to manufacture a release.
 
+## Product goal and priority
+
+Z EARTH is an independent free-first alternative to **Google Earth Pro Desktop**. Use [Google Earth Pro parity contracts](docs/GOOGLE_EARTH_PRO_PARITY.md) before fixing Places, Temporary, startup Scenes, .kml/.kmz, Basemaps, terrain, measurements, drawing or profile. **Never generate plausible but fictitious terrain elevations**: true profile values must come from the active numeric terrain source (the current dialog only charts explicitly stored path Z). GEBCO 2026 is a dataset, not a ready Cesium TerrainServer. Developer's `rea/` folder is gitignored; do not claim it has been audited. Preserve independent lawful code, do not copy Google Earth binaries or copyrighted map tiles.
+
 ## First steps in a fresh checkout
 1. Read this file and [the pinned general skill snapshot](docs/GIS_SKILLS_INTEGRATION.md).
 2. Route the user's issue through `.github/skills/gis-development/SKILL.md` and `.github/references/agent-decision-tree.md`, then read only 1–3 relevant specialized skills. The **Z-EARTH project-specific skills** and [CesiumJS skill router](.github/skills/using-cesiumjs-skills/SKILL.md) refine the generic guidance; they take precedence about local behavior.
