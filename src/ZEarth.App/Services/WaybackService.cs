@@ -10,11 +10,11 @@ using System.Threading.Tasks;
 
 namespace ZEarth.App.Services;
 
-public sealed record WaybackRelease(string ReleaseId, DateTime Date, string Title)
+public sealed record WaybackRelease(string ReleaseId, DateTime Date, string Title, string? TemplateUrl = null)
 {
     public string Id => $"wayback-{ReleaseId}";
     public string DisplayName => $"{Date:yyyy-MM-dd}  •  {Title}";
-    public string TileUrl => $"https://wayback.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/{ReleaseId}/{{z}}/{{y}}/{{x}}";
+    public string TileUrl => TemplateUrl ?? $"https://wayback.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/{ReleaseId}/{{z}}/{{y}}/{{x}}";
 }
 
 /// <summary>Loads the public Esri World Imagery Wayback release catalog.</summary>
@@ -34,24 +34,46 @@ public sealed class WaybackService
         {
             using var response = await Client.GetAsync(CatalogUrl, cancellationToken);
             response.EnsureSuccessStatusCode();
-            await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
-            using var document = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
-            var releases = new Dictionary<string, WaybackRelease>(StringComparer.OrdinalIgnoreCase);
-            Discover(document.RootElement, null, releases);
-            if (releases.Count > 0)
-                return releases.Values.OrderByDescending(r => r.Date).ToList();
+            var json = await response.Content.ReadAsStringAsync(cancellationToken);
+            var releases = ParseReleasesJson(json);
+            if (releases.Count > 0) return releases;
+            throw new InvalidOperationException("Wayback returned no validated release entries.");
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            LoggerService.Instance.LogWarning($"Wayback catalog unavailable: {ex.Message}");
+            LoggerService.Instance.LogWarning($"Public Wayback catalog unavailable: {ex.Message}");
+            throw new InvalidOperationException("Esri Wayback release catalog is unavailable. Check internet access or retry.", ex);
         }
+    }
 
-        // Known public releases keep the feature usable if the catalog endpoint is temporarily offline.
-        return new[]
-        {
-            new WaybackRelease("63116", new DateTime(2026, 9, 24), "World Imagery Wayback"),
-            new WaybackRelease("32246", new DateTime(2026, 6, 30), "World Imagery Wayback")
-        };
+    /// <summary>Offline-fixture-testable parser for Esri waybackconfig.json.</summary>
+    public static IReadOnlyList<WaybackRelease> ParseReleasesJson(string json)
+    {
+        using var doc = JsonDocument.Parse(json);
+        var entries = new Dictionary<string, WaybackRelease>(StringComparer.OrdinalIgnoreCase);
+        Discover(doc.RootElement, null, entries);
+        return entries.Values.OrderBy(item => item.Date).ThenBy(item => item.ReleaseId, StringComparer.Ordinal).ToList();
+    }
+
+    /// <summary>Allow only Esri Wayback HTTPS tile templates; never proxy arbitrary catalog URLs.</summary>
+    public static string? NormalizeTileUrl(string? source)
+    {
+        if (string.IsNullOrWhiteSpace(source)) return null;
+        var normalized = source.Replace("{level}", "{z}", StringComparison.OrdinalIgnoreCase)
+            .Replace("{row}", "{y}", StringComparison.OrdinalIgnoreCase)
+            .Replace("{col}", "{x}", StringComparison.OrdinalIgnoreCase);
+        if (!Uri.TryCreate(normalized, UriKind.Absolute, out var uri) ||
+            uri.Scheme != Uri.UriSchemeHttps || !string.IsNullOrEmpty(uri.UserInfo) ||
+            uri.Port != 443 ||
+            !(uri.Host.Equals("wayback.maptiles.arcgis.com", StringComparison.OrdinalIgnoreCase) ||
+              (uri.Host.StartsWith("wayback-", StringComparison.OrdinalIgnoreCase) &&
+               uri.Host.EndsWith(".maptiles.arcgis.com", StringComparison.OrdinalIgnoreCase))) ||
+            !uri.AbsolutePath.Contains("/World_Imagery/", StringComparison.Ordinal) ||
+            !uri.AbsolutePath.Contains("/tile/", StringComparison.Ordinal) ||
+            !normalized.Contains("{z}", StringComparison.Ordinal) ||
+            !normalized.Contains("{y}", StringComparison.Ordinal) ||
+            !normalized.Contains("{x}", StringComparison.Ordinal)) return null;
+        return normalized;
     }
 
     private static void Discover(JsonElement element, string? propertyName, IDictionary<string, WaybackRelease> result)
@@ -59,16 +81,19 @@ public sealed class WaybackService
         if (element.ValueKind == JsonValueKind.Object)
         {
             var title = TryString(element, "itemTitle") ?? TryString(element, "title") ?? TryString(element, "name") ?? string.Empty;
-            var id = TryString(element, "releaseNum") ?? TryString(element, "releaseId") ?? TryString(element, "id");
-            if (string.IsNullOrWhiteSpace(id) && !string.IsNullOrWhiteSpace(propertyName) && propertyName.All(char.IsDigit)) id = propertyName;
-            // The item title carries the imagery vintage; releaseDate can be the
-            // catalog publication timestamp and may differ from the capture vintage.
-            var dateText = title;
+            var id = TryString(element, "releaseNum") ?? TryString(element, "releaseId");
+            if (string.IsNullOrWhiteSpace(id) && !string.IsNullOrWhiteSpace(propertyName) &&
+                propertyName.All(char.IsDigit)) id = propertyName;
+            var tile = NormalizeTileUrl(TryString(element, "itemURL"));
+            var dateText = TryString(element, "releaseDateLabel") ?? title;
             if (!TryParseDate(dateText, out _))
                 dateText = TryString(element, "releaseDate") ?? TryString(element, "date") ?? title;
-            if (!string.IsNullOrWhiteSpace(id) && TryParseDate(dateText, out var date))
+            if (!string.IsNullOrWhiteSpace(id) && id.Length <= 8 && id.All(char.IsDigit) &&
+                tile != null && tile.Contains("/tile/" + id + "/", StringComparison.Ordinal) &&
+                TryParseDate(dateText, out var date))
             {
-                result[id] = new WaybackRelease(id, date, string.IsNullOrWhiteSpace(title) ? "World Imagery Wayback" : title);
+                result[id] = new WaybackRelease(id, date, string.IsNullOrWhiteSpace(title) ?
+                    "World Imagery Wayback" : title, tile);
             }
 
             foreach (var property in element.EnumerateObject())
