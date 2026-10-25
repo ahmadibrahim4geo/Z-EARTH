@@ -4,6 +4,12 @@
 
 **المطور:** Ahmed Ibrahim. [English README](README.md) · [ملف تعليمات الـAgent](AGENTS.md) · [دليل المستخدم](docs/USER_MANUAL_AR.md).
 
+## تحميل Z EARTH.exe لتجربة البرنامج
+
+لم يكن المستودع ينشر ملف EXE في قسم Releases رغم نجاح بناء الكود. أضفنا آلية تجهيز نسخة **Windows x64 Portable Preview** قابلة للتنزيل من GitHub Actions بعد اجتياز اختبارات المشروع. افتح [صفحة البناء والتحميل](https://github.com/ahmadibrahim4geo/Z-EARTH/actions/workflows/build-and-test.yml)، واختر أحدث تشغيل ناجح على فرع main، ثم حمّل `Z-EARTH-v2.2.4-win-x64-portable-preview` من قسم Artifacts. بعد فك الضغط ستجد `Z EARTH.exe` مع ملفات تشغيل Cesium؛ **لا تنقل EXE بمفرده**.
+
+اقرأ [دليل تنزيل وتشغيل النسخة التجريبية](docs/PORTABLE_PREVIEW.md). النسخة غير موقعة رقميًا وليست إصدارًا نهائيًا؛ يلزم WebView2 وWindows x64، وما زالت اختبارات تشغيل الكارت الرسومي والخدمات الحية على جهاز Windows مطلوبة. ملفات v1.0.0 القديمة لا تعبر عن إصدار كود 2.2.4 الحالي.
+
 ## طريقة البدء من الصفر
 
 1. نزّل المشروع من [GitHub](https://github.com/ahmadibrahim4geo/Z-EARTH) على جهاز Windows 10/11 بنظام x64.
