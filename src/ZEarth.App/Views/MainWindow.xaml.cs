@@ -378,7 +378,7 @@ namespace ZEarth.App.Views
                 // WPF commands through WebMessageReceived.
                 GlobeWebView.CoreWebView2.NavigationStarting += (_, args) =>
                 {
-                    if (IsTrustedGlobeUri(args.Uri)) return;
+                    if (WebViewTrustPolicy.IsTrustedGlobeDocument(args.Uri)) return;
                     args.Cancel = true;
                     LoggerService.Instance.LogWarning("Blocked untrusted globe navigation.");
                 };
@@ -390,7 +390,7 @@ namespace ZEarth.App.Views
 
                 GlobeWebView.CoreWebView2.WebMessageReceived += (s, args) =>
                 {
-                    if (!IsTrustedGlobeUri(args.Source))
+                    if (!WebViewTrustPolicy.IsTrustedGlobeDocument(args.Source))
                     {
                         LoggerService.Instance.LogWarning("Rejected WebView2 message from untrusted source.");
                         return;
@@ -449,13 +449,6 @@ namespace ZEarth.App.Views
                 MessageBox.Show($"Globe initialization notice: {ex.Message}\nCheck WebView2 runtime or logs for details.", "Z EARTH Viewport", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
-
-        // Exact scheme+host check (never substring/suffix comparison).
-        internal static bool IsTrustedGlobeUri(string? uri)
-            => Uri.TryCreate(uri, UriKind.Absolute, out var parsed)
-               && parsed.Scheme == Uri.UriSchemeHttps
-               && parsed.Host.Equals("cesium.local", StringComparison.OrdinalIgnoreCase)
-               && parsed.IsDefaultPort;
 
         private async void TerrainWebResourceRequested(object? sender, CoreWebView2WebResourceRequestedEventArgs e)
         {
