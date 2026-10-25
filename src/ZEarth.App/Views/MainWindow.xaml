@@ -852,7 +852,9 @@
                                                                     CommandParameter="{Binding Id}" ToolTip="{Binding ToolTip}">
                                                                 <StackPanel HorizontalAlignment="Center">
                                                                     <Grid Width="33" Height="28">
-                                                                        <TextBlock Text="{Binding Glyph}" FontSize="23" FontFamily="Segoe UI Emoji, Segoe UI Symbol" HorizontalAlignment="Center" VerticalAlignment="Center" ToolTip="{Binding ToolTip}"/>
+                                                                        <Border Background="{Binding GlyphBackground}" CornerRadius="6" Width="32" Height="28">
+                                                                            <TextBlock Text="{Binding Glyph}" FontSize="21" Foreground="White" FontFamily="Segoe UI Emoji, Segoe UI Symbol" HorizontalAlignment="Center" VerticalAlignment="Center" ToolTip="{Binding ToolTip}"/>
+                                                                        </Border>
                                                                         <Border Background="#15803d" CornerRadius="7" Width="15" Height="15"
                                                                                 HorizontalAlignment="Right" VerticalAlignment="Bottom"
                                                                                 Visibility="{Binding IsDefault, Converter={StaticResource BoolToVisibilityConverter}}">
