@@ -33,3 +33,6 @@ $RECYCLE.BIN/
 *.tmp
 *.log
 *.cache
+
+# Local, privacy-sensitive per-project agent history; never commit personal logs
+.agent-development-log/
