@@ -2164,7 +2164,8 @@
       showLongitudeLines: true,
       showLatitudeLines: true,
       longitudeIntervalDegrees: 0,
-      latitudeIntervalDegrees: 0
+      latitudeIntervalDegrees: 0,
+      gridLabelFormat: "DMS"
     },
 
     init() {
@@ -2194,10 +2195,10 @@
       const latSpan = Math.max(0.01, bounds.north - bounds.south);
       const candidates = [60, 30, 15, 10, 5, 2, 1, 0.5, 0.25, 0.1, 0.05];
       const lonInterval = Number(this.config.longitudeIntervalDegrees) > 0
-        ? Number(this.config.longitudeIntervalDegrees)
+        ? Math.max(0.05, Number(this.config.longitudeIntervalDegrees))
         : (candidates.find(v => lonSpan / v <= 14) || 60);
       const latInterval = Number(this.config.latitudeIntervalDegrees) > 0
-        ? Number(this.config.latitudeIntervalDegrees)
+        ? Math.max(0.05, Number(this.config.latitudeIntervalDegrees))
         : (candidates.find(v => latSpan / v <= 14) || 60);
       const centerLon = (bounds.west + bounds.east) / 2;
       const centerLat = (bounds.south + bounds.north) / 2;
@@ -2232,7 +2233,7 @@
         for (let lat = startLat; lat <= endLat + latInterval * 0.1; lat += latInterval) {
           const isMajor = [0, 23.4365, -23.4365, 66.5635, -66.5635].some(v => Math.abs(lat - v) < latInterval * 0.01);
           if ((this.config.showKeyParallels && isMajor) || Math.abs(lat) >= 89.9) continue;
-          const labelText = `${Number(Math.abs(lat).toFixed(4))}° ${lat > 0 ? 'N' : lat < 0 ? 'S' : ''}`.trim();
+          const labelText = window.ZEarthGraticuleLabels.formatDegrees(lat, 'lat', this.config.gridLabelFormat);
           this.addParallel(lat, stdLineColor, 1.0, labelText, this.config.showLabels, centerLon);
         }
       }
@@ -2243,7 +2244,7 @@
         for (let lon = startLon; lon <= endLon + lonInterval * 0.1; lon += lonInterval) {
           const isMajor = Math.abs(lon) < lonInterval * 0.01 || Math.abs(Math.abs(lon) - 180) < lonInterval * 0.01;
           if (this.config.showKeyParallels && isMajor) continue;
-          const labelText = `${Number(Math.abs(lon).toFixed(4))}° ${lon > 0 ? 'E' : lon < 0 ? 'W' : ''}`.trim();
+          const labelText = window.ZEarthGraticuleLabels.formatDegrees(lon, 'lon', this.config.gridLabelFormat);
           this.addMeridian(lon, stdLineColor, 1.0, labelText, this.config.showLabels, centerLat);
         }
       }
@@ -2367,6 +2368,7 @@
       if (!cfg) return;
       if (typeof cfg.visible === 'boolean') this.config.visible = cfg.visible;
       if (typeof cfg.showLabels === 'boolean') this.config.showLabels = cfg.showLabels;
+      if (['DD', 'DM', 'DMS', 'Degrees'].includes(cfg.gridLabelFormat)) this.config.gridLabelFormat = cfg.gridLabelFormat;
       if (typeof cfg.showKeyParallels === 'boolean') this.config.showKeyParallels = cfg.showKeyParallels;
       if (typeof cfg.showUtmZones === 'boolean') this.config.showUtmZones = cfg.showUtmZones;
       if (typeof cfg.showLongitudeLines === 'boolean') this.config.showLongitudeLines = cfg.showLongitudeLines;
