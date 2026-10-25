@@ -2776,9 +2776,18 @@
     sunlightEnabled: false,
     atmosphereEnabled: true,
     animationTimer: null,
-    setTimeOfDay(timeHours) {
+    dateUtc: new Date().toISOString().slice(0, 10),
+    setTimeOfDay(timeHours, dateUtc) {
       const hours = Math.max(0, Math.min(24, Number(timeHours) || 0));
-      const now = new Date();
+      // Date/time is UTC; geographic sun angle automatically follows the
+      // globe's actual Earth location in Cesium's lighting calculation.
+      if (typeof dateUtc === 'string' && /^\\d{4}-\\d{2}-\\d{2}$/.test(dateUtc)) {
+        const candidate = new Date(dateUtc + 'T00:00:00Z');
+        if (Number.isFinite(candidate.getTime()) && candidate.toISOString().slice(0, 10) === dateUtc) {
+          this.dateUtc = dateUtc;
+        }
+      }
+      const now = new Date(this.dateUtc + 'T00:00:00Z');
       const whole = Math.floor(hours === 24 ? 0 : hours);
       const minutes = Math.round((hours - Math.floor(hours)) * 60);
       now.setUTCHours(whole, minutes, 0, 0);
@@ -2798,7 +2807,7 @@
       viewer.shadows = enabled;
       const hud = document.getElementById('sunlight-hud');
       if (hud) hud.style.display = enabled ? 'block' : 'none';
-      if (typeof config?.timeHours === 'number') this.setTimeOfDay(config.timeHours);
+      if (typeof config?.timeHours === 'number') this.setTimeOfDay(config.timeHours, config.dateUtc);
       else if (enabled) {
         const now = new Date();
         this.setTimeOfDay(now.getUTCHours() + now.getUTCMinutes() / 60);
@@ -3733,7 +3742,7 @@
           break;
         }
         case 'environment.setTimeOfDay': {
-          const timeHours = EnvironmentManager.setTimeOfDay(data.payload?.timeHours);
+          const timeHours = EnvironmentManager.setTimeOfDay(data.payload?.timeHours, data.payload?.dateUtc);
           respondSuccess({ timeHours });
           break;
         }
