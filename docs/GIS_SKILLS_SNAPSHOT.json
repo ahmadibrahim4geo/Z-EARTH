@@ -1,0 +1,291 @@
+{
+  "schema_version": 1,
+  "source_repository": "ahmadibrahim4geo/GIS-Development-Skills",
+  "source_commit": "fa05f322424747a3a58b04fcb744c6868df7d759",
+  "source_license": "MIT for original GIS Development Skills authored content; third-party sources retain their own licenses",
+  "scope": "Pinned generic GIS SKILL.md files and reference catalog/document files only; project-local ZEarth and CesiumJS skills are maintained independently",
+  "skill_count": 19,
+  "reference_count": 51,
+  "files": [
+    {
+      "path": ".github/references/agent-decision-tree.md",
+      "git_blob_sha": "e3fbe7274a4071dd8e3da09ab5054bebf5fa5213"
+    },
+    {
+      "path": ".github/references/ahmad-ibrahim-gis-case-studies.md",
+      "git_blob_sha": "1f82990951008b900077c76239dedf34f8a32571"
+    },
+    {
+      "path": ".github/references/approved-service-hosts.json",
+      "git_blob_sha": "2036345c873320dfc6a5a9a818ba6b954710ca13"
+    },
+    {
+      "path": ".github/references/arcgis-arcade-profiles.md",
+      "git_blob_sha": "f18a14205b9b74b62f4d22df47282a88e7c1dff9"
+    },
+    {
+      "path": ".github/references/arcgis-pro.md",
+      "git_blob_sha": "68d858ccc32997809618633422ceae6546405820"
+    },
+    {
+      "path": ".github/references/arcmap-legacy.md",
+      "git_blob_sha": "6ea7b91555981f1cbeaa6d0cd0cb2114d1cd3a2a"
+    },
+    {
+      "path": ".github/references/blue-marble-global-mapper.md",
+      "git_blob_sha": "ee4e26a4922d854a89344ce7b68c8444a182d143"
+    },
+    {
+      "path": ".github/references/cartographic-style-guide.md",
+      "git_blob_sha": "547f99c907f2f4aef677dfc1181f2b9b7b2cd648"
+    },
+    {
+      "path": ".github/references/cartographic-style-sources.json",
+      "git_blob_sha": "0827f498b17f1121c2e005bafb722f711794958e"
+    },
+    {
+      "path": ".github/references/desktop-and-web.md",
+      "git_blob_sha": "12aa5fb44ccccc6a5dfb101d569b6fe4900626e2"
+    },
+    {
+      "path": ".github/references/desktop-application-engineering.md",
+      "git_blob_sha": "1d1aa83e48cb07709818856192cf30f89dfaae66"
+    },
+    {
+      "path": ".github/references/device-context-and-sunlight.md",
+      "git_blob_sha": "ca9b957b30d2985ecec1191e7dd9f446fffef607"
+    },
+    {
+      "path": ".github/references/dotnet-gis.md",
+      "git_blob_sha": "f8be976f06fa1c54e8cce9daa4be85a28051e353"
+    },
+    {
+      "path": ".github/references/earth-view-architecture.md",
+      "git_blob_sha": "596e9b2ea92ad10bb59f26a4e24bfd23d436f084"
+    },
+    {
+      "path": ".github/references/earthmapper-case-studies.md",
+      "git_blob_sha": "9652827a4aee58df67ff1dfd810abbf2c974f640"
+    },
+    {
+      "path": ".github/references/esri-crs-and-spatialreference.md",
+      "git_blob_sha": "d1dba8823072497593eee88fb38b6db2c5ee9d74"
+    },
+    {
+      "path": ".github/references/esri-open-source-integration.md",
+      "git_blob_sha": "2bc9837167c52e66e0915698a4e696dfeef9b36a"
+    },
+    {
+      "path": ".github/references/esri-python-environment-compatibility.md",
+      "git_blob_sha": "4d45197f424e5bf7df54f4b319132af1ad4593dd"
+    },
+    {
+      "path": ".github/references/free-first-policy.md",
+      "git_blob_sha": "9a8b2544823949ca7c530d466008b67b707c9e4b"
+    },
+    {
+      "path": ".github/references/free-geospatial-apis.json",
+      "git_blob_sha": "d59c9ae2df9309484aa68f5ece81fa0631e64a60"
+    },
+    {
+      "path": ".github/references/free-geospatial-apis.md",
+      "git_blob_sha": "a6c824a54d6906e5c1ab2cf4ead9739f7be7dd9e"
+    },
+    {
+      "path": ".github/references/geoai-satellite-map.md",
+      "git_blob_sha": "bd412a495f5ed9407f87f429a14a71401a0d4c80"
+    },
+    {
+      "path": ".github/references/geocoding-place-search.md",
+      "git_blob_sha": "9ed4341863831c9e85fb964f2c2f71eb78b10460"
+    },
+    {
+      "path": ".github/references/geolibre-integration.md",
+      "git_blob_sha": "ecc77c48e5aaf9714dd85b673f2e160f15ce3b7f"
+    },
+    {
+      "path": ".github/references/geospatial-data-repositories.json",
+      "git_blob_sha": "2e22f5204de38c20e91fc18474be37a61fdd1573"
+    },
+    {
+      "path": ".github/references/geospatial-data-repositories.md",
+      "git_blob_sha": "d1848756562554c090a899ea621f946dc7084bac"
+    },
+    {
+      "path": ".github/references/geospatial-foundations.md",
+      "git_blob_sha": "42f82593d7432e1f8ae470879ed5f7638ab5ba5f"
+    },
+    {
+      "path": ".github/references/geospatial-performance.md",
+      "git_blob_sha": "55f788f403d8ed730d24ffd609f00ccd9efff710"
+    },
+    {
+      "path": ".github/references/geospatial-security.md",
+      "git_blob_sha": "5d710479876f9c8c6f98e79cf586bb36e0b77724"
+    },
+    {
+      "path": ".github/references/gis-antipatterns.md",
+      "git_blob_sha": "939f90a6d94f461c16eb0a2dc2efebd75f3b8bb7"
+    },
+    {
+      "path": ".github/references/gis-development-full-guidance.md",
+      "git_blob_sha": "f40d19f1943498ae4e02a099bbd5115b5e787522"
+    },
+    {
+      "path": ".github/references/gishub-software.md",
+      "git_blob_sha": "0ed47db842aae48ee75769ff84f3b71d6bb7c562"
+    },
+    {
+      "path": ".github/references/google-earth-pro-engineering.md",
+      "git_blob_sha": "7e83c5ed1dae8d2560102a763fe26f9c453ed24e"
+    },
+    {
+      "path": ".github/references/google-kml-kmz-compatibility.md",
+      "git_blob_sha": "f6e1b058e2001559af0f08c4e4a834b144ab1e7c"
+    },
+    {
+      "path": ".github/references/historical-imagery-timeline.md",
+      "git_blob_sha": "43245804df0ef693142b43457916095257abcdb6"
+    },
+    {
+      "path": ".github/references/kml-kmz-symbol-preservation.md",
+      "git_blob_sha": "7f77f90a96aa3b55231a72fa1a06d8a93dc3cbe6"
+    },
+    {
+      "path": ".github/references/map-marker-icon-library.md",
+      "git_blob_sha": "588da17fc64dfe7a57d9bba87be638e8b0196be3"
+    },
+    {
+      "path": ".github/references/opengeos-advanced-integration.md",
+      "git_blob_sha": "bcf19888b522ff29bb07a8519f75e3c7ac674c3f"
+    },
+    {
+      "path": ".github/references/production-workflows.md",
+      "git_blob_sha": "05a1a7f4dd3a42b69102f744f9e40e194718dce8"
+    },
+    {
+      "path": ".github/references/project-catalog.json",
+      "git_blob_sha": "5668a81c6fb6eef3ceb5e29cdf00ca48c0fdae24"
+    },
+    {
+      "path": ".github/references/qgis.md",
+      "git_blob_sha": "5af29097cef6ff672c0358712ef4ea4943770d09"
+    },
+    {
+      "path": ".github/references/remote-sensing.md",
+      "git_blob_sha": "cc6079bb84b7c47998800a91960827fce12430f0"
+    },
+    {
+      "path": ".github/references/rustgis-and-geolibre-r.md",
+      "git_blob_sha": "24dcc7e2fc9e4f0a24c6f59e959867c5e71166c1"
+    },
+    {
+      "path": ".github/references/security/agent-safety.md",
+      "git_blob_sha": "fc5dc39d8d9645ec51c6e3e276e5bb60344de538"
+    },
+    {
+      "path": ".github/references/security/gis-input-threats.md",
+      "git_blob_sha": "d3cb6e0374493703d492ab0a8c2b2700c5869df4"
+    },
+    {
+      "path": ".github/references/security/security-tools.json",
+      "git_blob_sha": "e2d968915613758bc956b34e2f0eb423a5464add"
+    },
+    {
+      "path": ".github/references/security/tooling-and-ci.md",
+      "git_blob_sha": "5db7ea96d76c35865b32911bf9077b966735f00e"
+    },
+    {
+      "path": ".github/references/source-intake-workflow.md",
+      "git_blob_sha": "4c91dfd584b1dfc1315a8017f928f1f5a10fa9d1"
+    },
+    {
+      "path": ".github/references/unified-gis-icon-manager.md",
+      "git_blob_sha": "0d02e34c1940031748a37852fccfaa5bd5d92d9b"
+    },
+    {
+      "path": ".github/references/upstream-license-audit.md",
+      "git_blob_sha": "e8849c6571ad75a711f5dc0121b6ad9f98532580"
+    },
+    {
+      "path": ".github/references/world-gazetteer-reference-layer.md",
+      "git_blob_sha": "eb2a3d32967d8eb62f1e7b423b6da6a379dad458"
+    },
+    {
+      "path": ".github/skills/arcgis-toolbox-engineering/SKILL.md",
+      "git_blob_sha": "a1ddd9d33ac99d28db104464f08aa7e3f0a4a0af"
+    },
+    {
+      "path": ".github/skills/coordinate-reference-systems/SKILL.md",
+      "git_blob_sha": "91893ca4f1d357d5aeda83a6ad24ec5f156171ba"
+    },
+    {
+      "path": ".github/skills/geospatial-ai-agents/SKILL.md",
+      "git_blob_sha": "ce72bf29568df528692b302ab0a237103d0bf81d"
+    },
+    {
+      "path": ".github/skills/geospatial-api-integration/SKILL.md",
+      "git_blob_sha": "4ed2a39d1c408af50be46db4fee3811c0a044b59"
+    },
+    {
+      "path": ".github/skills/geospatial-data-catalogs/SKILL.md",
+      "git_blob_sha": "83c7c42d955d3a5efa324a2e31618868e3051bd7"
+    },
+    {
+      "path": ".github/skills/geospatial-data-discovery/SKILL.md",
+      "git_blob_sha": "7529eb21a0091e0260672d42b5e08a14e66da8f4"
+    },
+    {
+      "path": ".github/skills/geospatial-data-processing/SKILL.md",
+      "git_blob_sha": "5d269cc3913ec0de761cb6c3593f6aa2a59fc555"
+    },
+    {
+      "path": ".github/skills/geospatial-web-mapping/SKILL.md",
+      "git_blob_sha": "4fc31082338a56f42f743bafb720266695fcbdeb"
+    },
+    {
+      "path": ".github/skills/gis-cartography-symbology/SKILL.md",
+      "git_blob_sha": "5623159c61192b17b7881dd8067303c8ce2cf986"
+    },
+    {
+      "path": ".github/skills/gis-desktop-application-development/SKILL.md",
+      "git_blob_sha": "7e55a5e9f219a05637a971a63c2dfc55c27fc0ae"
+    },
+    {
+      "path": ".github/skills/gis-development/SKILL.md",
+      "git_blob_sha": "f19ec38dc37d56a442a6d5b906281458280de5ff"
+    },
+    {
+      "path": ".github/skills/gis-device-context/SKILL.md",
+      "git_blob_sha": "df445c19af29e5ae2010f793341de9c00cc4140e"
+    },
+    {
+      "path": ".github/skills/gis-security-guardian/SKILL.md",
+      "git_blob_sha": "90c4a8ef3f7cb6f5192bc9c7c1d0c26bb3d95233"
+    },
+    {
+      "path": ".github/skills/global-mapper-development/SKILL.md",
+      "git_blob_sha": "7e4f3561dacdd865dd1196aa3a23ba8e67cb761c"
+    },
+    {
+      "path": ".github/skills/kml-kmz-engineering/SKILL.md",
+      "git_blob_sha": "4dd908650eadfd8b250275d05574e05e89019bea"
+    },
+    {
+      "path": ".github/skills/qgis-plugin-development/SKILL.md",
+      "git_blob_sha": "4c288e83b60a4e71d0156817cf93571b2676441f"
+    },
+    {
+      "path": ".github/skills/remote-sensing-pipelines/SKILL.md",
+      "git_blob_sha": "9e4eae9438563df9efae42143cf8f0cd1cf65e7f"
+    },
+    {
+      "path": ".github/skills/spatial-databases/SKILL.md",
+      "git_blob_sha": "a16dd269a5ce8a7eeb7abde5ea32a32aaba6754d"
+    },
+    {
+      "path": ".github/skills/terrain-hydrology-lidar/SKILL.md",
+      "git_blob_sha": "6d8e5a26cb0192f562bdea067442dab7457e81d3"
+    }
+  ]
+}
