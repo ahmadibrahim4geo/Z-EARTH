@@ -171,7 +171,10 @@ namespace ZEarth.Domain.Kml
             {
                 // TimeStamp is not modeled separately: preserve it as raw XML.
                 "name", "description", "visibility", "styleUrl", "TimeSpan",
-                "ExtendedData", "Point", "LineString", "Polygon", "MultiGeometry"
+                // MultiGeometry is not fully representable by a single PlaceItem.
+                // Preserve the whole original XML rather than silently dropping
+                // secondary parts on export. The renderer may show only one geometry.
+                "ExtendedData", "Point", "LineString", "Polygon"
             };
 
             foreach (var elem in placemarkElem.Elements())
