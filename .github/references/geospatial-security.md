@@ -1,5 +1,7 @@
 # GIS Security Standard
 
+**Companion execution skill:** [GIS Security Guardian](../skills/gis-security-guardian/SKILL.md), [Agent trust boundaries](security/agent-safety.md), [GIS file threat scenarios](security/gis-input-threats.md), [free-first scanning tools](security/tooling-and-ci.md). Security rules are not equivalent to OS process/network isolation.
+
 Applies across all agent skills, APIs, GIS uploads and databases. Treat GeoJSON, Shapefile ZIP, KMZ/KML, GPKG, SVG, GeoTIFF, STAC metadata and remote URLs as untrusted.
 
 ## Files and archives

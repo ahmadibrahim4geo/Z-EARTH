@@ -10,6 +10,10 @@ The [Blue Marble reference](blue-marble-global-mapper.md) distinguishes licensed
 
 The [Earth View review](earth-view-architecture.md) describes a NASA GIBS 3D globe, Copernicus Sentinel regional imagery/time-lapses, React/Three.js state and Electron packaging. It is a **source-architecture reference only** because no upstream LICENSE was observed. Its renderer and OS shell are not drop-in equivalents for CesiumJS/WPF/WebView2.
 
+## Google Earth Pro behavioral reference, not a source engine
+
+The independent [Google Earth Pro pattern study](google-earth-pro-engineering.md) consolidates [Google Earth Blog](https://www.gearthblog.com/) observations on Places bulk selection, elevation profiles, tours, overlays and region-based network content. The [Historical Imagery Timeline contract](historical-imagery-timeline.md) specifies a non-blocking date control and truthful scene acquisition/provenance, with explicit supplier licenses. Neither the blog nor Google Earth footage is a freely embeddable API for standalone ZEarth. Treat live integrations and pixel-perfect UX as unverified until runtime acceptance.
+
 ## Stack options
 
 | Need | Relevant project | Important boundary |
