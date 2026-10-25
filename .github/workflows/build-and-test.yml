@@ -26,7 +26,7 @@ jobs:
         run: |
           node --check src/ZEarth.Globe/Assets/cesium-engine.js
           node --check src/ZEarth.Globe/Assets/rectangle-geometry.js
-          node --test tests/rectangle-geometry.test.cjs
+          node --test tests/rectangle-geometry.test.cjs tests/measurement-hud-contract.test.cjs
 
   windows-build-test:
     runs-on: windows-latest

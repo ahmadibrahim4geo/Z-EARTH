@@ -1978,9 +1978,9 @@
         const pt = viewer.entities.add({
           position: cartesian,
           point: {
-            pixelSize: 8,
-            color: Cesium.Color.fromCssColorString('#38bdf8'),
-            outlineColor: Cesium.Color.WHITE,
+            pixelSize: 22,
+            color: Cesium.Color.fromCssColorString('#334155'),
+            outlineColor: Cesium.Color.fromCssColorString('#b8c5d1'),
             outlineWidth: 2,
             heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
             disableDepthTestDistance: 0
@@ -1992,7 +1992,9 @@
             outlineColor: Cesium.Color.BLACK,
             outlineWidth: 2,
             style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+            horizontalOrigin: Cesium.HorizontalOrigin.CENTER,
             verticalOrigin: Cesium.VerticalOrigin.CENTER,
+            pixelOffset: new Cesium.Cartesian2(0, 0),
             heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
             disableDepthTestDistance: 0
           }
@@ -2914,6 +2916,42 @@
   });
 
   // Bind HUD measurement action buttons
+  // Keep measurement results visible without covering the area the user is tracing.
+  // Header-only pointer dragging; ignore controls and clamp inside the WebView viewport.
+  (function enableMovableMeasurementHud() {
+    const hud = document.getElementById('measurement-hud');
+    const handle = document.getElementById('measure-drag-handle');
+    if (!hud || !handle) return;
+    let drag = null;
+    handle.addEventListener('pointerdown', event => {
+      if (event.button !== 0 || event.target.closest('select, button, input')) return;
+      const rect = hud.getBoundingClientRect();
+      hud.style.position = 'fixed';
+      hud.style.left = rect.left + 'px';
+      hud.style.top = rect.top + 'px';
+      hud.style.transform = 'none';
+      drag = { id: event.pointerId, x: event.clientX, y: event.clientY, left: rect.left, top: rect.top };
+      handle.setPointerCapture(event.pointerId);
+      handle.style.cursor = 'grabbing';
+      event.preventDefault();
+    });
+    handle.addEventListener('pointermove', event => {
+      if (!drag || event.pointerId !== drag.id) return;
+      const newLeft = drag.left + event.clientX - drag.x;
+      const newTop = drag.top + event.clientY - drag.y;
+      hud.style.left = Math.max(0, Math.min(window.innerWidth - hud.offsetWidth, newLeft)) + 'px';
+      hud.style.top = Math.max(0, Math.min(window.innerHeight - hud.offsetHeight, newTop)) + 'px';
+    });
+    const release = event => {
+      if (!drag || event.pointerId !== drag.id) return;
+      drag = null;
+      handle.style.cursor = 'grab';
+      if (handle.hasPointerCapture(event.pointerId)) handle.releasePointerCapture(event.pointerId);
+    };
+    handle.addEventListener('pointerup', release);
+    handle.addEventListener('pointercancel', release);
+  })();
+
   document.getElementById('btn-measure-finish')?.addEventListener('click', () => MeasurementManager.finish());
   document.getElementById('btn-measure-clear')?.addEventListener('click', () => MeasurementManager.clear());
 
