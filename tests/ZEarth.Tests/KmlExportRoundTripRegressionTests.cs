@@ -174,6 +174,33 @@ public sealed class KmlExportRoundTripRegressionTests
     }
 
     [TestMethod]
+    public void ExportNestedSelectedPointCarriesAncestorStyleMapAndIconBytes()
+    {
+        const string kml = "<kml xmlns=\"http://www.opengis.net/kml/2.2\"><Document>" +
+            "<Style id=\"blue\"><IconStyle><color>ffff0000</color>" +
+            "<Icon><href>files/icon.png</href></Icon></IconStyle></Style>" +
+            "<StyleMap id=\"selected\"><Pair><key>normal</key><styleUrl>#blue</styleUrl></Pair></StyleMap>" +
+            "<Folder><name>Egypt</name><Placemark><name>Cairo</name>" +
+            "<styleUrl>#selected</styleUrl><Point><coordinates>31,30</coordinates></Point>" +
+            "</Placemark></Folder></Document></kml>";
+        var root = KmlParser.ParseDocument(XDocument.Parse(kml));
+        root.KmzResourcesBase64["files/icon.png"] = Convert.ToBase64String(new byte[] { 1, 2, 3, 4 });
+        var selected = root.Children.Single().Children.Single();
+        var packageTree = KmlSelectionExport.Create(selected, new[] { root });
+        Assert.AreEqual(1, packageTree.Children.Count);
+        Assert.AreEqual("Cairo", packageTree.Children.Single().Name);
+        Assert.AreEqual(1, packageTree.KmzResourcesBase64.Count);
+        var output = KmlSerializer.SerializeToString(packageTree);
+        var parsedXml = XDocument.Parse(output);
+        Assert.AreEqual(1, parsedXml.Descendants().Count(x => x.Name.LocalName == "Point"));
+        Assert.AreEqual(1, parsedXml.Descendants().Count(x => x.Name.LocalName == "StyleMap"));
+        Assert.AreEqual(1, parsedXml.Descendants().Count(x => x.Name.LocalName == "Style"));
+        Assert.AreEqual("#selected", parsedXml.Descendants().Single(x => x.Name.LocalName == "styleUrl" &&
+            x.Parent!.Name.LocalName == "Placemark").Value);
+        Assert.AreEqual("#0000FF", selected.ColorHex, "KML AABBGGRR must resolve blue correctly");
+    }
+
+    [TestMethod]
     public void ZearthAuthoritativeSqliteSaveOpenPreservesImportedAssetsAndKmlTimes()
     {
         var dir = Path.Combine(Path.GetTempPath(), "zearth-sqlite-kmz-" + Guid.NewGuid().ToString("N"));
