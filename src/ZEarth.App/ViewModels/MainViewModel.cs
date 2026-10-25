@@ -179,7 +179,7 @@ namespace ZEarth.App.ViewModels
 
         private bool _isSidebarDockedLeft = true;
         private bool _isSidebarCollapsed = false;
-        private double _sidebarWidth = 330;
+        private double _sidebarWidth = 450;
 
         public bool IsSidebarDockedLeft
         {
@@ -783,6 +783,22 @@ namespace ZEarth.App.ViewModels
         }
 
         public ObservableCollection<SearchResultItem> SearchResults { get; } = new();
+        private int _searchRevision;
+
+        public void ExecuteClearSearch()
+        {
+            ++_searchRevision; // invalidate a pending online geocoder response
+            SearchNameQuery = string.Empty;
+            SearchQuery = string.Empty;
+            SearchCoordinateX = string.Empty;
+            SearchCoordinateY = string.Empty;
+            SearchResults.Clear();
+            SelectedSearchResult = null;
+            CoordinateValidationMessage = string.Empty;
+            IsCoordinateValidationSuccess = true;
+            IsSearching = false;
+            StatusMessage = "Search cleared.";
+        }
 
         private SearchResultItem? _selectedSearchResult;
         public SearchResultItem? SelectedSearchResult
@@ -806,6 +822,7 @@ namespace ZEarth.App.ViewModels
         // Sidebar Navigation & Action Commands
         public ICommand ExpandAllSectionsCommand { get; }
         public ICommand CollapseAllSectionsCommand { get; }
+        public ICommand ClearSearchCommand { get; }
         public ICommand SearchByNameCommand { get; }
         public ICommand LocateCoordinatesCommand { get; }
         public ICommand FlyToSearchResultCommand { get; }
@@ -1292,6 +1309,7 @@ namespace ZEarth.App.ViewModels
             // Places Commands (Sprint 3 & Sidebar Phase 01)
             SearchCommand = AsyncCommand(() => RunBusyAsync("Searching…", ExecuteSearchByNameAsync), "Search");
             SearchByNameCommand = AsyncCommand(() => RunBusyAsync("Searching…", ExecuteSearchByNameAsync), "Search by name");
+            ClearSearchCommand = new RelayCommand(ExecuteClearSearch);
             LocateCoordinatesCommand = AsyncCommand(ExecuteLocateCoordinatesAsync, "Locate coordinates");
             FlyToSearchResultCommand = AsyncCommand(p => ExecuteFlyToSearchResultAsync(p as SearchResultItem), "Fly to search result");
             SaveSearchResultToMyPlacesCommand = new RelayCommand(p => ExecuteSaveSearchResultToMyPlaces(p as SearchResultItem));
@@ -2310,14 +2328,17 @@ namespace ZEarth.App.ViewModels
             var query = !string.IsNullOrWhiteSpace(SearchNameQuery) ? SearchNameQuery : SearchQuery;
             if (string.IsNullOrWhiteSpace(query)) return;
 
+            var revision = ++_searchRevision;
             IsSearching = true;
             try
             {
                 SearchResults.Clear();
+                SelectedSearchResult = null;
                 var allPlaces = new List<PlaceItem>();
                 allPlaces.AddRange(MyPlaces);
 
                 var matches = await _searchService.SearchByNameAsync(query, allPlaces, Array.Empty<ReferenceLayerItem>());
+                if (revision != _searchRevision) return;
                 foreach (var m in matches)
                 {
                     SearchResults.Add(m);
@@ -2341,12 +2362,13 @@ namespace ZEarth.App.ViewModels
             }
             catch (Exception ex)
             {
+                if (revision != _searchRevision) return;
                 CoordinateValidationMessage = $"Search error: {ex.Message}";
                 IsCoordinateValidationSuccess = false;
             }
             finally
             {
-                IsSearching = false;
+                if (revision == _searchRevision) IsSearching = false;
             }
         }
 
