@@ -226,7 +226,7 @@ namespace ZEarth.Tests
         [TestMethod]
         public void SB14_ReferenceLayers_NineMandatoryCategories_AndRealLayersExist()
         {
-            // Requirement 5 & SB-14, SB-15, SB-16: 9 mandatory categories in exact order with real layers
+            // Current nine categories after intentional 2.1 reference layer taxonomy cleanup.
             var catalog = new ReferenceLayerCatalog();
             var grouped = catalog.GetGroupedCategories();
 
@@ -235,10 +235,10 @@ namespace ZEarth.Tests
                 "Borders & Labels",
                 "Places & Geographic Names",
                 "Roads & Transportation",
-                "Weather & Climate",
-                "Geology & Landforms",
+                "Weather",
+                "Gallery & Knowledge",
                 "Water & Hydrology",
-                "Earth Observation",
+                "Parks & Recreation",
                 "Buildings & Infrastructure",
                 "Natural Hazards"
             };

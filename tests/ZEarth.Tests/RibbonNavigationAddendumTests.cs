@@ -190,13 +190,13 @@ namespace ZEarth.Tests
         [TestMethod]
         public void UI01_ThemeTokens_TreeItemBrushes_DefinedInThemes()
         {
-            var darkDict = new ResourceDictionary { Source = new Uri("/ZEarth;component/Themes/DarkTheme.xaml", UriKind.RelativeOrAbsolute) };
+            var darkDict = new ResourceDictionary { Source = new Uri("/Z EARTH;component/Themes/DarkTheme.xaml", UriKind.RelativeOrAbsolute) };
             Assert.IsNotNull(darkDict["Brush.TreeItem.Hover"], "DarkTheme must contain Brush.TreeItem.Hover");
             Assert.IsNotNull(darkDict["Brush.TreeItem.Selected"], "DarkTheme must contain Brush.TreeItem.Selected");
             Assert.IsNotNull(darkDict["Brush.TreeItem.SelectedHover"], "DarkTheme must contain Brush.TreeItem.SelectedHover");
             Assert.IsNotNull(darkDict["Brush.TreeItem.SelectedBorder"], "DarkTheme must contain Brush.TreeItem.SelectedBorder");
 
-            var lightDict = new ResourceDictionary { Source = new Uri("/ZEarth;component/Themes/LightTheme.xaml", UriKind.RelativeOrAbsolute) };
+            var lightDict = new ResourceDictionary { Source = new Uri("/Z EARTH;component/Themes/LightTheme.xaml", UriKind.RelativeOrAbsolute) };
             Assert.IsNotNull(lightDict["Brush.TreeItem.Hover"], "LightTheme must contain Brush.TreeItem.Hover");
             Assert.IsNotNull(lightDict["Brush.TreeItem.Selected"], "LightTheme must contain Brush.TreeItem.Selected");
             Assert.IsNotNull(lightDict["Brush.TreeItem.SelectedHover"], "LightTheme must contain Brush.TreeItem.SelectedHover");
@@ -426,8 +426,8 @@ namespace ZEarth.Tests
         [TestMethod]
         public void UI02_UI03_StatusBarsAndRibbonThemes_DarkAndLightColors()
         {
-            var darkDict = new ResourceDictionary { Source = new Uri("/ZEarth;component/Themes/DarkTheme.xaml", UriKind.RelativeOrAbsolute) };
-            var lightDict = new ResourceDictionary { Source = new Uri("/ZEarth;component/Themes/LightTheme.xaml", UriKind.RelativeOrAbsolute) };
+            var darkDict = new ResourceDictionary { Source = new Uri("/Z EARTH;component/Themes/DarkTheme.xaml", UriKind.RelativeOrAbsolute) };
+            var lightDict = new ResourceDictionary { Source = new Uri("/Z EARTH;component/Themes/LightTheme.xaml", UriKind.RelativeOrAbsolute) };
 
             Assert.IsNotNull(darkDict["StatusBarBtnStyle"]);
             Assert.IsNotNull(lightDict["StatusBarBtnStyle"]);

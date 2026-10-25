@@ -26,9 +26,9 @@ namespace ZEarth.App.Services
         // Resource-dictionary URIs use the "/Assembly;component/..." form, which resolves to the
         // pack resource in this assembly and avoids the relative-URI "URI prefix is not recognized"
         // failure seen previously (RC-6).
-        private static readonly Uri VectorIconsUri = new("/ZEarth;component/Themes/VectorIcons.xaml", UriKind.Relative);
-        private static readonly Uri DarkThemeUri = new("/ZEarth;component/Themes/DarkTheme.xaml", UriKind.Relative);
-        private static readonly Uri LightThemeUri = new("/ZEarth;component/Themes/LightTheme.xaml", UriKind.Relative);
+        private static readonly Uri VectorIconsUri = new("/Z EARTH;component/Themes/VectorIcons.xaml", UriKind.Relative);
+        private static readonly Uri DarkThemeUri = new("/Z EARTH;component/Themes/DarkTheme.xaml", UriKind.Relative);
+        private static readonly Uri LightThemeUri = new("/Z EARTH;component/Themes/LightTheme.xaml", UriKind.Relative);
 
         private static readonly Lazy<ThemeService> _instance = new(() => new ThemeService());
         public static ThemeService Instance => _instance.Value;

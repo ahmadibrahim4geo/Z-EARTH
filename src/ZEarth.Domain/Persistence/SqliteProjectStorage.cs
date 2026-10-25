@@ -113,6 +113,10 @@ namespace ZEarth.Domain.Persistence
 
             // Normalize both protected root folders before writing. This also migrates
             // Temporary Places created by builds that persisted it as a separate collection.
+            // Preserve scenes inserted via the legacy SavedScenes collection. Ensuring the
+            // protected folder calls SyncSavedScenes(), which would otherwise clear this
+            // legacy collection *before* pending additions can be written to SQLite.
+            var newlyAddedScenes = project.SavedScenes.ToList();
             project.EnsureSavedScenesFolder();
             project.EnsureTemporaryPlacesFolder();
 
@@ -122,13 +126,15 @@ namespace ZEarth.Domain.Persistence
 
             if (scenesFolderOnSave != null)
             {
-                foreach (var scene in project.SavedScenes)
+                foreach (var scene in newlyAddedScenes)
                 {
                     if (!scenesFolderOnSave.Children.Any(c => c.Id == scene.Id || c.Name == scene.Name))
                     {
                         scenesFolderOnSave.AddChild(scene);
                     }
                 }
+                // Keep the migration/legacy view synchronized with the authoritative tree.
+                project.SyncSavedScenes();
             }
 
             // Insert Places collections
