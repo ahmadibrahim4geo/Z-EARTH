@@ -2284,6 +2284,7 @@ namespace ZEarth.App.ViewModels
                         foreach (var item in MyPlaces) exportRoot.AddChild(item.Clone());
                     }
 
+                    if (!CanExportPortableKml(exportRoot, dlg.FileName)) return;
                     KmlSerializer.SerializeToFile(exportRoot, dlg.FileName);
                     MessageBox.Show($"KML exported successfully to:\n{dlg.FileName}", "Export KML", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
@@ -2839,6 +2840,17 @@ namespace ZEarth.App.ViewModels
             }
         }
 
+        private static bool CanExportPortableKml(PlaceItem root, string filePath)
+        {
+            if (filePath.EndsWith(".kmz", StringComparison.OrdinalIgnoreCase)) return true;
+            bool HasAssets(PlaceItem item)
+                => item.KmzResourcesBase64.Count > 0 || item.Children.Any(HasAssets);
+            if (!HasAssets(root)) return true;
+            MessageBox.Show("This imported KMZ has embedded icons, images or models that plain KML cannot contain. Select KMZ to preserve these resources.",
+                "KMZ required to preserve assets", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return false;
+        }
+
         public void ExecuteExportSelectedItem(PlaceItem? item = null)
         {
             var target = item ?? SelectedPlace;
@@ -2858,6 +2870,7 @@ namespace ZEarth.App.ViewModels
             if (dlg.ShowDialog() == true)
             {
                 var exportRoot = target.Clone();
+                if (!CanExportPortableKml(exportRoot, dlg.FileName)) return;
                 if (dlg.FileName.EndsWith(".kmz", StringComparison.OrdinalIgnoreCase))
                 {
                     KmzService.CreatePackage(dlg.FileName, exportRoot);
@@ -2889,6 +2902,7 @@ namespace ZEarth.App.ViewModels
             {
                 var exportRoot = new PlaceItem("My Places", PlaceItemType.Folder);
                 foreach (var p in MyPlaces) exportRoot.AddChild(p.Clone());
+                if (!CanExportPortableKml(exportRoot, dlg.FileName)) return;
 
                 if (dlg.FileName.EndsWith(".kmz", StringComparison.OrdinalIgnoreCase))
                 {
@@ -2935,6 +2949,7 @@ namespace ZEarth.App.ViewModels
             {
                 var exportRoot = new PlaceItem("Temporary Places Export", PlaceItemType.Folder);
                 foreach (var p in TemporaryPlaces) exportRoot.AddChild(p.Clone());
+                if (!CanExportPortableKml(exportRoot, dlg.FileName)) return;
 
                 if (dlg.FileName.EndsWith(".kmz", StringComparison.OrdinalIgnoreCase))
                 {
