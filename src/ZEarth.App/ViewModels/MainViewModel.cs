@@ -233,10 +233,17 @@ namespace ZEarth.App.ViewModels
             {
                 if (SetProperty(ref _isGraticulesVisible, value))
                 {
+                    OnPropertyChanged(nameof(GridToggleBrush));
+                    SettingsService.Instance.Settings.ShowGraticules = value;
+                    SettingsService.Instance.Save();
                     _ = _globeBridge.SetGraticulesVisibleAsync(value);
                 }
             }
         }
+
+        public Brush GridToggleBrush => IsGraticulesVisible
+            ? new SolidColorBrush(Color.FromRgb(74, 222, 128))
+            : (Application.Current?.TryFindResource("Brush.Text.Secondary") as Brush ?? Brushes.Gray);
 
         public bool IsRoadsVisible
         {
@@ -944,6 +951,7 @@ namespace ZEarth.App.ViewModels
                     IsTerrainEnabled = false;
                     SyncTerrainSettingsDisplay(updateEnabledState: false);
                     UpdateTerrainStatusDisplay();
+                    StatusMessage = "Terrain unavailable — reverted to the smooth ellipsoid. Review provider settings and connection.";
                 });
             };
             _globeBridge.TimeOfDayChanged += (s, time) =>
@@ -3383,7 +3391,7 @@ namespace ZEarth.App.ViewModels
             }
         }
 
-        private void SyncTerrainSettingsDisplay(bool updateEnabledState = true)
+        private void SyncTerrainSettingsDisplay(bool updateEnabledState = false)
         {
             var providerId = SettingsService.Instance.Settings.TerrainProviderId;
             switch (providerId)
@@ -3411,11 +3419,8 @@ namespace ZEarth.App.ViewModels
                     break;
             }
 
-            if (updateEnabledState)
-            {
-                IsTerrainEnabled = !string.Equals(providerId, "ellipsoid", StringComparison.OrdinalIgnoreCase);
-            }
-
+            // Configuration is only a selected preference. Never display green/ON
+            // until Cesium has acknowledged a real provider activation.
             UpdateTerrainStatusDisplay();
         }
 
@@ -3448,15 +3453,24 @@ namespace ZEarth.App.ViewModels
             UpdateTerrainStatusDisplay();
         }
 
+        private bool _terrainRequestInProgress;
+
         public async Task ExecuteToggleTerrainAsync()
         {
+            if (_terrainRequestInProgress) return;
+            _terrainRequestInProgress = true;
+            try
+            {
+            StatusMessage = IsTerrainEnabled ? "Disabling terrain…" : "Loading selected elevation model…";
             if (IsTerrainEnabled)
             {
                 if (await _globeBridge.SetTerrainProviderAsync("ellipsoid"))
                 {
                     IsTerrainEnabled = false;
                     UpdateTerrainStatusDisplay();
+                    StatusMessage = "Terrain disabled; smooth ellipsoid restored.";
                 }
+                else StatusMessage = "Unable to disable terrain: globe did not acknowledge.";
                 return;
             }
 
@@ -3465,10 +3479,16 @@ namespace ZEarth.App.ViewModels
             {
                 IsTerrainEnabled = false;
                 UpdateTerrainStatusDisplay();
+                StatusMessage = "WGS84 ellipsoid has no elevation relief. Choose an actual DEM under Options → Terrain Models.";
                 return;
             }
 
             await ActivateConfiguredTerrainAsync();
+            StatusMessage = IsTerrainEnabled
+                ? $"Terrain active: {_terrainConfig.Name}"
+                : $"Terrain unavailable: {_terrainConfig.Name}. Check the provider connection, URL or Cesium ion token.";
+            }
+            finally { _terrainRequestInProgress = false; }
         }
 
         private async Task ExecuteShowHistoricalImageryAsync()
