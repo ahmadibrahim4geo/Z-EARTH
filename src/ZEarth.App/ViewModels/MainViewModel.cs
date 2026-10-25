@@ -44,6 +44,22 @@ namespace ZEarth.App.ViewModels
 
         // Distinguish imagery themes at a glance instead of displaying the same globe
         // symbol for every provider. These are icons, not an assertion of source availability.
+        // Distinct color families make monochrome Segoe UI symbols readable at a glance.
+        public string GlyphBackground => Id switch
+        {
+            "offline-vector" => "#266A64",
+            "osm-standard" or "osm-humanitarian" or "osm-cycling" => "#285A75",
+            "opentopo" or "esri-topo" or "esri-physical" or "esri-shaded-relief" => "#56783F",
+            "carto-dark" => "#383854",
+            "carto-light" => "#8B6836",
+            "carto-voyager" => "#8B4C62",
+            "esri-imagery" or "esri-hybrid" => "#2D5278",
+            "esri-streets" => "#7B543A",
+            "esri-gray" => "#596572",
+            "esri-ocean" => "#126F81",
+            _ => "#526079"
+        };
+
         public string Glyph => Id switch
         {
             "offline-vector" => "🗺",
