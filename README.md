@@ -33,11 +33,15 @@ Launch `dist/Z EARTH-Preview/Z EARTH.exe` **only after** tests and package valid
 | `src/ZEarth.Domain/` | Geospatial data, CRS/GDAL, KML/KMZ, SQLite, snapping, geometry |
 | `tests/ZEarth.Tests/` | Automated unit/component tests; many use **FakeGlobeEngine** |
 | `scripts/` | Safe build, Windows screenshot harnesses, reproducibility |
-| `.github/skills/` | Project-specialized CesiumJS skills **and 16 pinned GIS Development Skills** |
+| `.github/skills/` | Project-specialized Z EARTH/CesiumJS skills **and 19 pinned GIS Development Skills** |
 
 ## GIS skill integration: new Codex/Agent checkout
 
-Read [AGENTS.md](AGENTS.md) as the first action. The [vendor snapshot](docs/GIS_SKILLS_INTEGRATION.md) copies 16 domain skills, their direct reference documents and the MIT notice from [GIS Development Skills](https://github.com/ahmadibrahim4geo/GIS-Development-Skills), **without replacing existing Z EARTH skills**.
+Read [AGENTS.md](AGENTS.md) as the first action. The [vendor snapshot](docs/GIS_SKILLS_INTEGRATION.md) copies **19** domain skills and **51** version-pinned references/catalogs with original MIT attribution from [GIS Development Skills](https://github.com/ahmadibrahim4geo/GIS-Development-Skills), **without replacing existing Z EARTH skills**.
+
+The source commit `fa05f322424747a3a58b04fcb744c6868df7d759` is recorded in [the checksum manifest](docs/GIS_SKILLS_SNAPSHOT.json). Run `python scripts/validate-agent-skills.py` to verify all copied source Git hashes, local links and XAML before development. The project-specific [Google Earth Pro agent adapter](.github/skills/zearth-google-earth-pro-workflows/SKILL.md) maps [Earth behavior](.github/references/google-earth-pro-engineering.md), [historical imagery design](.github/references/historical-imagery-timeline.md), [KML fidelity](.github/references/google-kml-kmz-compatibility.md) and [World Gazetteer](.github/references/world-gazetteer-reference-layer.md) to real WPF → GlobeBridge → Cesium workflows. The cross-cutting `gis-security-guardian` accompanies the local security specialist.
+
+**This integration teaches coding agents working on the repository; the compiled Z EARTH executable does not dynamically execute or interpret SKILL.md.** Existing Esri Wayback dates are **release dates**, not sensor acquisition dates. Source-guided upgrades require actual implementation and native acceptance.
 
 The agent picks the task-specific chain. Example: *Sunlight toggle not working* → `gis-development` router → `gis-desktop-application-development` + `geospatial-web-mapping` → existing `zearth-globe-bridge` and `cesiumjs-terrain-environment` → correct source and acceptance tests.
 

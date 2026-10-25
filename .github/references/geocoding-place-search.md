@@ -24,6 +24,10 @@
 
 **Not every request is one “search”.** An autocomplete box can issue multiple `/suggest` calls for one person's typed query (before debouncing), some services charge per *session*, *returned geocode*, *attribute*, or *SKU*. Daily quota also differs from per-second rate limits, monthly quotas, storage/caching rights, and terms of commercial use. Never pool or ship one developer key across end users against terms.
 
+## World Gazetteer: visual reference names versus search
+
+For ZEarth-style apps, map **Reference Layers > World Gazetteer** to the [scale-aware World Gazetteer guide](world-gazetteer-reference-layer.md) and [offline sample](../examples/gazetteer/README.md). Search can query GeoNames name/alias indices or permitted online services while the independent overlay queries bounded *visible* features at each detail level. No mass API calls triggered by camera movement, no implicit Esri appliance licensing, and no changes to user KML/KMZ symbol styles.
+
 ## Recommended routing for agent-generated GIS tools
 
 1. **App and entitlement first:** identify academic/noncommercial vs commercial, offline vs hosted, user-managed credentials, required geographic coverage, latency and data retention.

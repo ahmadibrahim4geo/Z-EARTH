@@ -11,7 +11,7 @@
 5. A model-running agent must have deterministic local actions without purchasing a hosted LLM. Local/GPU computation and data transfer can still incur practical expenses. Earth Engine and hosted cloud datasets may require eligible accounts or quotas.
 6. If a free solution is not equivalent in accuracy/outputs to a paid GIS feature, state the limitation; do not invent feature parity.
 
-## All 15 specialists
+## All 19 specialists
 
 | Specialist | Free independent path | Optional dependency or limitation |
 | --- | --- | --- |
@@ -30,6 +30,10 @@
 | `geospatial-data-catalogs` | Offline Python source directory search | A directory is not a free scientific data download |
 | `geospatial-api-integration` | Locally served endpoints and verified conditional free-tier sources | Trial/billed providers not default |
 | `geospatial-ai-agents` | Deterministic PyQGIS/CLI agent, optional permitted local models | Commercial LLM tokens/cloud/GPU cost not mandatory |
+| `gis-cartography-symbology` | QGIS/PyQGIS, MapLibre Style JSON, custom palettes and fully licensed upstream open style sources | ArcMap/Pro require host licenses; original Esri/USGS/BGS fonts/styles retain per-asset rights |
+| `gis-device-context` | Offline UTC/IANA timezone parsing with explicit coordinates; consented native/browser location API if supported | Precise geolocation needs permissions and hardware/services; Sunlight rendering needs real engine |
+| `kml-kmz-engineering` | Open-source ZIP/XML safety checks, KML parsing and GDAL/OGR/QGIS where supported | ArcGIS/Google Earth native runtime proprietary; source conversion may lose unsupported KML features |
+| `gis-security-guardian` | Offline Python 3 standard-library security audits and ZIP/KMZ archive guards; optional open-source scanners by risk | Third-party scanning services may require network/API keys; policy text does not enforce OS sandbox |
 
 ## API classification (catalog review, not live verification)
 

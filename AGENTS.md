@@ -9,8 +9,16 @@ Z EARTH is an independent free-first alternative to **Google Earth Pro Desktop**
 ## Historical imagery workflow
 
 Prefer the **inline Esri Wayback timeline inside the Cesium viewport** over the now-unused legacy `HistoricalImageryDialog` WPF modal. The ribbon invokes `historical.loading` → public `WaybackService` catalog → `historical.show` → `ZEarthHistoricalTimeline` JS controller → `ImageryManager.registerDynamicBasemap`. Confirm negative cases: no internet/catalog → truthful visible error, no stale fallback imagery dates; dates are **Wayback release dates**, not image acquisition dates. Do not cache hosted Esri tiles or bypass use restrictions. Unit tests run in Node and MSTest; native T3 WebView2 zoom/pan and live tiles remain required for acceptance. See `docs/HISTORICAL_IMAGERY_TIMELINE.md`.
+## Pinned upstream skills and Earth Pro skill routing
+
+The repository includes a locally readable, **pinned snapshot of 19 general GIS agent skills and 51 references** from [GIS Development Skills](https://github.com/ahmadibrahim4geo/GIS-Development-Skills), commit `fa05f322424747a3a58b04fcb744c6868df7d759`. Validate the checksummed [snapshot manifest](docs/GIS_SKILLS_SNAPSHOT.json) with `python scripts/validate-agent-skills.py` before relying on the copy. These are **agent instructions for developing Z EARTH**, not a runtime plugin engine that parses Markdown in the shipped application.
+
+For Google Earth Pro-like work, read [Z EARTH's Google Earth workflow adapter](.github/skills/zearth-google-earth-pro-workflows/SKILL.md) after the project parity and Wayback docs. Preserve the distinction between **Esri Wayback release dates** (existing product) and satellite **scene-acquisition dates** (future independently sourced imagery); do not upgrade the visual label without real provenance. [Blog-derived design patterns](.github/references/google-earth-pro-engineering.md) and [the broader imagery timeline specification](.github/references/historical-imagery-timeline.md) are design references; they are not proof of working services. For places / layers, load the Google [KML/KMZ preservation contract](.github/references/google-kml-kmz-compatibility.md); for dynamic labels, load [World Gazetteer](.github/references/world-gazetteer-reference-layer.md).
+
+Apply [GIS Security Guardian](.github/skills/gis-security-guardian/SKILL.md) as a cross-cutting baseline alongside local `zearth-security`. Never automatically copy changing upstream files into a release: refresh the manifest + snapshot in a reviewed PR and rerun link, hash and runtime tests.
+
 ## First steps in a fresh checkout
-1. Read this file and [the pinned general skill snapshot](docs/GIS_SKILLS_INTEGRATION.md).
+1. Read this file and [the pinned general skill snapshot](docs/GIS_SKILLS_INTEGRATION.md); verify snapshot integrity with `python scripts/validate-agent-skills.py`.
 2. Route the user's issue through `.github/skills/gis-development/SKILL.md` and `.github/references/agent-decision-tree.md`, then read only 1–3 relevant specialized skills. The **Z-EARTH project-specific skills** and [CesiumJS skill router](.github/skills/using-cesiumjs-skills/SKILL.md) refine the generic guidance; they take precedence about local behavior.
 3. Inspect actual code paths rather than trusting old release notes or test filenames. Draw the chain **XAML binding → MainViewModel command → GlobeBridge request/response → cesium-engine.js command → Cesium scene effect → WPF state**.
 4. List reproducible failure, cause, files modified, baseline test, regression test, and evidence level (T0 code review, T1 static/syntax, T2 unit/fixture, T3 real Cesium/WebView2 Windows test, T4 packaged deployment).
@@ -19,11 +27,12 @@ Prefer the **inline Esri Wayback timeline inside the Cesium viewport** over the 
 
 ## Specialist routing for Z EARTH
 - WPF UI, XAML, MVVM, command state, splash/theme/language: `.github/skills/zearth-desktop-ux/SKILL.md`, `.github/skills/zearth-ribbon-and-splash/SKILL.md`, `.github/skills/gis-desktop-application-development/SKILL.md`.
+- Google Earth parity, Historical Imagery/Wayback, Places, overlays and tours: `.github/skills/zearth-google-earth-pro-workflows/SKILL.md`, `.github/references/google-earth-pro-engineering.md`, `.github/references/historical-imagery-timeline.md` (project behavior wins).
 - Globe, 2D/3D modes, camera, time/sunlight/atmosphere, tile layers: `.github/skills/zearth-globe-bridge/SKILL.md`, `.github/skills/geospatial-web-mapping/SKILL.md`, `.github/skills/cesiumjs-viewer-setup/SKILL.md`, `.github/skills/cesiumjs-terrain-environment/SKILL.md`.
 - KML/KMZ and folder hierarchy/persistence: `.github/skills/kml-kmz-engineering/SKILL.md`, `.github/skills/zearth-kml-integrity/SKILL.md`, `.github/skills/zearth-project-recovery/SKILL.md`.
 - EPSG/CRS, GDAL, snapping and vector: `.github/skills/coordinate-reference-systems/SKILL.md`, `.github/skills/geospatial-data-processing/SKILL.md`, `.github/skills/zearth-crs-transformations/SKILL.md`, `.github/skills/zearth-geodata-pipeline/SKILL.md`.
 - Online basemaps and API terms: `.github/skills/geospatial-api-integration/SKILL.md`, `.github/skills/zearth-provider-compliance/SKILL.md`.
-- Tests, performance, evidence, safety: `.github/skills/zearth-verification/SKILL.md`, `.github/skills/zearth-security/SKILL.md`, `.github/skills/gis-development/SKILL.md`.
+- Tests, performance, evidence, safety: `.github/skills/zearth-verification/SKILL.md`, `.github/skills/zearth-security/SKILL.md`, `.github/skills/gis-security-guardian/SKILL.md`, `.github/skills/gis-development/SKILL.md`.
 
 ## Authoritative build and smoke commands (Windows)
 ```powershell

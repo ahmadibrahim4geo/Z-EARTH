@@ -24,3 +24,7 @@ Use alongside [data catalogs](../geospatial-data-catalogs/SKILL.md), [geospatial
 6. For profiles and 3D use [GeoLibre elevation profile](https://github.com/opengeos/geolibre-elevation-profile), [MapLibre LiDAR](https://github.com/opengeos/maplibre-gl-lidar), [3D Tiles](https://github.com/opengeos/maplibre-gl-3d-tiles) as relevant **viewers**, not scientific ground-truth providers.
 7. QA: compare a small DEM window to a trusted processing engine; check known points and unit conversions; test nodata/edge effects and inspect exported raster/feature metadata.
 8. Preserve source raster; include provenance, operation parameters, Z units and uncertainty of outputs. If imagery/service/vertical datum is unverified, disclose it.
+
+## Esri elevation GP as a licensed host reference
+
+[Esri/elevation-gp-python](https://github.com/Esri/elevation-gp-python) contains ArcMap and ArcGIS Pro viewshed/profile Python toolbox patterns. It requires Spatial Analyst and related ArcGIS service entitlements for hosted execution. Retain open DEM workflows for independent products and verify real raster NoData, resolution, vertical units and native host execution.

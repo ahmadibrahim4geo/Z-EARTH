@@ -14,6 +14,14 @@ Use this distinct integration skill when the goal is to **implement working GIS 
 
 For **place names, geocoding, autocomplete, and reverse lookup**, first read the ordered [Geocoding & Place Search provider guide](../../references/geocoding-place-search.md). It separates open-source engines, restricted public APIs, genuinely free quotas, test-only trials and metered commercial services. The [provider JSON catalog](../../references/free-geospatial-apis.json) uses `category=geocoding` and `pricing_group`. Do not assume an autocomplete request is equivalent to a user search or that a trial is a production allowance.
 
+## World Gazetteer: online search versus local reference labels
+
+Load [World Gazetteer Reference Layer](../../references/world-gazetteer-reference-layer.md) for any request involving searching geographic names **and** showing map labels dynamically by zoom. Keep explicit user-triggered GeoNames search/API quotas separate from a downloaded, indexed, offline GeoNames name overlay. Esri's World Gazetteer is a licensed locator, not an API-free reference layer; don't redistribute it. [Offline TSV/SQLite example](../../examples/gazetteer/README.md).
+
+## Optional Esri geocoding UI
+
+[Esri Leaflet Geocoder](https://github.com/Esri/esri-leaflet-geocoder) provides client/control examples, not a free self-hosted World Gazetteer or unlimited geocoding service. Offer it only as a consented, authenticated provider with a verified quota and terms, leaving offline GeoNames Gazetteer labeling independent. Never include a private Esri API key in the repository or HTML.
+
 ## Mandatory adapter implementation workflow
 
 1. Choose an exact provider ID, dataset/product, geography, dates and method from the catalog. Recheck official API docs at implementation time; distinguish documentation verification from a real request test.
