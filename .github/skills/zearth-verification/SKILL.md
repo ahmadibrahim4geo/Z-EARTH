@@ -18,3 +18,12 @@ Report changes, exact tests/results, potential data loss, security, licensing, r
 - Coordinate grid: independently test parallels, meridians, major lines/points, their labels, floating degree intervals and real UTM zones including 1/60, Norway, Svalbard, N/S and dateline-crossing viewports. Visible labels must follow the camera; don't anchor UTM names at 0° latitude.
 - Test both 2D and 3D against terrain, after restart, with grid on/off and zoom in/out. A test that inspects source strings is T1; Node, unit and FakeGlobeEngine are T2; real WebView2/GPU and network capture are T3; a fresh Windows portable EXE is T4.
 - If T3 or T4 are unavailable, mark the feature **Native acceptance pending**; never describe it as verified on the user's PC.
+
+## Cross-layer command/settings audit gate
+
+For changed WPF, MVVM, bridge, commands, imagery and settings, run `node --test tests/repo-command-contract.test.cjs` and relevant `dotnet test` cases. Validate that:
+- Each literal WPF/GlobeBridge action exists in Cesium and a failed operation produces a failed response (not a success with `updated:false`).
+- `SettingsService.SaveSettings` never rewrites newly edited settings from stale singletons; serialized model has no API tokens and is restored on restart.
+- Every host-bridge web message has a trusted-source check and navigation/popup block; use `WebViewTrustPolicyTests` negative-origin fixtures.
+- New overlays respect free-first defaults, attribution and explicit user opt-in.
+- Native Windows T3 checks are mandatory for layout, scene morphs, real DEM, provider tiles, snapshots and saved scene restore. See `docs/CODE_AUDIT_2026-10-25.md`.
