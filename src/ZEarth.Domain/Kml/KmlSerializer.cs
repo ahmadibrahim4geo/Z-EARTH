@@ -210,7 +210,9 @@ namespace ZEarth.Domain.Kml
                 double lon = placemark.Longitude.Value;
                 double lat = placemark.Latitude.Value;
                 double alt = placemark.Altitude ?? 0.0;
-                string coordStr = string.Format(CultureInfo.InvariantCulture, "{0:F6},{1:F6},{2:F1}", lon, lat, alt);
+                // Round-trip doubles without truncating latitude/longitude to six
+                // decimals or elevations to a tenth of a meter.
+                string coordStr = string.Format(CultureInfo.InvariantCulture, "{0:R},{1:R},{2:R}", lon, lat, alt);
 
                 pElem.Add(new XElement(KmlNs + "Point",
                     new XElement(KmlNs + "coordinates", coordStr)));
@@ -248,7 +250,7 @@ namespace ZEarth.Domain.Kml
         private static string FormatCoordinatesList(IEnumerable<CoordinatePoint> points)
         {
             return string.Join(" ", points.Select(p =>
-                string.Format(CultureInfo.InvariantCulture, "{0:F6},{1:F6},{2:F1}", p.Longitude, p.Latitude, p.Altitude)));
+                string.Format(CultureInfo.InvariantCulture, "{0:R},{1:R},{2:R}", p.Longitude, p.Latitude, p.Altitude)));
         }
     }
 }
