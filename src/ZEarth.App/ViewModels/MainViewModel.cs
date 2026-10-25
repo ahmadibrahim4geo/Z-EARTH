@@ -414,7 +414,7 @@ namespace ZEarth.App.ViewModels
             }
         }
 
-        private double _timeOfDayHours = DateTime.UtcNow.TimeOfDay.TotalHours;
+        private double _timeOfDayHours = 12.0; // Known stable noon default; date and UTC hours remain user-selectable.
         public double TimeOfDayHours
         {
             get => _timeOfDayHours;
