@@ -381,7 +381,24 @@ namespace ZEarth.App.ViewModels
             ? new SolidColorBrush(Color.FromRgb(56, 189, 248)) // #38bdf8 Atmospheric Sky
             : (Application.Current?.TryFindResource("Brush.Text.Secondary") as Brush ?? Brushes.Gray);
 
-        private double _timeOfDayHours = 12.0;
+        // UTC is unambiguous; Cesium's sun/terminator is geographic and varies by the
+        // map location. Never invent a country's civil time zone from longitude.
+        private DateTime? _sunlightDateUtc = DateTime.UtcNow.Date;
+        public DateTime? SunlightDateUtc
+        {
+            get => _sunlightDateUtc;
+            set
+            {
+                if (SetProperty(ref _sunlightDateUtc, value?.Date))
+                {
+                    if (IsSunlightEnabled)
+                        _ = _globeBridge.SetTimeOfDayAsync(_timeOfDayHours,
+                            _sunlightDateUtc?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
+                }
+            }
+        }
+
+        private double _timeOfDayHours = DateTime.UtcNow.TimeOfDay.TotalHours;
         public double TimeOfDayHours
         {
             get => _timeOfDayHours;
@@ -393,7 +410,8 @@ namespace ZEarth.App.ViewModels
                     UpdateTimeOfDayDisplay();
                     if (IsSunlightEnabled)
                     {
-                        _ = _globeBridge.SetTimeOfDayAsync(_timeOfDayHours);
+                        _ = _globeBridge.SetTimeOfDayAsync(_timeOfDayHours,
+                            SunlightDateUtc?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
                     }
                 }
             }
@@ -1330,7 +1348,8 @@ namespace ZEarth.App.ViewModels
         private async Task ExecuteToggleSunlightAsync()
         {
             var desired = !IsSunlightEnabled;
-            if (await _globeBridge.SetSunlightAsync(desired, _timeOfDayHours))
+            if (await _globeBridge.SetSunlightAsync(desired, _timeOfDayHours,
+                SunlightDateUtc?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)))
                 IsSunlightEnabled = desired;
             else
                 StatusMessage = "Sunlight not changed — globe request failed or timed out.";
