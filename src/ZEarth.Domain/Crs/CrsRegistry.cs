@@ -402,7 +402,7 @@ namespace ZEarth.Domain.Crs
                     // All table identifiers come from our fixed internal allowlist.
                     cmd.CommandText = $@"SELECT CAST(t.code AS TEXT), t.name,
                         COALESCE(e.name,'World') AS area, COALESCE(un.name,'metre') AS unit,
-                        COALESCE(t.text_definition,'') AS definition
+                        ${(table == "vertical_crs" ? "''" : "COALESCE(t.text_definition,'')")} AS definition
                         FROM {table} t
                         LEFT JOIN usage u ON u.object_table_name='{table}'
                           AND u.object_auth_name=t.auth_name AND u.object_code=t.code
