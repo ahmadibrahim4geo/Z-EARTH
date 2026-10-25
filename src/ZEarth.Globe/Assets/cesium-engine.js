@@ -118,7 +118,7 @@
   const ImageryManager = {
     baseLayers: {},
     overlayLayers: new Map(),
-    activeBasemap: 'esri-hybrid',
+    activeBasemap: 'offline-vector',
     showHybridLabels: true,
     graticuleLayer: null,
     hybridLabelsLayer: null,
@@ -162,8 +162,12 @@
           maximumLevel: 2,
           credit: 'Natural Earth II (Tom Patterson & Public Domain)'
         }).then((neProvider) => {
+          // Replace a provisional local grid only after Natural Earth TMS is ready.
+          // Preserve the currently selected basemap; a late load cannot steal focus.
+          const provisional = this.baseLayers['offline-vector']?.layer;
           const neLayer = viewer.imageryLayers.addImageryProvider(neProvider);
           neLayer.show = (this.activeBasemap === 'offline-vector');
+          if (provisional) viewer.imageryLayers.remove(provisional, true);
           this.baseLayers['offline-vector'] = {
             id: 'offline-vector',
             name: 'Natural Earth II (Offline Cartographic)',
@@ -321,8 +325,9 @@
         attribution: 'Source: Esri, Maxar, Earthstar Geographics, CNES/Airbus DS, USDA, USGS, AeroGRID, IGN, and GIS User Community'
       };
 
-      // Default: activate Esri Hybrid
-      this.setBasemap('esri-hybrid');
+      // Free-first offline default: never initiate online Esri imagery requests
+      // until the desktop user explicitly opts into an online basemap.
+      this.setBasemap('offline-vector');
     },
 
     addFallbackGridLayer() {
@@ -366,7 +371,7 @@
     },
 
     setBasemap(id) {
-      if (!id) id = 'esri-hybrid';
+      if (!id) id = 'offline-vector';
       id = String(id).trim().toLowerCase();
       if (id === 'offline' || id === 'naturalearth') id = 'offline-vector';
       if (id === 'osm' || id === 'openstreetmap') id = 'osm-standard';
@@ -374,7 +379,7 @@
 
       if (!this.baseLayers[id]) {
         console.warn('[ImageryManager] Unknown basemap requested:', id);
-        id = ('esri-hybrid' in this.baseLayers) ? 'esri-hybrid' : 'offline-vector';
+        id = 'offline-vector';
       }
       this.activeBasemap = id;
 
