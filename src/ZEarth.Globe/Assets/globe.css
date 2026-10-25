@@ -1274,3 +1274,28 @@ body.light-theme .sunlight-preset-btn:hover {
   border-color: #d97706;
   color: #b45309;
 }
+
+
+/* Nonmodal in-globe Wayback release scrubber. Remains visible over 3D map. */
+.history-timeline{position:absolute;top:64px;left:50%;transform:translateX(-50%);width:min(550px,calc(100% - 26px));
+z-index:945;box-sizing:border-box;padding:10px 13px;border-radius:8px;border:1px solid #77797c;
+background:rgba(38,40,42,.96);color:#f8f8f9;box-shadow:0 8px 25px rgba(0,0,0,.38);
+font:12px "Segoe UI",sans-serif;pointer-events:auto}
+.history-timeline[hidden]{display:none!important}
+.history-header,.history-controls,.history-footer{display:flex;align-items:center;justify-content:space-between;gap:7px}
+.history-heading{font-weight:700;font-size:13px}.history-heading small{font-weight:400;color:#d4d5d6}
+.history-close{margin-left:auto;font-size:18px}
+.history-status{margin:5px 0 8px;color:#d1d3d6;min-height:15px;font-size:11px}
+.history-button{min-width:32px;min-height:29px;border:1px solid #84878b;border-radius:5px;
+background:#505155;color:#fff;cursor:pointer}
+.history-button:disabled{opacity:.35;cursor:default}
+.history-button:hover:not(:disabled){background:#616368}
+.history-controls input,.history-footer select{border:1px solid #85878b;border-radius:5px;background:#45474b;color:#fff;min-height:29px}
+.history-controls input{flex:1;min-width:0;padding:0 5px}
+#history-range{width:100%;margin:8px 0 6px;accent-color:#c9cbd0;cursor:pointer}
+.history-footer{font-weight:600}.history-footer select{width:80px}
+.history-period,.history-credit{font-size:10px;color:#bdc0c5;margin-top:5px}
+body.light-theme .history-timeline{background:rgba(250,250,250,.98);color:#1e2023;border-color:#afb0b3}
+body.light-theme .history-status,body.light-theme .history-period,body.light-theme .history-credit,body.light-theme .history-heading small{color:#555a5f}
+body.light-theme .history-button{background:#eeeff0;color:#202124;border-color:#acafb2}
+body.light-theme .history-controls input,body.light-theme .history-footer select{background:white;color:#202124;border-color:#acafb2}

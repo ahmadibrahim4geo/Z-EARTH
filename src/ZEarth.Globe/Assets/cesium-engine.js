@@ -3425,6 +3425,27 @@
   btn3D?.addEventListener('click', () => setSceneMode('Scene3D'));
   btn2D?.addEventListener('click', () => setSceneMode('Scene2D'));
 
+  // In-globe history UI shares the existing ImageryManager instead of using
+  // a blocking WPF window. A timeline release is a map publishing date, not capture time.
+  let historicalPriorBasemap = null;
+  const HistoricalTimeline = window.ZEarthHistoricalTimeline?.create({
+    element: document.getElementById('history-timeline'),
+    onSelect: release => {
+      const layer = ImageryManager.registerDynamicBasemap({
+        id: 'wayback-live',
+        name: 'Esri Wayback release ' + release.date,
+        url: release.tileUrl,
+        attribution: '© Esri World Imagery Wayback • Release ' + release.date,
+        setActive: true
+      });
+      return layer?.success !== false;
+    },
+    onClose: () => {
+      ImageryManager.setBasemap(historicalPriorBasemap || 'offline-vector');
+      historicalPriorBasemap = null;
+    }
+  });
+
   // 10. Host Message Dispatcher
   let flightToken = 0;
   function handleHostMessage(raw) {
@@ -3564,6 +3585,24 @@
           const mode = data.payload?.mode || data.payload?.id || 'esri-hybrid';
           ImageryManager.setBasemap(mode);
           respondSuccess({ basemap: mode });
+          break;
+        }
+        case 'historical.loading': {
+          if (!HistoricalTimeline) {respond('failed', null, 'Timeline UI unavailable'); break;}
+          if (!HistoricalTimeline.isVisible()) historicalPriorBasemap = ImageryManager.activeBasemap;
+          HistoricalTimeline.load();
+          respondSuccess({ visible: true, loading: true });
+          break;
+        }
+        case 'historical.show': {
+          if (!HistoricalTimeline) {respond('failed', null, 'Timeline UI unavailable'); break;}
+          HistoricalTimeline.setReleases(data.payload?.releases);
+          respondSuccess({ visible: HistoricalTimeline.isVisible() });
+          break;
+        }
+        case 'historical.error': {
+          HistoricalTimeline?.error(String(data.payload?.message || 'Wayback catalog unavailable.'));
+          respondSuccess({ errorShown: true });
           break;
         }
         case 'layers.registerBasemap': {

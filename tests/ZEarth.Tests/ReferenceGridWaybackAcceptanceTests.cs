@@ -53,4 +53,25 @@ public class ReferenceGridWaybackAcceptanceTests
         StringAssert.Contains(release.TileUrl, "/tile/32246/{z}/{y}/{x}");
         Assert.AreEqual("wayback-32246", release.Id);
     }
+
+    [TestMethod]
+    public void WaybackConfig_ParsesActualEsriSchemaWithReleaseDatesAndTrustedWmts()
+    {
+        var json = "{\"56102\":{\"itemTitle\":\"World Imagery (Wayback 2023-12-07)\"," +
+            "\"releaseNum\":56102,\"releaseDateLabel\":\"2023-12-07\"," +
+            "\"itemURL\":\"https://wayback.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/WMTS/1.0.0/default028mm/MapServer/tile/56102/{level}/{row}/{col}\"}}";
+        var records = WaybackService.ParseReleasesJson(json);
+        Assert.AreEqual(1, records.Count);
+        Assert.AreEqual(new DateTime(2023,12,7), records[0].Date);
+        StringAssert.Contains(records[0].TileUrl, "/tile/56102/{z}/{y}/{x}");
+    }
+
+    [TestMethod]
+    public void WaybackConfig_RejectsUntrustedOriginAndDoesNotFabricateFallbackReleases()
+    {
+        var json = "{\"2023\":{\"releaseNum\":123,\"releaseDateLabel\":\"2023-12-07\"," +
+            "\"itemURL\":\"https://evil.example/World_Imagery/MapServer/tile/123/{level}/{row}/{col}\"}}";
+        Assert.AreEqual(0, WaybackService.ParseReleasesJson(json).Count);
+        Assert.IsNull(WaybackService.NormalizeTileUrl("https://wayback.maptiles.arcgis.com.evil.example/World_Imagery/tile/123/{z}/{y}/{x}"));
+    }
 }

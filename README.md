@@ -57,6 +57,11 @@ Our project targets the useful **Google Earth Pro Desktop** workflows (saved cam
 
 **REA tool:** [morluto/rea](https://github.com/morluto/rea) is the existing MIT-licensed local reverse-engineering **analysis tool**, not Google Earth Pro source. The user's `D:\\My Software\\Zearth\\rea` workspace stays outside tracked Z EARTH. We reviewed REA docs but have **not run REA on the user's local Google Earth Pro installation**; refer to [REA task skill](.github/skills/zearth-rea-parity/SKILL.md). No proprietary Google Earth binaries or extracted code are bundled.
 
+## Historical imagery timeline (Esri Wayback)
+
+The **Historical Imagery → Show Timeline** command now opens a **compact nonmodal bar over the 3D globe**, not a blocking Windows dialog. Use **previous/next**, first/latest, the draggable release slider, the year selector or a calendar date. If the selected day is not an actual archive release, the viewer selects the nearest release **on or before** that date. Close (× or Escape in the timeline) to restore the previous basemap. Pan and zoom remain usable while the bar is open.
+
+The slider uses Esri World Imagery Wayback map **release dates** (archive snapshots dating from 2014), not Google Earth Pro's proprietary time series and **not actual satellite acquisition dates**. Imagery and local update coverage vary, and a requested tile is not guaranteed to load. The real Esri release catalog must be available online; no invented fallback dates or paid service keys are used. Esri hosted services have independent terms and attribution. [Implementation and validation details](docs/HISTORICAL_IMAGERY_TIMELINE.md).
 ## Current limitations
 
 This source review is not a promise that all basemap providers work or every feature is production ready. External tile servers require real connectivity and provider rights, and paid Cesium ion services are **optional**. Windows GPU UI acceptance is required. Build/test CI is only a prerequisite.

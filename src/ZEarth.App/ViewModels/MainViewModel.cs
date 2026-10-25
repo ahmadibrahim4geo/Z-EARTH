@@ -926,6 +926,11 @@ namespace ZEarth.App.ViewModels
                         ActiveBasemap = layer.Name;
                         ActiveAttribution = layer.Attribution;
                     }
+                    else if (bmap == "wayback-live")
+                    {
+                        ActiveBasemap = "Esri Wayback historical archive";
+                        ActiveAttribution = "© Esri World Imagery Wayback (archived basemap release)";
+                    }
                     OnPropertyChanged(nameof(StatusEngineInfo));
                 }
 
@@ -1266,7 +1271,7 @@ namespace ZEarth.App.ViewModels
             {
                 if (p is string id) ExecuteSelectBasemap(id);
             });
-            HistoricalImageryCommand = new RelayCommand(ExecuteShowHistoricalImagery);
+            HistoricalImageryCommand = AsyncCommand(ExecuteShowHistoricalImageryAsync, "Open historical timeline");
             AddImageryLayerCommand = new RelayCommand(ExecuteAddImageryLayer);
             RemoveImageryLayerCommand = new RelayCommand(p =>
             {
@@ -3466,31 +3471,35 @@ namespace ZEarth.App.ViewModels
             await ActivateConfiguredTerrainAsync();
         }
 
-        public async void ExecuteShowHistoricalImagery()
+        private async Task ExecuteShowHistoricalImageryAsync()
         {
-            var dlg = new Views.HistoricalImageryDialog(ApplyHistoricalReleaseAsync)
+            // An in-globe overlay avoids WPF WebView2 airspace and modal ShowDialog.
+            // The release catalog is fetched in .NET; the JS viewer draws an interactive timeline.
+            await _globeBridge.SendRequestAsync("historical.loading");
+            try
             {
-                Owner = Application.Current?.MainWindow
-            };
-            if (dlg.ShowDialog() == true && dlg.SelectedRelease != null)
-            {
-                await ApplyHistoricalReleaseAsync(dlg.SelectedRelease);
+                var releases = await new WaybackService().GetReleasesAsync();
+                if (releases.Count == 0) throw new InvalidOperationException("No Wayback releases.");
+                var items = releases.Select(r => new
+                {
+                    releaseId = r.ReleaseId,
+                    date = r.Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                    tileUrl = r.TileUrl
+                }).ToArray();
+                if (!await _globeBridge.SendRequestAsync("historical.show", new { releases = items }, 18000))
+                {
+                    StatusMessage = "Historical imagery timeline unavailable in the globe engine.";
+                }
             }
-        }
-
-        private async Task ApplyHistoricalReleaseAsync(WaybackRelease release)
-        {
-            const string liveLayerId = "wayback-live";
-            await _globeBridge.RegisterDynamicBasemapAsync(
-                liveLayerId,
-                release.DisplayName,
-                release.TileUrl,
-                "Esri World Imagery Wayback",
-                setActive: true);
-            _selectedBasemapId = liveLayerId;
-            OnPropertyChanged(nameof(SelectedBasemapId));
-            ActiveBasemap = release.DisplayName;
-            ActiveAttribution = "Esri World Imagery Wayback";
+            catch (Exception ex)
+            {
+                LoggerService.Instance.LogWarning("Historical imagery release catalog error: " + ex.Message);
+                StatusMessage = "Historical imagery catalog is unavailable; retry when online.";
+                await _globeBridge.SendRequestAsync("historical.error", new
+                {
+                    message = "Wayback catalog unavailable. Check internet access and retry."
+                });
+            }
         }
 
         public void ExecuteStartSwipe(string leftId, string rightId)

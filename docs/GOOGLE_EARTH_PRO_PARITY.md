@@ -49,6 +49,9 @@
 - Terrain / Profile / cursor heights / exports must refer to the *same selected numerical elevation source*. When terrain absent, show ellipsoid and "No terrain samples", not made-up results.
 - Include tests for Cairo highland, delta near sea-level, a known sea depth, unavailable tiles, dateline and expected vertical units.
 
+### Historical imagery time scrubber — implementation (2026-10-25)
+
+The previous `HistoricalImageryDialog.ShowDialog()` was blocking. The ribbon now invokes a **nonmodal in-Cesium timeline overlay** with prev/next, year/date, slider, first/latest and restore-on-close. Releases come from Esri Wayback catalog's validated `itemURL` / `releaseDateLabel`; no fabricated fallback dates. The Esri release time **must never be labeled image acquisition time**; location-specific metadata and local-update filtering remain future work. See [technical guide](HISTORICAL_IMAGERY_TIMELINE.md), plus Node/C# tests and T3 Windows/browser acceptance requirement.
 ## Agent development loop
 
 1. Load repository `AGENTS.md`, pinned `gis-development` router, selected task skill and local `zearth-*` / `cesiumjs-*` guide.

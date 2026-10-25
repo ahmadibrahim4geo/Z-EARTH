@@ -914,15 +914,15 @@
                             <Grid>
                                 <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                                 <StackPanel Grid.Row="0" Orientation="Horizontal">
-                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding HistoricalImageryCommand}" ToolTip="Open a compact live timeline for the Esri World Imagery Wayback archive">
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding HistoricalImageryCommand}" ToolTip="Open a small non-blocking timeline over the globe (Esc / × to close)">
                                         <StackPanel HorizontalAlignment="Center">
                                             <Path Data="{StaticResource Icon.BasemapGallery}" Style="{StaticResource RibbonLargeIconStyle}" Fill="#a78bfa"/>
-                                            <TextBlock Text="Open Timeline" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                            <TextBlock Text="Show Timeline" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
                                         </StackPanel>
                                     </Button>
                                     <StackPanel VerticalAlignment="Center" Margin="10,0" MaxWidth="330">
                                         <TextBlock Text="Esri World Imagery Wayback" FontWeight="Bold" Foreground="{StaticResource Brush.Text.Primary}"/>
-                                        <TextBlock Text="Drag the date slider or choose an exact release; the globe updates immediately." FontSize="10" TextWrapping="Wrap" Foreground="{StaticResource Brush.Text.Secondary}"/>
+                                        <TextBlock Text="Open the inline timeline: previous/next, drag date slider, choose year or day. Move the globe while it stays open." FontSize="10" TextWrapping="Wrap" Foreground="{StaticResource Brush.Text.Secondary}"/>
                                     </StackPanel>
                                 </StackPanel>
                                 <TextBlock Grid.Row="1" Text="Historical Satellite Imagery" Style="{StaticResource RibbonGroupHeaderStyle}"/>
