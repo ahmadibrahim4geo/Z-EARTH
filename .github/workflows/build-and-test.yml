@@ -27,7 +27,8 @@ jobs:
           node --check src/ZEarth.Globe/Assets/cesium-engine.js
           node --check src/ZEarth.Globe/Assets/rectangle-geometry.js
           node --check src/ZEarth.Globe/Assets/historical-timeline.js
-          node --test tests/rectangle-geometry.test.cjs tests/measurement-hud-contract.test.cjs tests/historical-timeline.test.cjs
+          node --check src/ZEarth.Globe/Assets/graticule-labels.js
+          node --test tests/rectangle-geometry.test.cjs tests/measurement-hud-contract.test.cjs tests/historical-timeline.test.cjs tests/graticule-labels.test.cjs
 
   windows-build-test:
     runs-on: windows-latest
