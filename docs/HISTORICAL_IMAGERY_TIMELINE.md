@@ -22,3 +22,7 @@ Google Earth Pro has a different proprietary historical imagery catalog; no clai
 - **T4:** Confirm a clean portable build includes historical-timeline.js and UI works without stale local state.
 
 References: [Google Earth Pro historical imagery](https://support.google.com/earth/answer/148094?hl=en), [Esri Wayback app](https://github.com/Esri/wayback), [Esri wayback-core](https://github.com/Esri/wayback-core).
+
+## Imported Earth reference and agent routing (2026-10-25)
+
+The [local Earth workflow skill](../.github/skills/zearth-google-earth-pro-workflows/SKILL.md) routes developers through the [blog-derived engineering reference](../.github/references/google-earth-pro-engineering.md) and [multi-provider timeline design](../.github/references/historical-imagery-timeline.md). These references are specifications, **not** a replacement for the actual Esri Wayback behavior above. For this app, keep release date and image acquisition date distinct; do not label a Wayback release as a known sensor capture date. Check request failure, viewport usability and provider credits in a real installed Windows/WebView2 build.
