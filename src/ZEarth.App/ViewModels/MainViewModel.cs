@@ -986,7 +986,17 @@ namespace ZEarth.App.ViewModels
                     IsTerrainEnabled = false;
                     SyncTerrainSettingsDisplay(updateEnabledState: false);
                     UpdateTerrainStatusDisplay();
-                    StatusMessage = "Terrain unavailable — reverted to the smooth ellipsoid. Review provider settings and connection.";
+                    string message = "Provider unavailable: network, credentials or terrain tiles failed.";
+                    try
+                    {
+                        using var doc = JsonDocument.Parse(info);
+                        if (doc.RootElement.TryGetProperty("reason", out var reason) &&
+                            reason.ValueKind == JsonValueKind.String)
+                            message = reason.GetString() ?? message;
+                    }
+                    catch (JsonException) { }
+                    StatusMessage = $"Terrain OFF — {message}";
+                    LoggerService.Instance.LogWarning($"Terrain reverted to ellipsoid: {message}");
                 });
             };
             _globeBridge.TimeOfDayChanged += (s, time) =>
