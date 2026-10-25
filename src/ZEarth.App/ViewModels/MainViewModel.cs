@@ -825,6 +825,7 @@ namespace ZEarth.App.ViewModels
         public ICommand ClearSearchCommand { get; }
         public ICommand SearchByNameCommand { get; }
         public ICommand LocateCoordinatesCommand { get; }
+        public ICommand FindMyLocationCommand { get; }
         public ICommand FlyToSearchResultCommand { get; }
         public ICommand SaveSearchResultToMyPlacesCommand { get; }
         public ICommand SaveSearchResultToTemporaryPlacesCommand { get; }
@@ -1080,6 +1081,35 @@ namespace ZEarth.App.ViewModels
                     LoggerService.Instance.LogWarning($"Terrain reverted to ellipsoid: {message}");
                 });
             };
+            _globeBridge.DeviceLocationReceived += (sender, json) =>
+            {
+                try
+                {
+                    using var doc = JsonDocument.Parse(json);
+                    var root = doc.RootElement;
+                    var latitude = root.GetProperty("latitude").GetDouble();
+                    var longitude = root.GetProperty("longitude").GetDouble();
+                    var accuracy = root.TryGetProperty("accuracyM", out var a) && a.ValueKind == JsonValueKind.Number
+                        ? a.GetDouble() : double.NaN;
+                    if (!double.IsFinite(latitude) || !double.IsFinite(longitude) ||
+                        latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180)
+                        return;
+                    RunOnUi(() =>
+                    {
+                        SelectedSearchCrsEpsg = 4326; // geographic WGS84, X=lon, Y=lat
+                        SearchCoordinateX = longitude.ToString("F7", CultureInfo.InvariantCulture);
+                        SearchCoordinateY = latitude.ToString("F7", CultureInfo.InvariantCulture);
+                        CoordinateValidationMessage = double.IsFinite(accuracy)
+                            ? $"One-time device fix received (±{accuracy:0} m reported accuracy). Choose Locate / Fly To."
+                            : "One-time device fix received; accuracy not reported. Choose Locate / Fly To.";
+                        IsCoordinateValidationSuccess = true;
+                    });
+                }
+                catch (Exception ex) when (ex is JsonException or InvalidOperationException or FormatException)
+                {
+                    LoggerService.Instance.LogWarning("Unusable device location response: " + ex.Message);
+                }
+            };
             _globeBridge.TimeOfDayChanged += (s, time) =>
             {
                 Application.Current?.Dispatcher?.Invoke(() =>
@@ -1311,6 +1341,7 @@ namespace ZEarth.App.ViewModels
             SearchByNameCommand = AsyncCommand(() => RunBusyAsync("Searching…", ExecuteSearchByNameAsync), "Search by name");
             ClearSearchCommand = new RelayCommand(ExecuteClearSearch);
             LocateCoordinatesCommand = AsyncCommand(ExecuteLocateCoordinatesAsync, "Locate coordinates");
+            FindMyLocationCommand = AsyncCommand(ExecuteFindMyLocationAsync, "Ask permission for device location");
             FlyToSearchResultCommand = AsyncCommand(p => ExecuteFlyToSearchResultAsync(p as SearchResultItem), "Fly to search result");
             SaveSearchResultToMyPlacesCommand = new RelayCommand(p => ExecuteSaveSearchResultToMyPlaces(p as SearchResultItem));
             SaveSearchResultToTemporaryPlacesCommand = new RelayCommand(p => ExecuteSaveSearchResultToTemporaryPlaces(p as SearchResultItem));
@@ -2321,6 +2352,21 @@ namespace ZEarth.App.ViewModels
                 {
                     MessageBox.Show($"KMZ export failed: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
+            }
+        }
+
+        private async Task ExecuteFindMyLocationAsync()
+        {
+            StatusMessage = "Requesting one-time device location; permission required.";
+            if (!await _globeBridge.RequestDeviceLocationAsync())
+            {
+                CoordinateValidationMessage = "Device location denied or unavailable. Enter coordinates manually or use place-name search.";
+                IsCoordinateValidationSuccess = false;
+                StatusMessage = "Device location was not obtained.";
+            }
+            else
+            {
+                StatusMessage = "Device location received. Coordinates populated in Search by Coordinates.";
             }
         }
 
