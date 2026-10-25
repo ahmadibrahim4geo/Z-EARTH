@@ -81,6 +81,23 @@ namespace ZEarth.Tests
         }
 
         [TestMethod]
+        public void CrsRegistry_InstalledProjDatabase_ProvidesWorldwideEPSGDefinitions()
+        {
+            // The deployed GDAL/PROJ runtime should provide global CRS coverage,
+            // not just handcrafted Egypt/UTM demonstration definitions.
+            var registry = new CrsRegistry();
+            Assert.IsTrue(registry.ProjCatalogCount >= 1000,
+                "Offline proj.db could not be located. The complete CRS browser requires bundled PROJ data.");
+            var all = registry.GetAll();
+            Assert.IsTrue(all.Any(c => c.CategoryPath.StartsWith("Geographic Coordinate Systems/Asia/")),
+                "Worldwide geographic CRS entries must include Asia.");
+            Assert.IsTrue(all.Any(c => c.CategoryPath.StartsWith("Projected Coordinate Systems/Africa/") &&
+                                       !c.CategoryPath.Contains("/Egypt")),
+                "African projected CRS entries must include countries other than Egypt.");
+            Assert.IsTrue(all.Any(c => c.IsVerticalOnly), "Vertical CRS entries must remain discoverable.");
+        }
+
+        [TestMethod]
         public void CrsRegistry_Taxonomy_ContainsRequiredCategoriesAndProjections()
         {
             var registry = new CrsRegistry();
