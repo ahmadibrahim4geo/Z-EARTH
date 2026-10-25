@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SKILLS = ROOT / ".github" / "skills"
 SNAPSHOT = ROOT / "docs" / "GIS_SKILLS_SNAPSHOT.json"
 ADAPTER = SKILLS / "zearth-google-earth-pro-workflows" / "SKILL.md"
+WORKFLOW_ADAPTER = SKILLS / "zearth-agent-workflow" / "SKILL.md"
 PINNED_SKILL_COUNT = 21
 PINNED_REFERENCE_COUNT = 54
 
@@ -78,7 +79,7 @@ def main():
         if skill:
             pinned.append(full)
 
-    for path in pinned + [ADAPTER]:
+    for path in pinned + [ADAPTER, WORKFLOW_ADAPTER]:
         if not path.is_file():
             errors.append("Missing source or Z EARTH routing skill: " + str(path))
             continue
@@ -142,7 +143,7 @@ def main():
     if errors:
         print("\n".join("ERROR: " + item for item in errors))
         return 1
-    print("PASS: {} pinned upstream GIS skills, {} references, Earth adapter and XAML checked.".format(
+    print("PASS: {} pinned upstream GIS skills, {} references, Earth + agent adapters and XAML checked.".format(
         PINNED_SKILL_COUNT, PINNED_REFERENCE_COUNT))
     print("WARNING: documentation integrity is NOT proof of native WPF/WebView2/Wayback runtime behavior.")
     return 0
