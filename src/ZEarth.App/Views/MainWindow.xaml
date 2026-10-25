@@ -593,6 +593,9 @@
                                             <TextBlock Text="12:00" FontSize="8.5" Foreground="{DynamicResource Brush.Text.Secondary}" HorizontalAlignment="Center"/>
                                             <TextBlock Text="24:00" FontSize="8.5" Foreground="{DynamicResource Brush.Text.Secondary}" HorizontalAlignment="Right"/>
                                         </Grid>
+                                        <DatePicker SelectedDate="{Binding SunlightDateUtc, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                    Height="25" FontSize="10" Margin="0,2,0,0"
+                                                    ToolTip="Choose UTC calendar date. Sun angle follows the map location; UTC is not the country's civil time."/>
                                     </StackPanel>
                                     <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding ToggleAtmosphereCommand}" ToolTip="Show or hide the atmospheric glow and ground haze.">
                                         <StackPanel HorizontalAlignment="Center">
