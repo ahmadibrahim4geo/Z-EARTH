@@ -1248,6 +1248,12 @@
                                                     Height="26" FontWeight="SemiBold" FontSize="11"
                                                     Background="{DynamicResource Brush.Accent}" Foreground="#FFFFFF"
                                                     BorderThickness="0" Cursor="Hand" Margin="0,0,0,6"/>
+                                            <Button Command="{Binding FindMyLocationCommand}" Content="◎ My Device Location (permission required)"
+                                                    Height="28" Padding="6,2" Margin="0,0,0,8" FontSize="10.5"
+                                                    Background="{DynamicResource Brush.Control.Background}"
+                                                    Foreground="{DynamicResource Brush.Text.Primary}"
+                                                    BorderBrush="{DynamicResource Brush.Control.Border}" BorderThickness="1"
+                                                    ToolTip="Request a one-time device location fix and fill WGS84 X/Y; no tracking"/>
                                         </StackPanel>
 
                                         <!-- Validation / Status Message -->
