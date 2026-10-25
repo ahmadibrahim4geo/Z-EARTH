@@ -186,6 +186,7 @@ namespace ZEarth.Globe
                     "index.html",
                     "cesium-engine.js",
                 "rectangle-geometry.js",
+                "historical-timeline.js",
                     Path.Combine("cesium", "Cesium.js")
                 };
 

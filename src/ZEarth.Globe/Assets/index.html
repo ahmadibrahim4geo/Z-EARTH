@@ -227,6 +227,24 @@
       <div id="snap-tooltip" class="snap-tooltip">Snap: Vertex</div>
     </div>
 
+    <!-- Historical archive slider: inline with Cesium, never blocks map navigation. -->
+    <section id="history-timeline" class="history-timeline" aria-label="Historical satellite imagery archive" hidden>
+      <div class="history-header"><span class="history-heading">◷ Historical Imagery <small>Esri Wayback</small></span>
+        <button id="history-close" class="history-button history-close" aria-label="Close timeline" title="Close and return to previous basemap">×</button></div>
+      <div id="history-status" class="history-status" role="status" aria-live="polite">Select a Wayback release</div>
+      <div class="history-controls">
+        <button id="history-oldest" class="history-button" title="Earliest archive release">|◀</button>
+        <button id="history-prev" class="history-button" title="Previous archive release">◀</button>
+        <input id="history-date" type="date" aria-label="Desired archive release date" />
+        <button id="history-next" class="history-button" title="Next archive release">▶</button>
+        <button id="history-newest" class="history-button" title="Most recent archive release">▶|</button>
+      </div>
+      <input id="history-range" type="range" min="0" max="1" step="1" aria-label="Browse historical image releases" />
+      <div class="history-footer"><span id="history-selected">Release date</span><select id="history-year" aria-label="Select archive release year"></select></div>
+      <div id="history-period" class="history-period"></div>
+      <div class="history-credit">© Esri Wayback • Release date is not image capture date</div>
+    </section>
+
     <!-- Active Measurement Floating HUD (ZE-046, ZE-047, U-01) -->
     <div id="measurement-hud" class="measurement-hud">
       <div class="measure-header-row" id="measure-drag-handle" role="group" aria-label="Drag this header to move the measurement panel">
@@ -256,6 +274,7 @@
   <!-- CesiumJS Runtime & Viewport Engine -->
   <script src="cesium/Cesium.js"></script>
   <script src="rectangle-geometry.js"></script>
-<script src="cesium-engine.js"></script>
+<script src="historical-timeline.js"></script>
+  <script src="cesium-engine.js"></script>
 </body>
 </html>
