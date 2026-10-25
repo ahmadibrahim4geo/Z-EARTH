@@ -133,7 +133,7 @@ public sealed class SettingsService
         {
             // Settings is the authoritative edited model. Implicit domain synchronization used
             // to overwrite freshly selected Options values with stale singleton state.
-            // Domain-origin changes must call SyncFromDomain() explicitly at their source.
+            // Domain-origin changes must explicitly synchronize into the model at their source.
             AppSettingsStore.Save(_settingsPath, Settings);
             LoggerService.Instance.LogInfo($"Saved user settings to {_settingsPath}");
         }
