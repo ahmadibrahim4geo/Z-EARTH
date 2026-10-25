@@ -43,6 +43,7 @@ namespace ZEarth.App.Views
             // Basemap
             SelectComboByTag(DefaultBasemapCombo, settings.DefaultBasemap);
             SelectComboByTag(TerrainProviderCombo, settings.TerrainProviderId);
+            ScreenshotDirectoryInput.Text = settings.ScreenshotDirectory;
             CesiumIonTokenBox.Password = settings.CesiumIonToken ?? string.Empty;
             CustomTerrainUrlBox.Text = settings.CustomTerrainUrl ?? string.Empty;
 
@@ -128,6 +129,7 @@ namespace ZEarth.App.Views
             // Save basemap, theme, language, graticules & display
             settings.DefaultBasemap = GetSelectedTag(DefaultBasemapCombo, "offline-vector");
             settings.TerrainProviderId = GetSelectedTag(TerrainProviderCombo, "demTerrain");
+            settings.ScreenshotDirectory = ScreenshotDirectoryInput.Text.Trim();
             settings.CesiumIonToken = string.IsNullOrWhiteSpace(CesiumIonTokenBox.Password) ? null : CesiumIonTokenBox.Password.Trim();
             settings.CustomTerrainUrl = string.IsNullOrWhiteSpace(CustomTerrainUrlBox.Text) ? null : CustomTerrainUrlBox.Text.Trim();
             settings.Theme = GetSelectedTag(ThemeCombo, "Dark");

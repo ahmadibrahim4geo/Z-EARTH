@@ -691,6 +691,22 @@ namespace ZEarth.App.Views
             }
         }
 
+        public async Task CaptureMapScreenshotAsync(string filePath)
+        {
+            if (GlobeWebView?.CoreWebView2 == null)
+                throw new InvalidOperationException("The map is not yet ready for capture.");
+            using (var stream = new FileStream(filePath, FileMode.CreateNew, FileAccess.Write))
+            {
+                await GlobeWebView.CoreWebView2.CapturePreviewAsync(CoreWebView2CapturePreviewImageFormat.Png, stream);
+                await stream.FlushAsync();
+            }
+            if (new FileInfo(filePath).Length < 100)
+            {
+                File.Delete(filePath);
+                throw new IOException("The captured PNG is empty.");
+            }
+        }
+
         public async Task<System.Drawing.Bitmap> CaptureFullWindowBitmapAsync()
         {
             UpdateLayout();

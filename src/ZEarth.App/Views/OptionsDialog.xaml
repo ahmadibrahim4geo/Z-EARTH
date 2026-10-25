@@ -129,6 +129,9 @@
                             <ComboBoxItem Content="Esri Ocean &amp; Bathymetry" Tag="esri-ocean"/>
                         </ComboBox>
 
+                        <TextBlock Text="Screenshot save folder" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource Brush.Accent}" Margin="0,0,0,6"/>
+                        <TextBox x:Name="ScreenshotDirectoryInput" Height="28" Margin="0,0,0,14" ToolTip="Enter an absolute local folder path for saved map screenshots"/>
+
                         <TextBlock Text="Interface Theme" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource Brush.Accent}" Margin="0,0,0,6"/>
                         <ComboBox x:Name="ThemeCombo" Height="28" Margin="0,0,0,14" Background="{DynamicResource Brush.Control.Background}" Foreground="{DynamicResource Brush.Text.Primary}">
                             <ComboBoxItem Content="Dark Charcoal Theme (GIS Optimized)" Tag="Dark"/>

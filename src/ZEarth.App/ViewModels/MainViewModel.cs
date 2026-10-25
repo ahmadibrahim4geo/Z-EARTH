@@ -908,6 +908,7 @@ namespace ZEarth.App.ViewModels
         public ICommand GridOptionsCommand { get; }
         public ICommand ToggleTerrainCommand { get; }
         public ICommand SelectBasemapCommand { get; }
+        public ICommand OpenBasemapGalleryCommand { get; }
         public ICommand HistoricalImageryCommand { get; }
         public ICommand AddImageryLayerCommand { get; }
         public ICommand RemoveImageryLayerCommand { get; }
@@ -1462,6 +1463,7 @@ namespace ZEarth.App.ViewModels
                 }
             }, "Toggle coordinate grid");
             GridOptionsCommand = new RelayCommand(() => ExecuteShowOptions(true));
+            OpenBasemapGalleryCommand = AsyncCommand(ExecuteOpenBasemapGalleryAsync, "Open basemap gallery");
             ToggleTerrainCommand = AsyncCommand(ExecuteToggleTerrainAsync, "Toggle terrain");
             SelectBasemapCommand = new RelayCommand(p =>
             {
@@ -1499,7 +1501,7 @@ namespace ZEarth.App.ViewModels
                 UpdateWindowTitle();
             });
             CoordinateConverterCommand = new RelayCommand(ExecuteShowCoordinateConverter);
-            TakeScreenshotCommand = new RelayCommand(ExecuteTakeScreenshot);
+            TakeScreenshotCommand = AsyncCommand(ExecuteTakeScreenshotAsync, "Capture map screenshot");
             OptionsCommand = new RelayCommand(ExecuteShowOptions);
             FlyToCoordinatesCommand = AsyncCommand(ExecuteLocateCoordinatesAsync, "Fly to coordinates");
 
@@ -3454,18 +3456,49 @@ namespace ZEarth.App.ViewModels
             }
         }
 
-        private void ExecuteTakeScreenshot()
+        private string _toastMessage = string.Empty;
+        public string ToastMessage
+        {
+            get => _toastMessage;
+            private set => SetProperty(ref _toastMessage, value);
+        }
+
+        private bool _isToastVisible;
+        public bool IsToastVisible
+        {
+            get => _isToastVisible;
+            private set => SetProperty(ref _isToastVisible, value);
+        }
+
+        private int _toastVersion;
+        private async void ShowToast(string message)
+        {
+            int current = ++_toastVersion;
+            ToastMessage = message;
+            IsToastVisible = true;
+            await Task.Delay(4000);
+            if (current == _toastVersion) IsToastVisible = false;
+        }
+
+        private async Task ExecuteTakeScreenshotAsync()
         {
             try
             {
-                var screenshotsDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyPictures), "ZEarth");
-                Directory.CreateDirectory(screenshotsDir);
-                var filePath = Path.Combine(screenshotsDir, $"ZEarth_Capture_{DateTime.Now:yyyyMMdd_HHmmss}.png");
-                MessageBox.Show($"Map view snapshot saved to:\n{filePath}", "Capture Viewport", MessageBoxButton.OK, MessageBoxImage.Information);
+                if (Application.Current?.MainWindow is not Views.MainWindow window)
+                    throw new InvalidOperationException("Map window is unavailable.");
+                var directory = SettingsService.Instance.Settings.ScreenshotDirectory;
+                if (string.IsNullOrWhiteSpace(directory))
+                    directory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyPictures), "ZEarth");
+                Directory.CreateDirectory(directory);
+                var filePath = Path.Combine(directory, $"ZEarth_Capture_{DateTime.Now:yyyyMMdd_HHmmss_fff}.png");
+                await window.CaptureMapScreenshotAsync(filePath);
+                StatusMessage = "Map screenshot captured.";
+                ShowToast("Map screenshot saved ✓");
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Screenshot notice: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                StatusMessage = "Screenshot failed: " + ex.Message;
+                ShowToast("Screenshot failed — see status bar");
             }
         }
 
@@ -3645,6 +3678,21 @@ namespace ZEarth.App.ViewModels
             catch (Exception ex)
             {
                 LoggerService.Instance.LogWarning("Unable to synchronize globe theme: " + ex.Message);
+            }
+        }
+
+        private async Task ExecuteOpenBasemapGalleryAsync()
+        {
+            var dialog = new Views.BasemapGalleryDialog { Owner = Application.Current?.MainWindow };
+            if (dialog.ShowDialog() != true) return;
+            if (dialog.IsSwipeRequested && dialog.SwipeLeftId != null && dialog.SwipeRightId != null)
+            {
+                if (!await _globeBridge.StartSwipeAsync(dialog.SwipeLeftId, dialog.SwipeRightId))
+                    ShowToast("Basemap comparison failed — see status bar");
+            }
+            else if (!string.IsNullOrWhiteSpace(dialog.SelectedBasemapId))
+            {
+                ExecuteSelectBasemap(dialog.SelectedBasemapId);
             }
         }
 

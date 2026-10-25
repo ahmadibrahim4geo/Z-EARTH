@@ -13,6 +13,7 @@ public class AppSettingsModel
     public string SceneMode { get; set; } = "3D";
     public string BasemapId { get; set; } = "offline-vector";
     public string TerrainProviderId { get; set; } = "demTerrain";
+    public string ScreenshotDirectory { get; set; } = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyPictures), "ZEarth");
     // Session credentials must never be serialized to plaintext settings.json.
     [System.Text.Json.Serialization.JsonIgnore]
     public string? CesiumIonToken { get; set; } = null;

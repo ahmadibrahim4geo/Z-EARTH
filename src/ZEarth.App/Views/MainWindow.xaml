@@ -472,6 +472,19 @@
                 <!-- TAB 2: VIEW (ZE-009, ZE-011) -->
                 <TabItem Header="View">
                     <StackPanel Orientation="Horizontal" Height="90" Background="{DynamicResource Brush.Ribbon.Background}" Margin="4,2">
+                        <!-- Compact basemap selector in View, as requested. -->
+                        <Border Style="{StaticResource RibbonGroupBorderStyle}">
+                            <Grid>
+                                <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding OpenBasemapGalleryCommand}" ToolTip="Choose and filter basemaps">
+                                    <StackPanel HorizontalAlignment="Center">
+                                        <Path Data="{StaticResource Icon.BasemapGallery}" Style="{StaticResource RibbonLargeIconStyle}" Fill="{DynamicResource Brush.Accent}"/>
+                                        <TextBlock Text="Base Map" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                    </StackPanel>
+                                </Button>
+                                <TextBlock Grid.Row="1" Text="Map Sources" Style="{StaticResource RibbonGroupHeaderStyle}"/>
+                            </Grid>
+                        </Border>
                         <!-- Group: Appearance & Themes (ZE-011) -->
                         <Border Style="{StaticResource RibbonGroupBorderStyle}">
                             <Grid>
@@ -828,88 +841,41 @@
 
                 <!-- TAB 5: LAYERS (ZE-048, ZE-049, ZE-052) -->
                 <TabItem Header="Basemap">
-                    <ScrollViewer Height="90" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled"
-                                  Background="{DynamicResource Brush.Ribbon.Background}" Margin="4,2">
-                        <StackPanel Orientation="Horizontal">
-                            <!-- Every supported basemap is rendered directly in the ribbon, grouped by provider. -->
-                            <ItemsControl ItemsSource="{Binding BasemapRibbonGroups}">
-                                <ItemsControl.ItemsPanel>
-                                    <ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate>
-                                </ItemsControl.ItemsPanel>
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Border Style="{StaticResource RibbonGroupBorderStyle}">
-                                            <Grid>
-                                                <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-                                                <ItemsControl Grid.Row="0" ItemsSource="{Binding Items}">
-                                                    <ItemsControl.ItemsPanel>
-                                                        <ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate>
-                                                    </ItemsControl.ItemsPanel>
-                                                    <ItemsControl.ItemTemplate>
-                                                        <DataTemplate>
-                                                            <Button Style="{StaticResource RibbonLargeBtnStyle}"
-                                                                    Command="{Binding DataContext.SelectBasemapCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                                    CommandParameter="{Binding Id}" ToolTip="{Binding ToolTip}">
-                                                                <StackPanel HorizontalAlignment="Center">
-                                                                    <Grid Width="33" Height="28">
-                                                                        <Border Background="{Binding GlyphBackground}" CornerRadius="6" Width="32" Height="28">
-                                                                            <TextBlock Text="{Binding Glyph}" FontSize="21" Foreground="White" FontFamily="Segoe UI Emoji, Segoe UI Symbol" HorizontalAlignment="Center" VerticalAlignment="Center" ToolTip="{Binding ToolTip}"/>
-                                                                        </Border>
-                                                                        <Border Background="#15803d" CornerRadius="7" Width="15" Height="15"
-                                                                                HorizontalAlignment="Right" VerticalAlignment="Bottom"
-                                                                                Visibility="{Binding IsDefault, Converter={StaticResource BoolToVisibilityConverter}}">
-                                                                            <TextBlock Text="✓" Foreground="White" FontWeight="Bold" FontSize="10"
-                                                                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                                                        </Border>
-                                                                    </Grid>
-                                                                    <TextBlock Text="{Binding Name}" FontSize="9.5" HorizontalAlignment="Center"
-                                                                               TextAlignment="Center" TextWrapping="Wrap" Width="118" MinHeight="28" Margin="0,2,0,0"/>
-                                                                </StackPanel>
-                                                            </Button>
-                                                        </DataTemplate>
-                                                    </ItemsControl.ItemTemplate>
-                                                </ItemsControl>
-                                                <TextBlock Grid.Row="1" Text="{Binding ProviderName}" Style="{StaticResource RibbonGroupHeaderStyle}"/>
-                                            </Grid>
-                                        </Border>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-
-                            <!-- Group: Custom Imagery Layers (ZE-052) -->
-                            <Border Style="{StaticResource RibbonGroupBorderStyle}">
+                    <StackPanel Orientation="Horizontal" Height="90" Background="{DynamicResource Brush.Ribbon.Background}" Margin="4,2">
+                        <Border Style="{StaticResource RibbonGroupBorderStyle}">
                             <Grid>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="*"/>
-                                    <RowDefinition Height="Auto"/>
-                                </Grid.RowDefinitions>
-                                <StackPanel Grid.Row="0" Orientation="Horizontal">
-                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding AddImageryLayerCommand}" ToolTip="Connect to external WMS, WMTS, or XYZ Tile Service (ZE-052)">
-                                        <StackPanel HorizontalAlignment="Center">
-                                            <Path Data="{StaticResource Icon.Add}" Style="{StaticResource RibbonLargeIconStyle}" Fill="#f59e0b"/>
-                                            <TextBlock Text="Add Layer" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
-                                        </StackPanel>
-                                    </Button>
-                                </StackPanel>
+                                <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding OpenBasemapGalleryCommand}"
+                                        ToolTip="Search, filter and compare the basemaps">
+                                    <StackPanel HorizontalAlignment="Center">
+                                        <Path Data="{StaticResource Icon.BasemapGallery}" Style="{StaticResource RibbonLargeIconStyle}" Fill="{DynamicResource Brush.Accent}"/>
+                                        <TextBlock Text="Browse All" FontSize="11" TextAlignment="Center" Margin="0,3,0,0"/>
+                                    </StackPanel>
+                                </Button>
+                                <TextBlock Grid.Row="1" Text="Basemap Gallery" Style="{StaticResource RibbonGroupHeaderStyle}"/>
+                            </Grid>
+                        </Border>
+                        <Border Style="{StaticResource RibbonGroupBorderStyle}">
+                            <Grid>
+                                <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding AddImageryLayerCommand}"
+                                        ToolTip="Connect custom WMS, WMTS or XYZ provider">
+                                    <StackPanel HorizontalAlignment="Center">
+                                        <Path Data="{StaticResource Icon.Add}" Style="{StaticResource RibbonLargeIconStyle}" Fill="{DynamicResource Brush.Accent}"/>
+                                        <TextBlock Text="Add Service" FontSize="11" Margin="0,3,0,0"/>
+                                    </StackPanel>
+                                </Button>
                                 <TextBlock Grid.Row="1" Text="Custom Services" Style="{StaticResource RibbonGroupHeaderStyle}"/>
                             </Grid>
-                            </Border>
-
-                            <!-- Group: Overlays -->
-                            <Border Style="{StaticResource RibbonGroupBorderStyle}">
-                            <Grid>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="*"/>
-                                    <RowDefinition Height="Auto"/>
-                                </Grid.RowDefinitions>
-                                <StackPanel Grid.Row="0" Orientation="Vertical" VerticalAlignment="Center" Margin="4,0">
-                                    <CheckBox Content="Political Borders &amp; Coastlines" IsChecked="{Binding IsBordersVisible}" Margin="0,2"/>
-                                </StackPanel>
-                                <TextBlock Grid.Row="1" Text="Standard Overlays" Style="{StaticResource RibbonGroupHeaderStyle}"/>
-                            </Grid>
-                            </Border>
-                        </StackPanel>
-                    </ScrollViewer>
+                        </Border>
+                        <Border Style="{StaticResource RibbonGroupBorderStyle}">
+                            <StackPanel VerticalAlignment="Center" Margin="8,0">
+                                <TextBlock Text="Active Basemap" FontWeight="SemiBold" FontSize="10"/>
+                                <TextBlock Text="{Binding ActiveBasemap}" MaxWidth="220" TextWrapping="Wrap" FontSize="11"/>
+                                <CheckBox Content="Political Borders" IsChecked="{Binding IsBordersVisible}" Margin="0,4,0,0"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
                 </TabItem>
 
                 <!-- Dedicated historical imagery workspace -->
@@ -1453,6 +1419,17 @@
                 <Path Data="{StaticResource Icon.PrevExtent}" Style="{StaticResource RibbonSmallIconStyle}" Fill="{DynamicResource Brush.Accent}"/>
             </Button>
         </Grid>
+
+        <!-- Real, nonblocking, auto-dismissing notifications on the status row.
+             Unlike a WPF overlay over WebView2, this is never hidden by HWND airspace. -->
+        <Border Grid.Row="3" Panel.ZIndex="50" HorizontalAlignment="Right" VerticalAlignment="Center"
+                Margin="14,0" Padding="14,8" CornerRadius="7" MaxWidth="320"
+                Background="{DynamicResource Brush.Ribbon.Background}"
+                BorderBrush="{DynamicResource Brush.Ribbon.Border}" BorderThickness="1"
+                Visibility="{Binding IsToastVisible, Converter={StaticResource BoolToVisibilityConverter}}">
+            <TextBlock Text="{Binding ToastMessage}" Foreground="{DynamicResource Brush.Text.Primary}"
+                       FontSize="12" TextWrapping="Wrap"/>
+        </Border>
 
         <!-- ==================== ROW 3: TWO-ROW STATUS BAR (P0 - CRS-01..08) ==================== -->
         <Border Grid.Row="3" Background="{DynamicResource Brush.StatusBar.Background}"
