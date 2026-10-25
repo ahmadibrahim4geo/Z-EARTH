@@ -190,8 +190,15 @@ namespace ZEarth.Domain.Kml
                 }
             }
 
-            // Geometry Serialization
-            SerializeGeometry(placemark, pElem);
+            // Imported MultiGeometry is preserved as the full source XML.
+            // Never append a second simplified Point/Path/Polygon to it:
+            // doing so would duplicate geometry and alter Google Earth semantics.
+            bool preservesMultiGeometry = placemark.PreservedXmlFragments.Any(fragment =>
+            {
+                try { return XElement.Parse(fragment).Name.LocalName == "MultiGeometry"; }
+                catch (System.Xml.XmlException) { return false; }
+            });
+            if (!preservesMultiGeometry) SerializeGeometry(placemark, pElem);
 
             return pElem;
         }
