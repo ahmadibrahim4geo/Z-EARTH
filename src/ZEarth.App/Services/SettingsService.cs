@@ -13,6 +13,8 @@ public class AppSettingsModel
     public string SceneMode { get; set; } = "3D";
     public string BasemapId { get; set; } = "offline-vector";
     public string TerrainProviderId { get; set; } = "demTerrain";
+    // Session credentials must never be serialized to plaintext settings.json.
+    [System.Text.Json.Serialization.JsonIgnore]
     public string? CesiumIonToken { get; set; } = null;
     public string? CustomTerrainUrl { get; set; } = null;
     public bool ShowGraticules { get; set; } = false;
@@ -61,6 +63,7 @@ public class AppSettingsModel
     public string CompassMode { get; set; } = "cardinal";
 
     // Credentials / Auth
+    [System.Text.Json.Serialization.JsonIgnore]
     public string? EsriApiKey { get; set; } = null;
     public string? CustomTileServerUrl { get; set; } = null;
 
@@ -102,14 +105,24 @@ public sealed class SettingsService
             {
                 var json = File.ReadAllText(_settingsPath);
                 var model = JsonSerializer.Deserialize<AppSettingsModel>(json);
-                if (model != null) return model;
+                if (model != null)
+                {
+                    // Ignore insecure tokens left by older settings versions.
+                    model.CesiumIonToken = Environment.GetEnvironmentVariable("ZEARTH_CESIUM_ION_TOKEN");
+                    model.EsriApiKey = Environment.GetEnvironmentVariable("ZEARTH_ESRI_API_KEY");
+                    return model;
+                }
             }
         }
         catch (Exception ex)
         {
             LoggerService.Instance.LogWarning($"Failed to read settings from {_settingsPath}: {ex.Message}");
         }
-        return new AppSettingsModel();
+        return new AppSettingsModel
+        {
+            CesiumIonToken = Environment.GetEnvironmentVariable("ZEARTH_CESIUM_ION_TOKEN"),
+            EsriApiKey = Environment.GetEnvironmentVariable("ZEARTH_ESRI_API_KEY")
+        };
     }
 
     public void SaveSettings()
