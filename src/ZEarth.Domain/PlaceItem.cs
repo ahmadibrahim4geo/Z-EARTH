@@ -125,6 +125,12 @@ namespace ZEarth.Domain
         [JsonPropertyName("preservedXmlFragments")]
         public List<string> PreservedXmlFragments { get; set; } = new List<string>();
 
+        // Relative KMZ archive entry names -> base64 bytes. Store with the imported
+        // Places tree so project save/reopen and selected-item export retain icons.
+        // Never turn archive entry names into absolute disk paths on export.
+        [JsonPropertyName("kmzResourcesBase64")]
+        public Dictionary<string, string> KmzResourcesBase64 { get; set; } = new Dictionary<string, string>();
+
         [JsonPropertyName("children")]
         public ObservableCollection<PlaceItem> Children { get; set; } = new ObservableCollection<PlaceItem>();
 
@@ -200,6 +206,11 @@ namespace ZEarth.Domain
             foreach (var xml in PreservedXmlFragments)
             {
                 clone.PreservedXmlFragments.Add(xml);
+            }
+
+            foreach (var asset in KmzResourcesBase64)
+            {
+                clone.KmzResourcesBase64[asset.Key] = asset.Value;
             }
 
             foreach (var child in Children)

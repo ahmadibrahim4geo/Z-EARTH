@@ -92,6 +92,7 @@ namespace ZEarth.Globe
         public event EventHandler<double>? TimeOfDayChanged;
         public event EventHandler<bool>? SunlightChanged;
         public event EventHandler<bool>? AtmosphereChanged;
+        public event EventHandler<string>? DeviceLocationReceived;
 
         /// <summary>Raised when a correlated request fails, is cancelled or times out (RC-3).</summary>
         public event EventHandler<BridgeFailureInfo>? RequestFailed;
@@ -287,6 +288,11 @@ namespace ZEarth.Globe
             if (root.TryGetProperty("event", out var evProp))
             {
                 var ev = evProp.GetString();
+                if (ev == "device.locationFix")
+                {
+                    DeviceLocationReceived?.Invoke(this, json);
+                    return;
+                }
                 if (ev == "engine.ready")
                 {
                     EngineReady?.Invoke(this, json);
@@ -691,6 +697,8 @@ namespace ZEarth.Globe
         }
         public Task<bool> FullExtentAsync() => SendRequestAsync("camera.fullExtent", null, 12000, CameraViewGroup);
         public Task<bool> SetThemeAsync(string theme) => SendRequestAsync("app.setTheme", new { theme });
+        // WebView2 must show an explicit permission prompt before acquiring a fix.
+        public Task<bool> RequestDeviceLocationAsync() => SendRequestAsync("device.requestLocation", null, timeoutMs: 22000);
 
         public Task<bool> SetPlacemarksAsync(object placemarks) => SendRequestAsync("placemarks.set", placemarks);
 

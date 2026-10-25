@@ -222,8 +222,8 @@ namespace ZEarth.App.Views
                 if (isLeft)
                 {
                     ColLeft.Width = new GridLength(ViewModel.SidebarWidth);
-                    ColLeft.MinWidth = 220;
-                    ColLeft.MaxWidth = 520;
+                    ColLeft.MinWidth = 340;
+                    ColLeft.MaxWidth = 740;
                     ColRight.Width = new GridLength(1, GridUnitType.Star);
                     ColRight.MinWidth = 400;
                     ColRight.MaxWidth = double.PositiveInfinity;
@@ -239,8 +239,8 @@ namespace ZEarth.App.Views
                     ColLeft.MinWidth = 400;
                     ColLeft.MaxWidth = double.PositiveInfinity;
                     ColRight.Width = new GridLength(ViewModel.SidebarWidth);
-                    ColRight.MinWidth = 220;
-                    ColRight.MaxWidth = 520;
+                    ColRight.MinWidth = 340;
+                    ColRight.MaxWidth = 740;
 
                     Grid.SetColumn(ViewportBorder, 0);
                     Grid.SetColumn(WorkspaceSplitter, 1);
@@ -380,6 +380,25 @@ namespace ZEarth.App.Views
 
                 // Prevent a navigated/embedded untrusted page from invoking native
                 // WPF commands through WebMessageReceived.
+                GlobeWebView.CoreWebView2.PermissionRequested += (_, args) =>
+                {
+                    if (args.PermissionKind != CoreWebView2PermissionKind.Geolocation) return;
+                    args.SavesInProfile = false; // consent is per request, not a permanent grant
+                    if (!WebViewTrustPolicy.IsTrustedGlobeDocument(args.Uri))
+                    {
+                        args.State = CoreWebView2PermissionState.Deny;
+                        return;
+                    }
+                    var response = MessageBox.Show(
+                        "Z EARTH requests your device location only for the Find My Location command. " +
+                        "Location may be inaccurate or unavailable on this computer. Allow one lookup?",
+                        "Device Location — Explicit Permission",
+                        MessageBoxButton.YesNo, MessageBoxImage.Question);
+                    args.State = response == MessageBoxResult.Yes
+                        ? CoreWebView2PermissionState.Allow
+                        : CoreWebView2PermissionState.Deny;
+                };
+
                 GlobeWebView.CoreWebView2.NavigationStarting += (_, args) =>
                 {
                     if (WebViewTrustPolicy.IsTrustedGlobeDocument(args.Uri)) return;

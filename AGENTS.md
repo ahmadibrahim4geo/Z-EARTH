@@ -59,3 +59,6 @@ Run `node --test tests/repo-command-contract.test.cjs`, `dotnet test`, and the n
 
 ## Must-not-do
 Do not introduce hardcoded API keys or plaintext persistent tokens; do not relabel a provider as `Ready` without attempting a verified request. Do not launch paid or unlicensed APIs as default. Do not silently migrate user files, delete saved places, publish multiple Preview copies, or assert no errors without checking logs and real GIS outputs. Keep `.github/skills/zearth-*` and `.github/skills/cesiumjs-*` intact unless a specific correction is proven.
+
+## KML, Explorer, and device-context review
+For Save As, KML/KMZ import/export, Explorer search/resize or geolocation changes, read [KML + Explorer acceptance scenarios](docs/KML_EXPLORER_ACCEPTANCE_2026-10-25.md). Require actual file bytes and canonical SQLite readback; separate XML round-trip from real Cesium rendering. Never promote a green Windows build to a native window-resize, device permission or Google Earth visual-parity certification.

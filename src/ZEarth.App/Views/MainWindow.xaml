@@ -1076,7 +1076,7 @@
         <Grid Grid.Row="2" x:Name="WorkspaceGrid">
             <Grid.ColumnDefinitions>
                 <!-- Column 0: Left Column (Sidebar when docked left, or Viewport when docked right) -->
-                <ColumnDefinition x:Name="ColLeft" Width="330" MinWidth="0" MaxWidth="520"/>
+                <ColumnDefinition x:Name="ColLeft" Width="450" MinWidth="0" MaxWidth="740"/>
                 <!-- Column 1: Resizable Splitter -->
                 <ColumnDefinition x:Name="ColSplitter" Width="4"/>
                 <!-- Column 2: Right Column (Viewport when docked left, or Sidebar when docked right) -->
@@ -1138,9 +1138,13 @@
                     </Border>
 
                     <!-- Row 1: Unified Scrollable 4-Section Sidebar Container -->
-                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="6,6,6,6">
-                        <StackPanel>
-
+                    <Grid Grid.Row="1" Margin="6" MinHeight="0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="220" MinHeight="42" MaxHeight="460"/>
+                            <RowDefinition Height="6"/>
+                            <RowDefinition Height="*" MinHeight="120"/>
+                        </Grid.RowDefinitions>
+                        <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                             <!-- ==================== SECTION 1: SEARCH ==================== -->
                             <Expander IsExpanded="{Binding IsSearchExpanded, Mode=TwoWay}" Margin="0,0,0,8"
                                       Background="{DynamicResource Brush.Control.Background}"
@@ -1177,6 +1181,7 @@
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="*"/>
                                                     <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="Auto"/>
                                                 </Grid.ColumnDefinitions>
 
                                                 <TextBox Text="{Binding SearchNameQuery, UpdateSourceTrigger=PropertyChanged}"
@@ -1192,6 +1197,12 @@
                                                         BorderThickness="1" Cursor="Hand" ToolTip="Search local places and online geocoder (Enter)">
                                                     🔍
                                                 </Button>
+                                                <Button Grid.Column="2" Command="{Binding ClearSearchCommand}" Content="✕"
+                                                        Width="30" Height="26" Margin="4,0,0,0"
+                                                        Background="{DynamicResource Brush.Control.Background}"
+                                                        Foreground="{DynamicResource Brush.Text.Primary}"
+                                                        BorderBrush="{DynamicResource Brush.Control.Border}" BorderThickness="1"
+                                                        ToolTip="Clear search query, results and messages"/>
                                             </Grid>
                                             <TextBlock Text="Searches My Places + Temporary first, then online Photon."
                                                        FontSize="9.5" Foreground="{DynamicResource Brush.Text.Muted}" Margin="1,0,0,6"/>
@@ -1237,6 +1248,12 @@
                                                     Height="26" FontWeight="SemiBold" FontSize="11"
                                                     Background="{DynamicResource Brush.Accent}" Foreground="#FFFFFF"
                                                     BorderThickness="0" Cursor="Hand" Margin="0,0,0,6"/>
+                                            <Button Command="{Binding FindMyLocationCommand}" Content="◎ My Device Location (permission required)"
+                                                    Height="28" Padding="6,2" Margin="0,0,0,8" FontSize="10.5"
+                                                    Background="{DynamicResource Brush.Control.Background}"
+                                                    Foreground="{DynamicResource Brush.Text.Primary}"
+                                                    BorderBrush="{DynamicResource Brush.Control.Border}" BorderThickness="1"
+                                                    ToolTip="Request a one-time device location fix and fill WGS84 X/Y; no tracking"/>
                                         </StackPanel>
 
                                         <!-- Validation / Status Message -->
@@ -1254,6 +1271,11 @@
                                             </TextBlock.Style>
                                         </TextBlock>
 
+                                        <Button Command="{Binding ClearSearchCommand}" Content="Clear results"
+                                                HorizontalAlignment="Right" Margin="0,0,0,5" Padding="8,3"
+                                                Background="{DynamicResource Brush.Control.Background}"
+                                                Foreground="{DynamicResource Brush.Text.Secondary}"
+                                                BorderBrush="{DynamicResource Brush.Control.Border}" BorderThickness="1"/>
                                         <!-- Search Results List -->
                                         <ItemsControl ItemsSource="{Binding SearchResults}">
                                             <ItemsControl.ItemTemplate>
@@ -1304,8 +1326,13 @@
                                 </Border>
                             </Expander>
 
+                        </ScrollViewer>
+                        <GridSplitter Grid.Row="1" Height="6" HorizontalAlignment="Stretch"
+                                      ResizeDirection="Rows" ResizeBehavior="PreviousAndNext"
+                                      Background="{DynamicResource Brush.Control.Border}"
+                                      Cursor="SizeNS" ToolTip="Drag to resize Search and My Places"/>
                             <!-- ==================== SECTION 2: MY PLACES ==================== -->
-                            <Expander IsExpanded="{Binding IsMyPlacesExpanded, Mode=TwoWay}" Margin="0,0,0,8"
+                            <Expander Grid.Row="2" IsExpanded="{Binding IsMyPlacesExpanded, Mode=TwoWay}" Margin="0,0,0,8"
                                       Background="{DynamicResource Brush.Control.Background}"
                                       BorderBrush="{DynamicResource Brush.Control.Border}" BorderThickness="1">
                                 <Expander.Header>
@@ -1317,10 +1344,14 @@
                                 </Expander.Header>
 
                                 <Border Background="{DynamicResource Brush.Window.Background}" Padding="6" BorderThickness="0,1,0,0" BorderBrush="{DynamicResource Brush.Control.Border}">
-                                    <StackPanel>
+                                    <Grid MinHeight="120">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="*"/>
+                                        </Grid.RowDefinitions>
                                         <!-- Toolbar (Parity Framework - EXP-01) -->
-                                        <Border Background="{DynamicResource Brush.Control.Background}" CornerRadius="3" Padding="4,2" Margin="0,0,0,6">
-                                            <StackPanel Orientation="Horizontal">
+                                        <Border Grid.Row="0" Background="{DynamicResource Brush.Control.Background}" CornerRadius="3" Padding="4,2" Margin="0,0,0,6">
+                                            <WrapPanel Orientation="Horizontal">
                                                 <Button Style="{StaticResource QuickAccessBtnStyle}" Command="{Binding AddPlacemarkCommand}" ToolTip="Add new Placemark (📍)">📍</Button>
                                                 <Button Style="{StaticResource QuickAccessBtnStyle}" Command="{Binding DrawLineCommand}" ToolTip="Add Path/Line (〰️)">〰️</Button>
                                                 <Button Style="{StaticResource QuickAccessBtnStyle}" Command="{Binding DrawPolygonCommand}" ToolTip="Add Polygon (⬡)">⬡</Button>
@@ -1335,11 +1366,11 @@
                                                 <Button Style="{StaticResource QuickAccessBtnStyle}" Command="{Binding ExportSelectedItemCommand}" ToolTip="Export Selected Item to KML/KMZ (📤)">📤</Button>
                                                 <Button Style="{StaticResource QuickAccessBtnStyle}" Command="{Binding ExportAllMyPlacesCommand}" ToolTip="Export All My Places (📦)">📦</Button>
                                                 <Button Style="{StaticResource QuickAccessBtnStyle}" Command="{Binding DeletePlaceCommand}" ToolTip="Delete Selected (🗑)">🗑</Button>
-                                            </StackPanel>
+                                            </WrapPanel>
                                         </Border>
 
                                         <!-- My Places TreeView (Saved Scenes is the first folder inside My Places) -->
-                                        <TreeView ItemsSource="{Binding MyPlaces}" MaxHeight="320"
+                                        <TreeView Grid.Row="1" ItemsSource="{Binding MyPlaces}" MinHeight="120" VerticalAlignment="Stretch"
                                                   Background="{DynamicResource Brush.Window.Background}"
                                                   BorderBrush="{DynamicResource Brush.Control.Border}" BorderThickness="1"
                                                   VirtualizingStackPanel.IsVirtualizing="True"
@@ -1397,12 +1428,10 @@
                                             </TreeView.ContextMenu>
                                         </TreeView>
 
-                                    </StackPanel>
+                                    </Grid>
                                 </Border>
                             </Expander>
-
-                        </StackPanel>
-                    </ScrollViewer>
+                    </Grid>
 
                 </Grid>
             </Border>

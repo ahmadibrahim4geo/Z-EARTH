@@ -202,7 +202,8 @@ namespace ZEarth.Tests
             Assert.IsTrue(serializedXml.Contains("Demo Point"));
             Assert.IsTrue(serializedXml.Contains("Cairo/القاهرة"));
             Assert.IsTrue(serializedXml.Contains("Preserve me"));
-            Assert.IsTrue(serializedXml.Contains("31.235700,30.044400,36.0"));
+            Assert.IsTrue(serializedXml.Contains("31.2357,30.0444,36"),
+                "KML output must retain double coordinate precision without truncation.");
 
             // Re-parse serialized output
             var reParsed = KmlParser.ParseDocument(System.Xml.Linq.XDocument.Parse(serializedXml));

@@ -66,6 +66,9 @@ namespace ZEarth.Domain.Kml
                 ParseContainerElements(doc.Root, rootFolder);
             }
 
+            // Original Style/StyleMap XML remains preserved; apply only a
+            // display projection of the common KML symbol rules.
+            KmlStyleResolver.Apply(rootFolder);
             return rootFolder;
         }
 
@@ -166,8 +169,12 @@ namespace ZEarth.Domain.Kml
             // Preserve unparsed elements (LookAt, Camera, Style, gx elements, custom XML)
             var knownNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
             {
-                "name", "description", "visibility", "styleUrl", "TimeSpan", "TimeStamp",
-                "ExtendedData", "Point", "LineString", "Polygon", "MultiGeometry"
+                // TimeStamp is not modeled separately: preserve it as raw XML.
+                "name", "description", "visibility", "styleUrl", "TimeSpan",
+                // MultiGeometry is not fully representable by a single PlaceItem.
+                // Preserve the whole original XML rather than silently dropping
+                // secondary parts on export. The renderer may show only one geometry.
+                "ExtendedData", "Point", "LineString", "Polygon"
             };
 
             foreach (var elem in placemarkElem.Elements())

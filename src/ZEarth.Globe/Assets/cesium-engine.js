@@ -1111,7 +1111,7 @@
           name: p.name,
           polygon: {
             hierarchy: new Cesium.PolygonHierarchy(outerPositions, holes),
-            material: colorVal.withAlpha(0.4),
+            material: colorVal.withAlpha(Number.isFinite(Number(p.fillOpacity)) ? Math.max(0, Math.min(1, Number(p.fillOpacity))) : 0.4),
             outline: true,
             outlineColor: colorVal,
             outlineWidth: Number(p.outlineWidth || 2),
@@ -1165,7 +1165,10 @@
         const lat = p.lat !== undefined ? p.lat : (p.coordinates && p.coordinates[0] ? p.coordinates[0].lat : 0);
         const alt = p.alt || 0;
         const symbolShape = String(p.symbolShape || 'Circle');
-        const useCesiumPoint = symbolShape.toLowerCase() === 'circle';
+        const iconImage = typeof p.iconDataUri === 'string' &&
+          /^data:image\/(png|jpeg|webp|gif);base64,[a-zA-Z0-9+/=]+$/.test(p.iconDataUri) &&
+          p.iconDataUri.length < 1400100 ? p.iconDataUri : null;
+        const useCesiumPoint = !iconImage && symbolShape.toLowerCase() === 'circle';
 
         ent = viewer.entities.add({
           id: p.id,
@@ -1182,7 +1185,7 @@
             distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 25000000)
           },
           billboard: useCesiumPoint ? undefined : {
-            image: createFeatureSymbolCanvas(symbolShape, colorVal),
+            image: iconImage || createFeatureSymbolCanvas(symbolShape, colorVal),
             width: 30,
             height: 30,
             verticalOrigin: symbolShape.toLowerCase() === 'pin' ? Cesium.VerticalOrigin.BOTTOM : Cesium.VerticalOrigin.CENTER,
@@ -3821,6 +3824,37 @@
         }
         case 'swipe.stop': {
           respondSuccess({ stopped: SwipeManager.stop() });
+          break;
+        }
+        case 'device.requestLocation': {
+          if (!navigator.geolocation) {
+            respond('failed', null, 'This Windows/WebView2 runtime does not expose geolocation.');
+            break;
+          }
+          respondAccepted({ waitingForUserPermission: true });
+          navigator.geolocation.getCurrentPosition(
+            pos => {
+              const lat = pos.coords.latitude;
+              const lon = pos.coords.longitude;
+              const accuracy = pos.coords.accuracy;
+              if (!Number.isFinite(lat) || !Number.isFinite(lon) ||
+                  lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+                respond('failed', null, 'Device returned invalid latitude/longitude.');
+                return;
+              }
+              // Only on a user-requested fix; never persist, broadcast to providers
+              // or equate the device fix with camera/scene center.
+              sendHostMessage({
+                event: 'device.locationFix', latitude: lat, longitude: lon,
+                accuracyM: Number.isFinite(accuracy) ? accuracy : null,
+                timestampUtc: new Date(pos.timestamp).toISOString(),
+                source: 'device-permission'
+              });
+              respondSuccess({ acquired: true });
+            },
+            err => respond('failed', null, err?.message || 'Location denied or unavailable.'),
+            { enableHighAccuracy: true, maximumAge: 0, timeout: 12000 }
+          );
           break;
         }
         case 'environment.setSunlight': {

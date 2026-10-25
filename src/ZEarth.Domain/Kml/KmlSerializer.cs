@@ -38,8 +38,19 @@ namespace ZEarth.Domain.Kml
                 Directory.CreateDirectory(dir);
             }
 
+            // Validate every preserved XML fragment before touching an existing
+            // user export, then write to a sibling temporary file.
             var doc = SerializeToDocument(root);
-            doc.Save(filePath);
+            var tempPath = filePath + ".tmp-" + Guid.NewGuid().ToString("N");
+            try
+            {
+                doc.Save(tempPath);
+                File.Move(tempPath, filePath, overwrite: true);
+            }
+            finally
+            {
+                if (File.Exists(tempPath)) File.Delete(tempPath);
+            }
         }
 
         public static XDocument SerializeToDocument(PlaceItem root)
@@ -50,6 +61,15 @@ namespace ZEarth.Domain.Kml
             var docElem = new XElement(KmlNs + "Document",
                 new XElement(KmlNs + "name", root.Name));
 
+            // A selected Placemark/Path/Polygon is exported as a KML Document
+            // containing that feature. It must not become an empty Document.
+            if (root.ItemType != PlaceItemType.Folder)
+            {
+                docElem.Add(SerializePlacemark(root));
+                kmlRoot.Add(docElem);
+                return new XDocument(new XDeclaration("1.0", "UTF-8", "yes"), kmlRoot);
+            }
+
             // Write any top-level preserved elements from root
             foreach (var frag in root.PreservedXmlFragments)
             {
@@ -58,9 +78,9 @@ namespace ZEarth.Domain.Kml
                     var xFrag = XElement.Parse(frag);
                     docElem.Add(xFrag);
                 }
-                catch
+                catch (System.Xml.XmlException ex)
                 {
-                    // If parsing fragment fails, skip to avoid invalid XML
+                    throw new InvalidDataException("Cannot export KML: preserved source XML is invalid.", ex);
                 }
             }
 
@@ -98,7 +118,10 @@ namespace ZEarth.Domain.Kml
                 {
                     folderElem.Add(XElement.Parse(frag));
                 }
-                catch { }
+                catch (System.Xml.XmlException ex)
+                {
+                    throw new InvalidDataException("Cannot export KML without losing source XML.", ex);
+                }
             }
 
             foreach (var child in folder.Children)
@@ -161,11 +184,21 @@ namespace ZEarth.Domain.Kml
                 {
                     pElem.Add(XElement.Parse(frag));
                 }
-                catch { }
+                catch (System.Xml.XmlException ex)
+                {
+                    throw new InvalidDataException("Cannot export KML without losing source XML.", ex);
+                }
             }
 
-            // Geometry Serialization
-            SerializeGeometry(placemark, pElem);
+            // Imported MultiGeometry is preserved as the full source XML.
+            // Never append a second simplified Point/Path/Polygon to it:
+            // doing so would duplicate geometry and alter Google Earth semantics.
+            bool preservesMultiGeometry = placemark.PreservedXmlFragments.Any(fragment =>
+            {
+                try { return XElement.Parse(fragment).Name.LocalName == "MultiGeometry"; }
+                catch (System.Xml.XmlException) { return false; }
+            });
+            if (!preservesMultiGeometry) SerializeGeometry(placemark, pElem);
 
             return pElem;
         }
@@ -177,7 +210,9 @@ namespace ZEarth.Domain.Kml
                 double lon = placemark.Longitude.Value;
                 double lat = placemark.Latitude.Value;
                 double alt = placemark.Altitude ?? 0.0;
-                string coordStr = string.Format(CultureInfo.InvariantCulture, "{0:F6},{1:F6},{2:F1}", lon, lat, alt);
+                // Round-trip doubles without truncating latitude/longitude to six
+                // decimals or elevations to a tenth of a meter.
+                string coordStr = string.Format(CultureInfo.InvariantCulture, "{0:R},{1:R},{2:R}", lon, lat, alt);
 
                 pElem.Add(new XElement(KmlNs + "Point",
                     new XElement(KmlNs + "coordinates", coordStr)));
@@ -215,7 +250,7 @@ namespace ZEarth.Domain.Kml
         private static string FormatCoordinatesList(IEnumerable<CoordinatePoint> points)
         {
             return string.Join(" ", points.Select(p =>
-                string.Format(CultureInfo.InvariantCulture, "{0:F6},{1:F6},{2:F1}", p.Longitude, p.Latitude, p.Altitude)));
+                string.Format(CultureInfo.InvariantCulture, "{0:R},{1:R},{2:R}", p.Longitude, p.Latitude, p.Altitude)));
         }
     }
 }

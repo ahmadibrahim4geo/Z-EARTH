@@ -32,6 +32,7 @@ namespace ZEarth.Domain.Kml
             }
 
             string? primaryKmlPath = null;
+            var resources = new List<(string ArchivePath, string FilePath)>();
             long totalExtractedBytes = 0;
 
             using (var archive = ZipFile.OpenRead(kmzFilePath))
@@ -80,6 +81,12 @@ namespace ZEarth.Domain.Kml
                     {
                         primaryKmlPath = destPath;
                     }
+                    else
+                    {
+                        // All non-primary entries can be referenced by KML hrefs
+                        // (icons, images, linked KML, models and textures).
+                        resources.Add((entry.FullName.Replace('\\', '/'), destPath));
+                    }
                 }
             }
 
@@ -88,54 +95,85 @@ namespace ZEarth.Domain.Kml
                 throw new FileNotFoundException("Primary KML document could not be extracted from KMZ archive.");
             }
 
-            return KmlParser.ParseFile(primaryKmlPath);
+            var root = KmlParser.ParseFile(primaryKmlPath);
+            foreach (var (archivePath, filePath) in resources)
+            {
+                root.KmzResourcesBase64[archivePath] = Convert.ToBase64String(File.ReadAllBytes(filePath));
+            }
+            return root;
         }
 
         /// <summary>
-        /// Packages a PlaceItem tree into a KMZ archive containing doc.kml and any referenced icon assets.
+        /// Packages original KMZ assets and KML without discarding existing output on failure.
+        /// Every relative href within KML stays mapped to its original archive entry path.
         /// </summary>
         public static void CreatePackage(string kmzFilePath, PlaceItem root, IEnumerable<string>? assetFiles = null)
         {
-            var targetDir = Path.GetDirectoryName(kmzFilePath);
-            if (!string.IsNullOrEmpty(targetDir) && !Directory.Exists(targetDir))
+            if (root == null) throw new ArgumentNullException(nameof(root));
+            var targetDir = Path.GetDirectoryName(Path.GetFullPath(kmzFilePath));
+            if (!string.IsNullOrEmpty(targetDir)) Directory.CreateDirectory(targetDir);
+
+            var assets = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
+            void Gather(PlaceItem item)
             {
-                Directory.CreateDirectory(targetDir);
+                foreach (var asset in item.KmzResourcesBase64)
+                {
+                    var name = asset.Key.Replace('\\', '/');
+                    if (string.IsNullOrWhiteSpace(name) || name.StartsWith('/') ||
+                        name.Split('/').Any(part => part == ".." || part == "." || part.Length == 0) ||
+                        name.Contains(':') || name.Equals("doc.kml", StringComparison.OrdinalIgnoreCase))
+                        throw new InvalidDataException("Unsafe KMZ archive asset path.");
+                    byte[] bytes = Convert.FromBase64String(asset.Value);
+                    if (assets.TryGetValue(name, out var previous))
+                    {
+                        if (!previous.SequenceEqual(bytes))
+                            throw new InvalidDataException("KMZ asset name collision: " + name);
+                    }
+                    else assets[name] = bytes;
+                }
+                foreach (var child in item.Children) Gather(child);
+            }
+            Gather(root);
+            if (assetFiles != null)
+            {
+                foreach (var file in assetFiles)
+                {
+                    if (!File.Exists(file)) throw new FileNotFoundException("KMZ asset missing", file);
+                    var name = "files/" + Path.GetFileName(file);
+                    var bytes = File.ReadAllBytes(file);
+                    if (assets.TryGetValue(name, out var previous) && !previous.SequenceEqual(bytes))
+                        throw new InvalidDataException("KMZ asset name collision: " + name);
+                    assets[name] = bytes;
+                }
             }
 
-            if (File.Exists(kmzFilePath))
-            {
-                File.Delete(kmzFilePath);
-            }
+            long total = assets.Values.Sum(bytes => (long)bytes.Length);
+            if (total > MaxAllowedDecompressedBytes)
+                throw new InvalidDataException("KMZ assets exceed the 100 MB safety threshold.");
 
-            string tempKml = Path.Combine(Path.GetTempPath(), $"doc_{Guid.NewGuid():N}.kml");
+            var tempArchive = kmzFilePath + ".tmp-" + Guid.NewGuid().ToString("N");
             try
             {
-                KmlSerializer.SerializeToFile(root, tempKml);
-
-                using (var zip = ZipFile.Open(kmzFilePath, ZipArchiveMode.Create))
+                using (var zip = ZipFile.Open(tempArchive, ZipArchiveMode.Create))
                 {
-                    zip.CreateEntryFromFile(tempKml, "doc.kml", CompressionLevel.Optimal);
+                    var kmlEntry = zip.CreateEntry("doc.kml", CompressionLevel.Optimal);
+                    using (var writer = new StreamWriter(kmlEntry.Open(), new System.Text.UTF8Encoding(false)))
+                        writer.Write(KmlSerializer.SerializeToString(root));
 
-                    if (assetFiles != null)
+                    foreach (var asset in assets)
                     {
-                        foreach (var asset in assetFiles)
-                        {
-                            if (File.Exists(asset))
-                            {
-                                string entryName = $"files/{Path.GetFileName(asset)}";
-                                zip.CreateEntryFromFile(asset, entryName, CompressionLevel.Optimal);
-                            }
-                        }
+                        var entry = zip.CreateEntry(asset.Key, CompressionLevel.Optimal);
+                        using var stream = entry.Open();
+                        stream.Write(asset.Value, 0, asset.Value.Length);
                     }
                 }
+                File.Move(tempArchive, kmzFilePath, overwrite: true);
             }
             finally
             {
-                if (File.Exists(tempKml))
-                {
-                    try { File.Delete(tempKml); } catch { }
-                }
+                if (File.Exists(tempArchive)) File.Delete(tempArchive);
             }
         }
+
     }
 }

@@ -179,7 +179,7 @@ namespace ZEarth.App.ViewModels
 
         private bool _isSidebarDockedLeft = true;
         private bool _isSidebarCollapsed = false;
-        private double _sidebarWidth = 330;
+        private double _sidebarWidth = 450;
 
         public bool IsSidebarDockedLeft
         {
@@ -783,6 +783,22 @@ namespace ZEarth.App.ViewModels
         }
 
         public ObservableCollection<SearchResultItem> SearchResults { get; } = new();
+        private int _searchRevision;
+
+        public void ExecuteClearSearch()
+        {
+            ++_searchRevision; // invalidate a pending online geocoder response
+            SearchNameQuery = string.Empty;
+            SearchQuery = string.Empty;
+            SearchCoordinateX = string.Empty;
+            SearchCoordinateY = string.Empty;
+            SearchResults.Clear();
+            SelectedSearchResult = null;
+            CoordinateValidationMessage = string.Empty;
+            IsCoordinateValidationSuccess = true;
+            IsSearching = false;
+            StatusMessage = "Search cleared.";
+        }
 
         private SearchResultItem? _selectedSearchResult;
         public SearchResultItem? SelectedSearchResult
@@ -806,8 +822,10 @@ namespace ZEarth.App.ViewModels
         // Sidebar Navigation & Action Commands
         public ICommand ExpandAllSectionsCommand { get; }
         public ICommand CollapseAllSectionsCommand { get; }
+        public ICommand ClearSearchCommand { get; }
         public ICommand SearchByNameCommand { get; }
         public ICommand LocateCoordinatesCommand { get; }
+        public ICommand FindMyLocationCommand { get; }
         public ICommand FlyToSearchResultCommand { get; }
         public ICommand SaveSearchResultToMyPlacesCommand { get; }
         public ICommand SaveSearchResultToTemporaryPlacesCommand { get; }
@@ -1063,6 +1081,35 @@ namespace ZEarth.App.ViewModels
                     LoggerService.Instance.LogWarning($"Terrain reverted to ellipsoid: {message}");
                 });
             };
+            _globeBridge.DeviceLocationReceived += (sender, json) =>
+            {
+                try
+                {
+                    using var doc = JsonDocument.Parse(json);
+                    var root = doc.RootElement;
+                    var latitude = root.GetProperty("latitude").GetDouble();
+                    var longitude = root.GetProperty("longitude").GetDouble();
+                    var accuracy = root.TryGetProperty("accuracyM", out var a) && a.ValueKind == JsonValueKind.Number
+                        ? a.GetDouble() : double.NaN;
+                    if (!double.IsFinite(latitude) || !double.IsFinite(longitude) ||
+                        latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180)
+                        return;
+                    RunOnUi(() =>
+                    {
+                        SelectedSearchCrsEpsg = 4326; // geographic WGS84, X=lon, Y=lat
+                        SearchCoordinateX = longitude.ToString("F7", CultureInfo.InvariantCulture);
+                        SearchCoordinateY = latitude.ToString("F7", CultureInfo.InvariantCulture);
+                        CoordinateValidationMessage = double.IsFinite(accuracy)
+                            ? $"One-time device fix received (±{accuracy:0} m reported accuracy). Choose Locate / Fly To."
+                            : "One-time device fix received; accuracy not reported. Choose Locate / Fly To.";
+                        IsCoordinateValidationSuccess = true;
+                    });
+                }
+                catch (Exception ex) when (ex is JsonException or InvalidOperationException or FormatException)
+                {
+                    LoggerService.Instance.LogWarning("Unusable device location response: " + ex.Message);
+                }
+            };
             _globeBridge.TimeOfDayChanged += (s, time) =>
             {
                 Application.Current?.Dispatcher?.Invoke(() =>
@@ -1292,7 +1339,9 @@ namespace ZEarth.App.ViewModels
             // Places Commands (Sprint 3 & Sidebar Phase 01)
             SearchCommand = AsyncCommand(() => RunBusyAsync("Searching…", ExecuteSearchByNameAsync), "Search");
             SearchByNameCommand = AsyncCommand(() => RunBusyAsync("Searching…", ExecuteSearchByNameAsync), "Search by name");
+            ClearSearchCommand = new RelayCommand(ExecuteClearSearch);
             LocateCoordinatesCommand = AsyncCommand(ExecuteLocateCoordinatesAsync, "Locate coordinates");
+            FindMyLocationCommand = AsyncCommand(ExecuteFindMyLocationAsync, "Ask permission for device location");
             FlyToSearchResultCommand = AsyncCommand(p => ExecuteFlyToSearchResultAsync(p as SearchResultItem), "Fly to search result");
             SaveSearchResultToMyPlacesCommand = new RelayCommand(p => ExecuteSaveSearchResultToMyPlaces(p as SearchResultItem));
             SaveSearchResultToTemporaryPlacesCommand = new RelayCommand(p => ExecuteSaveSearchResultToTemporaryPlaces(p as SearchResultItem));
@@ -2230,7 +2279,8 @@ namespace ZEarth.App.ViewModels
         {
             var dlg = new SaveFileDialog
             {
-                Filter = "Z EARTH Project (*.zearth)|*.zearth|Z EARTH JSON (*.zproj)|*.zproj",
+                // ProjectService writes a .zearth ZIP+SQLite bundle, never plain JSON.
+                Filter = "Z EARTH Project (*.zearth)|*.zearth",
                 DefaultExt = ".zearth",
                 Title = "Save Z EARTH Project As"
             };
@@ -2260,12 +2310,15 @@ namespace ZEarth.App.ViewModels
             {
                 try
                 {
-                    var exportRoot = SelectedPlace ?? new PlaceItem(CurrentProject.Name, PlaceItemType.Folder);
+                    var exportRoot = SelectedPlace != null
+                        ? KmlSelectionExport.Create(SelectedPlace, MyPlaces)
+                        : new PlaceItem(CurrentProject.Name, PlaceItemType.Folder);
                     if (SelectedPlace == null)
                     {
                         foreach (var item in MyPlaces) exportRoot.AddChild(item.Clone());
                     }
 
+                    if (!CanExportPortableKml(exportRoot, dlg.FileName)) return;
                     KmlSerializer.SerializeToFile(exportRoot, dlg.FileName);
                     MessageBox.Show($"KML exported successfully to:\n{dlg.FileName}", "Export KML", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
@@ -2305,19 +2358,37 @@ namespace ZEarth.App.ViewModels
             }
         }
 
+        private async Task ExecuteFindMyLocationAsync()
+        {
+            StatusMessage = "Requesting one-time device location; permission required.";
+            if (!await _globeBridge.RequestDeviceLocationAsync())
+            {
+                CoordinateValidationMessage = "Device location denied or unavailable. Enter coordinates manually or use place-name search.";
+                IsCoordinateValidationSuccess = false;
+                StatusMessage = "Device location was not obtained.";
+            }
+            else
+            {
+                StatusMessage = "Device location received. Coordinates populated in Search by Coordinates.";
+            }
+        }
+
         public async Task ExecuteSearchByNameAsync()
         {
             var query = !string.IsNullOrWhiteSpace(SearchNameQuery) ? SearchNameQuery : SearchQuery;
             if (string.IsNullOrWhiteSpace(query)) return;
 
+            var revision = ++_searchRevision;
             IsSearching = true;
             try
             {
                 SearchResults.Clear();
+                SelectedSearchResult = null;
                 var allPlaces = new List<PlaceItem>();
                 allPlaces.AddRange(MyPlaces);
 
                 var matches = await _searchService.SearchByNameAsync(query, allPlaces, Array.Empty<ReferenceLayerItem>());
+                if (revision != _searchRevision) return;
                 foreach (var m in matches)
                 {
                     SearchResults.Add(m);
@@ -2341,12 +2412,13 @@ namespace ZEarth.App.ViewModels
             }
             catch (Exception ex)
             {
+                if (revision != _searchRevision) return;
                 CoordinateValidationMessage = $"Search error: {ex.Message}";
                 IsCoordinateValidationSuccess = false;
             }
             finally
             {
-                IsSearching = false;
+                if (revision == _searchRevision) IsSearching = false;
             }
         }
 
@@ -2817,6 +2889,17 @@ namespace ZEarth.App.ViewModels
             }
         }
 
+        private static bool CanExportPortableKml(PlaceItem root, string filePath)
+        {
+            if (filePath.EndsWith(".kmz", StringComparison.OrdinalIgnoreCase)) return true;
+            bool HasAssets(PlaceItem item)
+                => item.KmzResourcesBase64.Count > 0 || item.Children.Any(HasAssets);
+            if (!HasAssets(root)) return true;
+            MessageBox.Show("This imported KMZ has embedded icons, images or models that plain KML cannot contain. Select KMZ to preserve these resources.",
+                "KMZ required to preserve assets", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return false;
+        }
+
         public void ExecuteExportSelectedItem(PlaceItem? item = null)
         {
             var target = item ?? SelectedPlace;
@@ -2835,7 +2918,8 @@ namespace ZEarth.App.ViewModels
 
             if (dlg.ShowDialog() == true)
             {
-                var exportRoot = target.Clone();
+                var exportRoot = KmlSelectionExport.Create(target, MyPlaces);
+                if (!CanExportPortableKml(exportRoot, dlg.FileName)) return;
                 if (dlg.FileName.EndsWith(".kmz", StringComparison.OrdinalIgnoreCase))
                 {
                     KmzService.CreatePackage(dlg.FileName, exportRoot);
@@ -2867,6 +2951,7 @@ namespace ZEarth.App.ViewModels
             {
                 var exportRoot = new PlaceItem("My Places", PlaceItemType.Folder);
                 foreach (var p in MyPlaces) exportRoot.AddChild(p.Clone());
+                if (!CanExportPortableKml(exportRoot, dlg.FileName)) return;
 
                 if (dlg.FileName.EndsWith(".kmz", StringComparison.OrdinalIgnoreCase))
                 {
@@ -2913,6 +2998,7 @@ namespace ZEarth.App.ViewModels
             {
                 var exportRoot = new PlaceItem("Temporary Places Export", PlaceItemType.Folder);
                 foreach (var p in TemporaryPlaces) exportRoot.AddChild(p.Clone());
+                if (!CanExportPortableKml(exportRoot, dlg.FileName)) return;
 
                 if (dlg.FileName.EndsWith(".kmz", StringComparison.OrdinalIgnoreCase))
                 {
@@ -2936,10 +3022,32 @@ namespace ZEarth.App.ViewModels
         public void UpdatePlacesOnGlobe()
         {
             var flat = new List<object>();
-            void Gather(IEnumerable<PlaceItem> items)
+            void Gather(IEnumerable<PlaceItem> items, IReadOnlyDictionary<string, string>? inheritedAssets = null)
             {
                 foreach (var item in items)
                 {
+                    // The imported KMZ root owns any embedded icon files.
+                    // Never fetch external icon URLs or read filesystem paths here.
+                    var assets = item.KmzResourcesBase64.Count > 0 ? item.KmzResourcesBase64 : inheritedAssets;
+                    string? iconDataUri = null;
+                    if (assets != null && item.ExtendedData.TryGetValue("KmlIconHref", out var href))
+                    {
+                        var relative = href.Replace('\\', '/');
+                        var ext = Path.GetExtension(relative).ToLowerInvariant();
+                        var mime = ext switch
+                        {
+                            ".png" => "image/png",
+                            ".jpg" or ".jpeg" => "image/jpeg",
+                            ".webp" => "image/webp",
+                            ".gif" => "image/gif",
+                            _ => null
+                        };
+                        if (mime != null && !relative.StartsWith("/") &&
+                            !relative.Split('/').Any(part => part is ".." or "." or "") &&
+                            !relative.Contains(':') && assets.TryGetValue(relative, out var base64) &&
+                            base64.Length <= 1_400_000)
+                            iconDataUri = $"data:{mime};base64,{base64}";
+                    }
                     if (item.IsVisible)
                     {
                         string altitudeMode = item.ExtendedData.TryGetValue("AltitudeMode", out var altitudeModeValue)
@@ -3047,6 +3155,7 @@ namespace ZEarth.App.ViewModels
                                     labelSize,
                                     showLabel,
                                     symbolShape,
+                                    iconDataUri,
                                     altitudeMode
                                 });
                             }
@@ -3065,11 +3174,12 @@ namespace ZEarth.App.ViewModels
                                 labelSize,
                                 showLabel,
                                 symbolShape,
+                                iconDataUri,
                                 altitudeMode
                             });
                         }
                     }
-                    Gather(item.Children);
+                    Gather(item.Children, assets);
                 }
             }
             Gather(MyPlaces);

@@ -76,7 +76,8 @@ namespace ZEarth.Domain.Persistence
                         coordinates_json TEXT,
                         inner_rings_json TEXT,
                         extended_data_json TEXT,
-                        preserved_xml_json TEXT
+                        preserved_xml_json TEXT,
+                        item_extra_json TEXT
                     );
 
                     CREATE INDEX IF NOT EXISTS idx_places_collection ON places(collection_type);
@@ -165,12 +166,12 @@ namespace ZEarth.Domain.Persistence
                         id, collection_type, parent_id, order_index, name, description,
                         item_type, is_visible, is_expanded, latitude, longitude, altitude,
                         color_hex, style_url, camera_json, coordinates_json, inner_rings_json,
-                        extended_data_json, preserved_xml_json
+                        extended_data_json, preserved_xml_json, item_extra_json
                     ) VALUES (
                         $id, $collectionType, $parentId, $orderIndex, $name, $description,
                         $itemType, $isVisible, $isExpanded, $latitude, $longitude, $altitude,
                         $colorHex, $styleUrl, $cameraJson, $coordsJson, $innerRingsJson,
-                        $extendedDataJson, $preservedXmlJson
+                        $extendedDataJson, $preservedXmlJson, $itemExtraJson
                     );
                 ";
 
@@ -193,6 +194,16 @@ namespace ZEarth.Domain.Persistence
                 cmd.Parameters.AddWithValue("$innerRingsJson", item.InnerRings.Count > 0 ? JsonSerializer.Serialize(item.InnerRings, _jsonOptions) : DBNull.Value);
                 cmd.Parameters.AddWithValue("$extendedDataJson", item.ExtendedData.Count > 0 ? JsonSerializer.Serialize(item.ExtendedData, _jsonOptions) : DBNull.Value);
                 cmd.Parameters.AddWithValue("$preservedXmlJson", item.PreservedXmlFragments.Count > 0 ? JsonSerializer.Serialize(item.PreservedXmlFragments, _jsonOptions) : DBNull.Value);
+                // Avoid silently dropping KML TimeSpan and KMZ assets on .zearth Save As.
+                cmd.Parameters.AddWithValue("$itemExtraJson", JsonSerializer.Serialize(new PlacePersistedExtras
+                {
+                    RadiusMeters = item.RadiusMeters,
+                    IsProtected = item.IsProtected,
+                    IsStartupScene = item.IsStartupScene,
+                    TimeSpanBegin = item.TimeSpanBegin,
+                    TimeSpanEnd = item.TimeSpanEnd,
+                    KmzResourcesBase64 = item.KmzResourcesBase64
+                }, _jsonOptions));
 
                 cmd.ExecuteNonQuery();
 
@@ -201,6 +212,16 @@ namespace ZEarth.Domain.Persistence
                     InsertPlaceCollection(conn, trans, item.Children, collectionType, item.Id, insertedIds);
                 }
             }
+        }
+
+        private sealed class PlacePersistedExtras
+        {
+            public double? RadiusMeters { get; set; }
+            public bool IsProtected { get; set; }
+            public bool IsStartupScene { get; set; }
+            public string? TimeSpanBegin { get; set; }
+            public string? TimeSpanEnd { get; set; }
+            public Dictionary<string, string> KmzResourcesBase64 { get; set; } = new();
         }
 
         public static ProjectDocument LoadFromDatabase(string sqliteFilePath)
@@ -246,6 +267,18 @@ namespace ZEarth.Domain.Persistence
                 }
             }
 
+            // Prior project.db schemas do not contain item_extra_json; preserve
+            // backwards compatibility when opening an older .zearth project.
+            bool hasItemExtras = false;
+            using (var schema = conn.CreateCommand())
+            {
+                schema.CommandText = "PRAGMA table_info(places);";
+                using var columns = schema.ExecuteReader();
+                while (columns.Read())
+                    if (columns.GetString(1).Equals("item_extra_json", StringComparison.OrdinalIgnoreCase))
+                        hasItemExtras = true;
+            }
+
             // Load Places
             var allItems = new Dictionary<string, (PlaceItem Item, string? ParentId, string CollectionType, int Order)>();
 
@@ -255,10 +288,9 @@ namespace ZEarth.Domain.Persistence
                     SELECT id, collection_type, parent_id, order_index, name, description,
                            item_type, is_visible, is_expanded, latitude, longitude, altitude,
                            color_hex, style_url, camera_json, coordinates_json, inner_rings_json,
-                           extended_data_json, preserved_xml_json
-                    FROM places
-                    ORDER BY order_index ASC;
-                ";
+                           extended_data_json, preserved_xml_json" +
+                    (hasItemExtras ? ", item_extra_json" : "") + @"
+                    FROM places ORDER BY order_index ASC;";
                 using var reader = cmd.ExecuteReader();
                 while (reader.Read())
                 {
@@ -301,6 +333,20 @@ namespace ZEarth.Domain.Persistence
                     if (!reader.IsDBNull(18))
                     {
                         item.PreservedXmlFragments = JsonSerializer.Deserialize<List<string>>(reader.GetString(18), _jsonOptions) ?? new();
+                    }
+
+                    if (hasItemExtras && !reader.IsDBNull(19))
+                    {
+                        var extra = JsonSerializer.Deserialize<PlacePersistedExtras>(reader.GetString(19), _jsonOptions);
+                        if (extra != null)
+                        {
+                            item.RadiusMeters = extra.RadiusMeters;
+                            item.IsProtected = extra.IsProtected;
+                            item.IsStartupScene = extra.IsStartupScene;
+                            item.TimeSpanBegin = extra.TimeSpanBegin;
+                            item.TimeSpanEnd = extra.TimeSpanEnd;
+                            item.KmzResourcesBase64 = extra.KmzResourcesBase64 ?? new();
+                        }
                     }
 
                     allItems[id] = (item, parentId, colType, order);
