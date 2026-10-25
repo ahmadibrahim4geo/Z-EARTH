@@ -179,9 +179,10 @@ namespace ZEarth.App.Views
                     settings.GridLabelFormat);
                 if (!gridAcknowledged)
                 {
-                    MessageBox.Show("Settings were saved but the globe did not confirm the coordinate grid update. Check the globe log and retry.",
+                    MessageBox.Show("Your settings were saved. The globe did not confirm the coordinate-grid update; it will be reapplied on the next engine startup.",
                         "Grid engine not ready", MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return;
+                    // Never trap the user in Options or block theme/language changes
+                    // simply because WebView2 has not initialized yet.
                 }
                 await _globeBridge.SetCreditsConfigAsync(
                     settings.CreditsDisplayMode,
