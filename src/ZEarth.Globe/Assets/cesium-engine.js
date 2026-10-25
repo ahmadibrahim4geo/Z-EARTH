@@ -2781,7 +2781,7 @@
       const hours = Math.max(0, Math.min(24, Number(timeHours) || 0));
       // Date/time is UTC; geographic sun angle automatically follows the
       // globe's actual Earth location in Cesium's lighting calculation.
-      if (typeof dateUtc === 'string' && /^\\d{4}-\\d{2}-\\d{2}$/.test(dateUtc)) {
+      if (typeof dateUtc === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateUtc)) {
         const candidate = new Date(dateUtc + 'T00:00:00Z');
         if (Number.isFinite(candidate.getTime()) && candidate.toISOString().slice(0, 10) === dateUtc) {
           this.dateUtc = dateUtc;
