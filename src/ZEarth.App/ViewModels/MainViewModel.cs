@@ -252,7 +252,7 @@ namespace ZEarth.App.ViewModels
                     OnPropertyChanged(nameof(GridToggleBrush));
                     SettingsService.Instance.Settings.ShowGraticules = value;
                     SettingsService.Instance.Save();
-                    _ = _globeBridge.SetGraticulesVisibleAsync(value);
+                    // The ribbon command awaits the globe; no unobserved fire-and-forget state change.
                 }
             }
         }
@@ -452,6 +452,8 @@ namespace ZEarth.App.ViewModels
         }
 
         private double _verticalExaggeration = 1.0;
+        private int _exaggerationRevision;
+        private string _latestTerrainProbe = "No verified geographic DEM samples recorded.";
         public double VerticalExaggeration
         {
             get => _verticalExaggeration;
@@ -461,12 +463,30 @@ namespace ZEarth.App.ViewModels
                 if (SetProperty(ref _verticalExaggeration, Math.Round(clamped, 2)))
                 {
                     OnPropertyChanged(nameof(VerticalExaggerationDisplay));
-                    _ = _globeBridge.SetTerrainExaggerationAsync(_verticalExaggeration);
+                    // Slider changes are debounced; acknowledge only a real active terrain.
+                    _ = ApplyVerticalExaggerationAsync(++_exaggerationRevision);
                 }
             }
         }
 
         public string VerticalExaggerationDisplay => $"{_verticalExaggeration:0.0}x";
+
+        private async Task ApplyVerticalExaggerationAsync(int revision)
+        {
+            await Task.Delay(120); // Avoid a WebView2 request for every slider tick.
+            if (revision != _exaggerationRevision) return;
+            if (!IsTerrainEnabled)
+            {
+                StatusMessage = $"Exaggeration {_verticalExaggeration:0.0}x selected; load a DEM to apply it.";
+                return;
+            }
+            var requested = _verticalExaggeration;
+            var ok = await _globeBridge.SetTerrainExaggerationAsync(requested);
+            if (revision == _exaggerationRevision)
+                StatusMessage = ok
+                    ? $"Terrain exaggeration applied: {requested:0.0}x (verify visible relief)."
+                    : "Terrain exaggeration was not acknowledged by the 3D engine.";
+        }
 
         private string _terrainProviderType = "WGS84 Smooth Ellipsoid (Offline)";
         public string TerrainProviderType
@@ -979,6 +999,31 @@ namespace ZEarth.App.ViewModels
                 // Never block the raising thread on the UI thread (RC-4).
                 RunOnUi(update);
             };
+            _globeBridge.TerrainChanged += (s, info) =>
+            {
+                var summary = "Provider activated; no numeric DEM probe reported by this source.";
+                try
+                {
+                    using var doc = JsonDocument.Parse(info);
+                    if (doc.RootElement.TryGetProperty("probe", out var probe) &&
+                        probe.TryGetProperty("level", out var level) &&
+                        probe.TryGetProperty("x", out var x) &&
+                        probe.TryGetProperty("y", out var y) &&
+                        probe.TryGetProperty("sampleCount", out var count) &&
+                        probe.TryGetProperty("minimumElevationM", out var minimum) &&
+                        probe.TryGetProperty("maximumElevationM", out var maximum))
+                    {
+                        summary = $"DEM z{level.GetInt32()}/{x.GetInt32()}/{y.GetInt32()}, " +
+                                  $"{count.GetInt32()} heights, range {minimum.GetDouble():0.0} to {maximum.GetDouble():0.0} m";
+                    }
+                }
+                catch (Exception ex) when (ex is JsonException or FormatException or InvalidOperationException)
+                {
+                    summary = "Terrain activated; diagnostic sample could not be parsed.";
+                }
+                _latestTerrainProbe = summary;
+                LoggerService.Instance.LogInfo("Terrain numerical verification: " + summary);
+            };
             _globeBridge.TerrainFallbackOccurred += (s, info) =>
             {
                 Application.Current?.Dispatcher?.Invoke(() =>
@@ -996,6 +1041,7 @@ namespace ZEarth.App.ViewModels
                     }
                     catch (JsonException) { }
                     StatusMessage = $"Terrain OFF — {message}";
+                    _latestTerrainProbe = "No active numerical DEM: " + message;
                     LoggerService.Instance.LogWarning($"Terrain reverted to ellipsoid: {message}");
                 });
             };
@@ -1318,7 +1364,19 @@ namespace ZEarth.App.ViewModels
 
             // Layer & Terrain Commands (Sprint 7)
             ToggleBordersCommand = new RelayCommand(() => IsBordersVisible = !IsBordersVisible);
-            ToggleGraticulesCommand = new RelayCommand(() => IsGraticulesVisible = !IsGraticulesVisible);
+            ToggleGraticulesCommand = AsyncCommand(async () =>
+            {
+                var target = !IsGraticulesVisible;
+                if (await _globeBridge.SetGraticulesVisibleAsync(target))
+                {
+                    IsGraticulesVisible = target;
+                    StatusMessage = target ? "Coordinate grid enabled." : "Coordinate grid hidden.";
+                }
+                else
+                {
+                    StatusMessage = "The 3D engine did not acknowledge the coordinate grid toggle.";
+                }
+            }, "Toggle coordinate grid");
             GridOptionsCommand = new RelayCommand(() => ExecuteShowOptions(true));
             ToggleTerrainCommand = AsyncCommand(ExecuteToggleTerrainAsync, "Toggle terrain");
             SelectBasemapCommand = new RelayCommand(p =>
@@ -3502,6 +3560,8 @@ namespace ZEarth.App.ViewModels
 
             SyncTerrainSettingsDisplay(updateEnabledState: false);
             UpdateTerrainStatusDisplay();
+            if (IsTerrainEnabled && !await _globeBridge.SetTerrainExaggerationAsync(_verticalExaggeration))
+                StatusMessage = "Terrain loaded, but vertical exaggeration was not acknowledged.";
         }
 
         private bool _terrainRequestInProgress;
@@ -3713,6 +3773,7 @@ namespace ZEarth.App.ViewModels
                            $"Current Camera: {CurrentCamera}\n" +
                            $"History Stack Depth: {_cameraHistory.Count} states\n" +
                            $"Project Path: {projectPath}\n" +
+                           $"Terrain diagnostic: {_latestTerrainProbe}\n" +
                            $"Places Count: {MyPlaces.Count} root items\n" +
                            $"Logs Count: {LoggerService.Instance.MemoryLogs.Count} entries\n" +
                            "REA Integration: optional external tooling (not configured)";

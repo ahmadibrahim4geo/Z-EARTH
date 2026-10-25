@@ -36,7 +36,7 @@ if (-not (Test-Path -LiteralPath $assetsSource)) { throw 'Missing Cesium source 
 New-Item -ItemType Directory -Path $assetsTarget -Force | Out-Null
 Copy-Item -Path (Join-Path $assetsSource '*') -Destination $assetsTarget -Recurse -Force
 $required = @('Z EARTH.exe', 'Z EARTH.dll', 'Z EARTH.runtimeconfig.json',
-    'Assets/index.html', 'Assets/cesium-engine.js', 'Assets/historical-timeline.js', 'Assets/graticule-labels.js',
+    'Assets/index.html', 'Assets/cesium-engine.js', 'Assets/historical-timeline.js', 'Assets/graticule-labels.js', 'Assets/graticule-geometry.js',
     'Assets/rectangle-geometry.js', 'Assets/cesium/Cesium.js')
 foreach ($item in $required) {
     if (-not (Test-Path -LiteralPath (Join-Path $staging $item) -PathType Leaf)) {

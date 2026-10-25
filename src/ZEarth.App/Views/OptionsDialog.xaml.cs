@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using ZEarth.App.Services;
@@ -54,8 +55,8 @@ namespace ZEarth.App.Views
             KeyParallelsCheck.IsChecked = settings.ShowKeyParallels;
             LongitudeLinesCheck.IsChecked = settings.ShowLongitudeLines;
             LatitudeLinesCheck.IsChecked = settings.ShowLatitudeLines;
-            LongitudeIntervalSlider.Value = Math.Clamp(settings.LongitudeIntervalDegrees, 0.0, 60.0);
-            LatitudeIntervalSlider.Value = Math.Clamp(settings.LatitudeIntervalDegrees, 0.0, 60.0);
+            LongitudeIntervalInput.Text = settings.LongitudeIntervalDegrees.ToString(CultureInfo.InvariantCulture);
+            LatitudeIntervalInput.Text = settings.LatitudeIntervalDegrees.ToString(CultureInfo.InvariantCulture);
             UtmZonesCheck.IsChecked = settings.ShowUtmZones;
             SceneMarkersCheck.IsChecked = settings.ShowSceneLocationsOnMap;
             SelectComboByTag(CreditsModeCombo, settings.CreditsDisplayMode);
@@ -83,8 +84,25 @@ namespace ZEarth.App.Views
             return defaultValue;
         }
 
+        private static bool TryReadGridInterval(TextBox box, out double degrees)
+        {
+            var raw = box.Text?.Trim() ?? string.Empty;
+            return (double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out degrees) ||
+                    double.TryParse(raw, NumberStyles.Float, CultureInfo.CurrentCulture, out degrees)) &&
+                   double.IsFinite(degrees) &&
+                   (degrees == 0 || (degrees >= 0.05 && degrees <= 60));
+        }
+
         private async void OnSaveClick(object sender, RoutedEventArgs e)
         {
+            if (!TryReadGridInterval(LongitudeIntervalInput, out var longitudeInterval) ||
+                !TryReadGridInterval(LatitudeIntervalInput, out var latitudeInterval))
+            {
+                SettingsTabs.SelectedIndex = 4;
+                MessageBox.Show("Enter 0 for automatic spacing, or an interval between 0.05° and 60° for both axes.",
+                    "Invalid coordinate grid interval", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
             var settings = SettingsService.Instance.Settings;
 
             // Save units
@@ -121,8 +139,8 @@ namespace ZEarth.App.Views
             settings.ShowKeyParallels = KeyParallelsCheck.IsChecked == true;
             settings.ShowLongitudeLines = LongitudeLinesCheck.IsChecked == true;
             settings.ShowLatitudeLines = LatitudeLinesCheck.IsChecked == true;
-            settings.LongitudeIntervalDegrees = LongitudeIntervalSlider.Value;
-            settings.LatitudeIntervalDegrees = LatitudeIntervalSlider.Value;
+            settings.LongitudeIntervalDegrees = longitudeInterval;
+            settings.LatitudeIntervalDegrees = latitudeInterval;
             settings.ShowUtmZones = UtmZonesCheck.IsChecked == true;
             settings.ShowSceneLocationsOnMap = SceneMarkersCheck.IsChecked == true;
             settings.CreditsDisplayMode = GetSelectedTag(CreditsModeCombo, "Compact");
@@ -144,7 +162,7 @@ namespace ZEarth.App.Views
                     settings.SnapMidpoints,
                     settings.SnapEdges,
                     settings.SnapIntersections);
-                await _globeBridge.SetGraticulesConfigAsync(
+                var gridAcknowledged = await _globeBridge.SetGraticulesConfigAsync(
                     settings.ShowGraticules,
                     settings.ShowGraticuleLabels,
                     settings.ShowKeyParallels,
@@ -154,6 +172,12 @@ namespace ZEarth.App.Views
                     settings.LongitudeIntervalDegrees,
                     settings.LatitudeIntervalDegrees,
                     settings.GridLabelFormat);
+                if (!gridAcknowledged)
+                {
+                    MessageBox.Show("Settings were saved but the globe did not confirm the coordinate grid update. Check the globe log and retry.",
+                        "Grid engine not ready", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
                 await _globeBridge.SetCreditsConfigAsync(
                     settings.CreditsDisplayMode,
                     settings.ShowOptionalProviderLogos);

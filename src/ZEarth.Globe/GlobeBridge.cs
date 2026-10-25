@@ -88,6 +88,7 @@ namespace ZEarth.Globe
         public event EventHandler<string>? LayerAttributionChanged;
         public event EventHandler<string>? BasemapChanged;
         public event EventHandler<string>? TerrainFallbackOccurred;
+        public event EventHandler<string>? TerrainChanged;
         public event EventHandler<double>? TimeOfDayChanged;
         public event EventHandler<bool>? SunlightChanged;
         public event EventHandler<bool>? AtmosphereChanged;
@@ -401,6 +402,11 @@ namespace ZEarth.Globe
                 if (ev == "terrain.fallback")
                 {
                     TerrainFallbackOccurred?.Invoke(this, json);
+                    return;
+                }
+                if (ev == "terrain.changed")
+                {
+                    TerrainChanged?.Invoke(this, json);
                     return;
                 }
                 if (ev == "environment.timeChanged")

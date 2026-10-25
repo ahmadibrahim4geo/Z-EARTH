@@ -124,6 +124,18 @@ namespace ZEarth.Tests
         }
 
         [TestMethod]
+        public void GlobeBridge_TerrainChanged_ReportsRealNumericalProbe()
+        {
+            var bridge = new ZEarth.Globe.GlobeBridge();
+            string? last = null;
+            bridge.TerrainChanged += (sender, data) => last = data;
+            bridge.HandleWebMessage("{\"event\":\"terrain.changed\",\"type\":\"globalDem\",\"probe\":{\"level\":8,\"x\":149,\"y\":109,\"sampleCount\":4225,\"minimumElevationM\":0,\"maximumElevationM\":200}}");
+            Assert.IsNotNull(last);
+            StringAssert.Contains(last, "\"sampleCount\":4225");
+            StringAssert.Contains(last, "\"maximumElevationM\":200");
+        }
+
+        [TestMethod]
         public void GlobeBridge_HandlesSunlightAndAtmosphereMessages()
         {
             var bridge = new ZEarth.Globe.GlobeBridge();

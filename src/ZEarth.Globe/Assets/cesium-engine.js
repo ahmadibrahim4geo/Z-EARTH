@@ -759,6 +759,37 @@
     currentExaggeration: 1.0,
     gridSize: 65,
     tileCache: new Map(),
+    lastProbe: null,
+
+    // Check numeric DEM data at the viewport, not the unrelated world root tile.
+    async verifyViewportTerrainTile() {
+      const ground = getScreenCenterGround();
+      const camera = viewer.camera.positionCartographic;
+      const lon = ground.valid ? ground.longitude : Cesium.Math.toDegrees(camera.longitude);
+      const lat = ground.valid ? ground.latitude : Cesium.Math.toDegrees(camera.latitude);
+      if (!Number.isFinite(lon) || !Number.isFinite(lat)) {
+        throw new Error('Cannot locate viewport to verify terrain');
+      }
+      const level = 8, n = 2 ** level;
+      const normalized = ((lon + 180) % 360 + 360) % 360;
+      const x = Math.min(n - 1, Math.floor(normalized / 360 * n));
+      const radians = Cesium.Math.toRadians(Math.max(-85.05112878, Math.min(85.05112878, lat)));
+      const mercatorY = (1 - Math.log(Math.tan(radians) + 1 / Math.cos(radians)) / Math.PI) / 2;
+      const y = Math.max(0, Math.min(n - 1, Math.floor(mercatorY * n)));
+      const heights = await this.loadTerrariumTile(x, y, level);
+      let minimumElevationM = Infinity, maximumElevationM = -Infinity, valid = 0;
+      for (const elevation of heights) {
+        if (!Number.isFinite(elevation)) continue;
+        minimumElevationM = Math.min(minimumElevationM, elevation);
+        maximumElevationM = Math.max(maximumElevationM, elevation);
+        valid++;
+      }
+      if (valid !== this.gridSize * this.gridSize) {
+        throw new Error('Invalid or incomplete numerical DEM samples at viewport');
+      }
+      this.lastProbe = { level, x, y, sampleCount: valid, minimumElevationM, maximumElevationM };
+      return this.lastProbe;
+    },
 
     async loadTerrariumTile(x, y, level) {
       const sourceLevel = level;
@@ -826,7 +857,9 @@
         try {
           // Do not report Terrain as active until a real elevation tile has passed through
           // the host proxy and decoded successfully.
+          // Root tile is needed for mesh startup; viewport tile proves regional DEM data.
           await this.loadTerrariumTile(0, 0, 0);
+          const probe = await this.verifyViewportTerrainTile();
           const demProvider = new Cesium.CustomHeightmapTerrainProvider({
             width: this.gridSize,
             height: this.gridSize,
@@ -845,9 +878,9 @@
           }
           this.currentType = 'globalDem';
           this.setExaggeration(this.currentExaggeration);
-          sendHostMessage({ event: 'terrain.changed', type: 'globalDem', label: 'Global Terrarium Elevation (AWS Open Data)' });
+          sendHostMessage({ event: 'terrain.changed', type: 'globalDem', label: 'Global Terrarium Elevation (AWS Open Data)', probe });
           viewer.scene.requestRender();
-          return { success: true, type: 'globalDem', label: 'Global Terrarium Elevation (AWS Open Data)' };
+          return { success: true, type: 'globalDem', label: 'Global Terrarium Elevation (AWS Open Data)', probe };
         } catch (err) {
           console.warn('[TerrainManager] Global elevation provider failed:', err);
           viewer.terrainProvider = new Cesium.EllipsoidTerrainProvider();
@@ -2188,19 +2221,24 @@
           south: Math.max(-85, Cesium.Math.toDegrees(viewRect.south)),
           north: Math.min(85, Cesium.Math.toDegrees(viewRect.north))
         };
-        if (bounds.east < bounds.west) bounds = full;
       }
 
-      const lonSpan = Math.max(0.01, bounds.east - bounds.west);
+      const longitudeWindows = window.ZEarthGraticuleGeometry.longitudeWindows(bounds);
+      const lonSpan = Math.max(0.01, longitudeWindows.reduce((sum, w) => sum + (w.east - w.west), 0));
       const latSpan = Math.max(0.01, bounds.north - bounds.south);
-      const candidates = [60, 30, 15, 10, 5, 2, 1, 0.5, 0.25, 0.1, 0.05];
-      const lonInterval = Number(this.config.longitudeIntervalDegrees) > 0
-        ? Math.max(0.05, Number(this.config.longitudeIntervalDegrees))
-        : (candidates.find(v => lonSpan / v <= 14) || 60);
-      const latInterval = Number(this.config.latitudeIntervalDegrees) > 0
-        ? Math.max(0.05, Number(this.config.latitudeIntervalDegrees))
-        : (candidates.find(v => latSpan / v <= 14) || 60);
-      const centerLon = (bounds.west + bounds.east) / 2;
+      // Previous descending candidates chose 60° almost everywhere.
+      const candidates = [0.05, 0.1, 0.25, 0.5, 1, 2, 5, 10, 15, 30, 60];
+      const baseLon = this.config.longitudeIntervalDegrees > 0
+        ? Math.max(0.05, this.config.longitudeIntervalDegrees)
+        : (candidates.find(v => lonSpan / v <= 10) || 60);
+      const baseLat = this.config.latitudeIntervalDegrees > 0
+        ? Math.max(0.05, this.config.latitudeIntervalDegrees)
+        : (candidates.find(v => latSpan / v <= 10) || 60);
+      // Avoid thousands of line entities at global scale for fine user spacing.
+      const lonInterval = baseLon * Math.max(1, Math.ceil(lonSpan / (baseLon * 120)));
+      const latInterval = baseLat * Math.max(1, Math.ceil(latSpan / (baseLat * 120)));
+      let centerLon = bounds.west + lonSpan / 2;
+      if (centerLon > 180) centerLon -= 360;
       const centerLat = (bounds.south + bounds.north) / 2;
 
       const labelOutline = Cesium.Color.fromCssColorString('#0F172A');
@@ -2210,87 +2248,104 @@
       const primeColor = Cesium.Color.fromCssColorString('rgba(59, 130, 246, 0.90)');
       const utmColor = Cesium.Color.fromCssColorString('rgba(168, 85, 247, 0.50)');
 
-      // 1. Key Parallels & Meridians
+      // Independent key geographic reference lines and points.
       if (this.config.showKeyParallels) {
-        this.addParallel(0.0, equatorColor, 2.5, 'Equator 0°', true);
-        this.addParallel(23.4365, keyLineColor, 2.0, 'Tropic of Cancer 23.44° N', true);
-        this.addParallel(-23.4365, keyLineColor, 2.0, 'Tropic of Capricorn 23.44° S', true);
-        this.addParallel(66.5635, keyLineColor, 1.8, 'Arctic Circle 66.56° N', true);
-        this.addParallel(-66.5635, keyLineColor, 1.8, 'Antarctic Circle 66.56° S', true);
-
-        this.addMeridian(0.0, primeColor, 2.5, 'Greenwich / Prime Meridian 0°', true);
-        this.addMeridian(180.0, primeColor, 2.0, 'International Date Line 180°', true);
-        this.addMeridian(-180.0, primeColor, 2.0, 'International Date Line 180°', false);
-        this.addKeyPoint(0.0, 89.999, 'North Pole 90° N', keyLineColor);
-        this.addKeyPoint(0.0, -89.999, 'South Pole 90° S', keyLineColor);
-        this.addKeyPoint(0.0, 0.0, 'Grid Origin 0°, 0°', equatorColor);
+        const names = this.config.showLabels;
+        this.addParallel(0, equatorColor, 2.5, 'Equator 0°', names, centerLon);
+        this.addParallel(23.4365, keyLineColor, 2, 'Tropic of Cancer 23.44° N', names, centerLon);
+        this.addParallel(-23.4365, keyLineColor, 2, 'Tropic of Capricorn 23.44° S', names, centerLon);
+        this.addParallel(66.5635, keyLineColor, 1.8, 'Arctic Circle 66.56° N', names, centerLon);
+        this.addParallel(-66.5635, keyLineColor, 1.8, 'Antarctic Circle 66.56° S', names, centerLon);
+        this.addMeridian(0, primeColor, 2.5, 'Greenwich / Prime Meridian 0°', names, centerLat);
+        this.addMeridian(180, primeColor, 2, 'International Date Line 180°', names, centerLat);
+        this.addMeridian(-180, primeColor, 2, '', false);
+        this.addKeyPoint(0, 89.999, 'North Pole 90° N', keyLineColor);
+        this.addKeyPoint(0, -89.999, 'South Pole 90° S', keyLineColor);
+        this.addKeyPoint(0, 0, 'Grid Origin 0°, 0°', equatorColor);
       }
 
-      // 2. Adaptive graticule: only create lines intersecting the current view.
       if (this.config.showLatitudeLines) {
         const startLat = Math.ceil(bounds.south / latInterval) * latInterval;
         const endLat = Math.floor(bounds.north / latInterval) * latInterval;
         for (let lat = startLat; lat <= endLat + latInterval * 0.1; lat += latInterval) {
-          const isMajor = [0, 23.4365, -23.4365, 66.5635, -66.5635].some(v => Math.abs(lat - v) < latInterval * 0.01);
-          if ((this.config.showKeyParallels && isMajor) || Math.abs(lat) >= 89.9) continue;
-          const labelText = window.ZEarthGraticuleLabels.formatDegrees(lat, 'lat', this.config.gridLabelFormat);
-          this.addParallel(lat, stdLineColor, 1.0, labelText, this.config.showLabels, centerLon);
+          if ((this.config.showKeyParallels &&
+              [0, 23.4365, -23.4365, 66.5635, -66.5635].some(v => Math.abs(lat - v) < 1e-6)) ||
+              Math.abs(lat) >= 89.9) continue;
+          this.addParallel(lat, stdLineColor, 1,
+            window.ZEarthGraticuleLabels.formatDegrees(lat, 'lat', this.config.gridLabelFormat),
+            this.config.showLabels, centerLon);
         }
       }
 
       if (this.config.showLongitudeLines) {
-        const startLon = Math.ceil(bounds.west / lonInterval) * lonInterval;
-        const endLon = Math.floor(bounds.east / lonInterval) * lonInterval;
-        for (let lon = startLon; lon <= endLon + lonInterval * 0.1; lon += lonInterval) {
-          const isMajor = Math.abs(lon) < lonInterval * 0.01 || Math.abs(Math.abs(lon) - 180) < lonInterval * 0.01;
-          if (this.config.showKeyParallels && isMajor) continue;
-          const labelText = window.ZEarthGraticuleLabels.formatDegrees(lon, 'lon', this.config.gridLabelFormat);
-          this.addMeridian(lon, stdLineColor, 1.0, labelText, this.config.showLabels, centerLat);
-        }
-      }
-
-      // 4. UTM Zone boundaries & labels (every 6 degrees from -180 to 180)
-      if (this.config.showUtmZones) {
-        for (let zone = 1; zone <= 60; zone++) {
-          const westLon = -180 + (zone - 1) * 6;
-          const centerLon = westLon + 3;
-          this.addMeridian(westLon, utmColor, 1.2, '', false);
-          if (this.config.showLabels) {
-            this.dataSource.entities.add({
-              position: Cesium.Cartesian3.fromDegrees(centerLon, 0.0, 5000),
-              label: {
-                text: `UTM ${zone}`,
-                font: '10px Segoe UI, sans-serif',
-                fillColor: Cesium.Color.fromCssColorString('#D8B4FE'),
-                outlineColor: labelOutline,
-                outlineWidth: 2,
-                style: Cesium.LabelStyle.FILL_AND_OUTLINE,
-                disableDepthTestDistance: 0,
-                distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 8000000)
-              }
-            });
+        for (const windowBounds of longitudeWindows) {
+          const startLon = Math.ceil(windowBounds.west / lonInterval) * lonInterval;
+          const endLon = Math.floor(windowBounds.east / lonInterval) * lonInterval;
+          for (let lon = startLon; lon <= endLon + lonInterval * 0.1; lon += lonInterval) {
+            if (this.config.showKeyParallels &&
+                (Math.abs(lon) < 1e-6 || Math.abs(Math.abs(lon) - 180) < 1e-6)) continue;
+            this.addMeridian(lon, stdLineColor, 1,
+              window.ZEarthGraticuleLabels.formatDegrees(lon, 'lon', this.config.gridLabelFormat),
+              this.config.showLabels, centerLat);
           }
         }
       }
+
+      // UTM bands: latitude -80..84, zone 1..60, and Norway/Svalbard exceptions.
+      // Labels are attached to the visible zone, not hardcoded to the Equator.
+      if (this.config.showUtmZones) {
+        const segments = window.ZEarthGraticuleGeometry.visibleUtmSegments(bounds);
+        const showZoneLabels = this.config.showLabels && lonSpan <= 45 && latSpan <= 36;
+        for (const segment of segments) {
+          if (longitudeWindows.some(w => segment.west >= w.west && segment.west <= w.east)) {
+            this.addMeridian(segment.west, utmColor, 1.2, '', false, centerLat,
+              segment.south, segment.north);
+          }
+          if (!showZoneLabels || centerLat < segment.south || centerLat >= segment.north) continue;
+          const visibleWindow = longitudeWindows.find(w =>
+            segment.east >= w.west && segment.west <= w.east);
+          if (!visibleWindow) continue;
+          const labelLon = (Math.max(segment.west, visibleWindow.west) +
+                            Math.min(segment.east, visibleWindow.east)) / 2;
+          const labelLat = Math.max(segment.south + 0.001,
+            Math.min(segment.north - 0.001, centerLat));
+          this.dataSource.entities.add({
+            position: Cesium.Cartesian3.fromDegrees(labelLon, labelLat),
+            label: {
+              text: 'UTM ' + segment.zone + (labelLat >= 0 ? 'N' : 'S'),
+              font: 'bold 11px Segoe UI, sans-serif',
+              fillColor: Cesium.Color.fromCssColorString('#D8B4FE'),
+              outlineColor: labelOutline,
+              outlineWidth: 3,
+              style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+              heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+              disableDepthTestDistance: Number.POSITIVE_INFINITY,
+              pixelOffset: new Cesium.Cartesian2(0, -10),
+              distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 8000000)
+            }
+          });
+        }
+      }
+      viewer.scene.requestRender();
     },
 
     addParallel(lat, color, width, label, showLabel, preferredLon) {
       const coords = [];
       for (let lon = -180; lon <= 180; lon += 2) {
-        coords.push(Cesium.Cartesian3.fromDegrees(lon, lat, 100));
+        coords.push(Cesium.Cartesian3.fromDegrees(lon, lat));
       }
       this.dataSource.entities.add({
         polyline: {
           positions: coords,
           width: width,
           material: color,
-          clampToGround: false
+          clampToGround: true
         }
       });
       if (showLabel && label) {
         [Number.isFinite(preferredLon) ? preferredLon : 0].forEach(labelLon => {
           this.dataSource.entities.add({
-            position: Cesium.Cartesian3.fromDegrees(labelLon, lat, 2000),
+            position: Cesium.Cartesian3.fromDegrees(labelLon, lat),
             label: {
               text: label,
               font: '11px Segoe UI, sans-serif',
@@ -2298,7 +2353,8 @@
               outlineColor: Cesium.Color.BLACK,
               outlineWidth: 2,
               style: Cesium.LabelStyle.FILL_AND_OUTLINE,
-              disableDepthTestDistance: 0,
+              heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+              disableDepthTestDistance: Number.POSITIVE_INFINITY,
               distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 8000000),
               translucencyByDistance: new Cesium.NearFarScalar(1000000, 1.0, 9000000, 0.0)
             }
@@ -2307,23 +2363,24 @@
       }
     },
 
-    addMeridian(lon, color, width, label, showLabel, preferredLat) {
+    addMeridian(lon, color, width, label, showLabel, preferredLat, south = -85, north = 85) {
       const coords = [];
-      for (let lat = -85; lat <= 85; lat += 2) {
-        coords.push(Cesium.Cartesian3.fromDegrees(lon, lat, 100));
+      for (let lat = south; lat < north; lat += 2) {
+        coords.push(Cesium.Cartesian3.fromDegrees(lon, lat));
       }
+      coords.push(Cesium.Cartesian3.fromDegrees(lon, north));
       this.dataSource.entities.add({
         polyline: {
           positions: coords,
           width: width,
           material: color,
-          clampToGround: false
+          clampToGround: true
         }
       });
       if (showLabel && label) {
         [Number.isFinite(preferredLat) ? preferredLat : 0].forEach(labelLat => {
           this.dataSource.entities.add({
-            position: Cesium.Cartesian3.fromDegrees(lon, labelLat, 2000),
+            position: Cesium.Cartesian3.fromDegrees(lon, labelLat),
             label: {
               text: label,
               font: '11px Segoe UI, sans-serif',
@@ -2331,7 +2388,8 @@
               outlineColor: Cesium.Color.BLACK,
               outlineWidth: 2,
               style: Cesium.LabelStyle.FILL_AND_OUTLINE,
-              disableDepthTestDistance: 0,
+              heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+              disableDepthTestDistance: Number.POSITIVE_INFINITY,
               distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 8000000),
               translucencyByDistance: new Cesium.NearFarScalar(1000000, 1.0, 9000000, 0.0)
             }
@@ -2342,23 +2400,25 @@
 
     addKeyPoint(lon, lat, label, color) {
       this.dataSource.entities.add({
-        position: Cesium.Cartesian3.fromDegrees(lon, lat, 3000),
+        position: Cesium.Cartesian3.fromDegrees(lon, lat),
         point: {
           pixelSize: 9,
           color: color,
           outlineColor: Cesium.Color.BLACK,
           outlineWidth: 2,
-          disableDepthTestDistance: 0
+          heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+          disableDepthTestDistance: Number.POSITIVE_INFINITY
         },
         label: {
-          text: label,
+          text: this.config.showLabels ? label : '',
           font: 'bold 11px Segoe UI, sans-serif',
           fillColor: Cesium.Color.WHITE,
           outlineColor: Cesium.Color.BLACK,
           outlineWidth: 3,
           style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+              heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
           pixelOffset: new Cesium.Cartesian2(0, -18),
-          disableDepthTestDistance: 0,
+          disableDepthTestDistance: Number.POSITIVE_INFINITY,
           distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 12000000)
         }
       });
@@ -2373,8 +2433,8 @@
       if (typeof cfg.showUtmZones === 'boolean') this.config.showUtmZones = cfg.showUtmZones;
       if (typeof cfg.showLongitudeLines === 'boolean') this.config.showLongitudeLines = cfg.showLongitudeLines;
       if (typeof cfg.showLatitudeLines === 'boolean') this.config.showLatitudeLines = cfg.showLatitudeLines;
-      if (typeof cfg.longitudeIntervalDegrees === 'number' && cfg.longitudeIntervalDegrees >= 0) this.config.longitudeIntervalDegrees = cfg.longitudeIntervalDegrees;
-      if (typeof cfg.latitudeIntervalDegrees === 'number' && cfg.latitudeIntervalDegrees >= 0) this.config.latitudeIntervalDegrees = cfg.latitudeIntervalDegrees;
+      if (Number.isFinite(cfg.longitudeIntervalDegrees) && cfg.longitudeIntervalDegrees >= 0 && cfg.longitudeIntervalDegrees <= 60) this.config.longitudeIntervalDegrees = cfg.longitudeIntervalDegrees;
+      if (Number.isFinite(cfg.latitudeIntervalDegrees) && cfg.latitudeIntervalDegrees >= 0 && cfg.latitudeIntervalDegrees <= 60) this.config.latitudeIntervalDegrees = cfg.latitudeIntervalDegrees;
       if (typeof cfg.intervalDegrees === 'number' && cfg.intervalDegrees >= 0) {
         this.config.longitudeIntervalDegrees = cfg.intervalDegrees;
         this.config.latitudeIntervalDegrees = cfg.intervalDegrees;
@@ -3664,14 +3724,13 @@
         }
         case 'layers.setGraticules': {
           const vis = data.payload?.visible !== false;
-          ImageryManager.setGraticules(vis);
           GraticuleManager.setConfig({ visible: vis });
           respondSuccess({ graticules: vis });
           break;
         }
         case 'layers.setGraticulesConfig': {
           GraticuleManager.setConfig(data.payload);
-          respondSuccess({ graticules: true });
+          respondSuccess({ graticules: GraticuleManager.config.visible, configurationApplied: true });
           break;
         }
         case 'credits.setConfig': {

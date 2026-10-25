@@ -211,18 +211,14 @@
                                    TextWrapping="Wrap" FontSize="11" Foreground="{DynamicResource Brush.Text.Secondary}" Margin="16,0,0,14"/>
 
                         <TextBlock Text="Longitude interval (degrees; 0 = automatic)" FontWeight="SemiBold" Margin="0,0,0,4"/>
-                        <Grid Margin="0,0,0,12">
-                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="70"/></Grid.ColumnDefinitions>
-                            <Slider x:Name="LongitudeIntervalSlider" Minimum="0" Maximum="60" Value="0" TickFrequency="1" IsSnapToTickEnabled="True"/>
-                            <TextBlock Grid.Column="1" Text="{Binding Value, ElementName=LongitudeIntervalSlider, StringFormat='{}{0:0.#}°'}" HorizontalAlignment="Right"/>
-                        </Grid>
+                        <TextBox x:Name="LongitudeIntervalInput" Width="128" HorizontalAlignment="Left" Height="28"
+                                 MaxLength="6" ToolTip="Enter 0 (auto) or a numeric interval from 0.05° to 60°"
+                                 Background="{DynamicResource Brush.Control.Background}" Foreground="{DynamicResource Brush.Text.Primary}" Margin="0,0,0,12"/>
 
                         <TextBlock Text="Latitude interval (degrees; 0 = automatic)" FontWeight="SemiBold" Margin="0,0,0,4"/>
-                        <Grid Margin="0,0,0,12">
-                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="70"/></Grid.ColumnDefinitions>
-                            <Slider x:Name="LatitudeIntervalSlider" Minimum="0" Maximum="60" Value="0" TickFrequency="1" IsSnapToTickEnabled="True"/>
-                            <TextBlock Grid.Column="1" Text="{Binding Value, ElementName=LatitudeIntervalSlider, StringFormat='{}{0:0.#}°'}" HorizontalAlignment="Right"/>
-                        </Grid>
+                        <TextBox x:Name="LatitudeIntervalInput" Width="128" HorizontalAlignment="Left" Height="28"
+                                 MaxLength="6" ToolTip="Enter 0 (auto) or a numeric interval from 0.05° to 60°"
+                                 Background="{DynamicResource Brush.Control.Background}" Foreground="{DynamicResource Brush.Text.Primary}" Margin="0,0,0,12"/>
 
                         <CheckBox x:Name="UtmZonesCheck" Content="Show UTM zone boundaries &amp; zone numbers" Margin="0,4" Foreground="{DynamicResource Brush.Text.Primary}"/>
                     </StackPanel>
