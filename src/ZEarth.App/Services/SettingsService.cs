@@ -26,7 +26,8 @@ public class AppSettingsModel
     public double LongitudeIntervalDegrees { get; set; } = 0.0;
     public double LatitudeIntervalDegrees { get; set; } = 0.0;
     public bool ShowUtmZones { get; set; } = false;
-    public bool ShowBorders { get; set; } = true;
+    // Offline-first: enabling Esri hosted borders is an explicit user choice.
+    public bool ShowBorders { get; set; } = false;
 
     // Coordinate & Status Bar Readouts (Addendum 02)
     public bool ShowCenterReadout { get; set; } = true;
@@ -130,7 +131,7 @@ public sealed class SettingsService
     {
         try
         {
-            // Settings is the authoritative edited model. Implicit SyncFromDomain() used
+            // Settings is the authoritative edited model. Implicit domain synchronization used
             // to overwrite freshly selected Options values with stale singleton state.
             // Domain-origin changes must call SyncFromDomain() explicitly at their source.
             var json = JsonSerializer.Serialize(Settings, new JsonSerializerOptions { WriteIndented = true });

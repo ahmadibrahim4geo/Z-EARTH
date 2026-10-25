@@ -340,6 +340,10 @@ namespace ZEarth.App.Views
                         );
 
                         var appSettings = SettingsService.Instance.Settings;
+                        if (appSettings.ShowBorders &&
+                            !await ViewModel.GlobeBridge.SetBordersVisibleAsync(true))
+                            LoggerService.Instance.LogWarning("Saved political borders overlay was not acknowledged.");
+
                         await ViewModel.GlobeBridge.SetGraticulesConfigAsync(
                             appSettings.ShowGraticules,
                             appSettings.ShowGraticuleLabels,

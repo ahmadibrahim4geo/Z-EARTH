@@ -171,7 +171,7 @@ namespace ZEarth.App.ViewModels
         private int _selectedRibbonTab = 1; // Default to 'Home/Navigation'
         private int _selectedSidebarTab = 0; // 0 = Places, 1 = Layers
 
-        private bool _isBordersVisible = true;
+        private bool _isBordersVisible = SettingsService.Instance.Settings.ShowBorders;
         private bool _isGraticulesVisible = false;
         private bool _isRoadsVisible = false;
         private bool _isBuildingsVisible = false;
@@ -230,15 +230,33 @@ namespace ZEarth.App.ViewModels
             set => SetProperty(ref _selectedSidebarTab, value);
         }
 
+        private int _bordersRequestRevision;
         public bool IsBordersVisible
         {
             get => _isBordersVisible;
             set
             {
                 if (SetProperty(ref _isBordersVisible, value))
-                {
-                    _ = _globeBridge.SendJsonToWebView?.Invoke(JsonSerializer.Serialize(new { action = "layers.setBorders", payload = new { visible = value } }));
-                }
+                    _ = ApplyBordersVisibilityAsync(value, ++_bordersRequestRevision);
+            }
+        }
+
+        private async Task ApplyBordersVisibilityAsync(bool requested, int revision)
+        {
+            var ok = await _globeBridge.SetBordersVisibleAsync(requested);
+            if (revision != _bordersRequestRevision) return;
+            if (ok)
+            {
+                SettingsService.Instance.Settings.ShowBorders = requested;
+                SettingsService.Instance.Save();
+                StatusMessage = requested
+                    ? "Political borders & places overlay enabled (Esri online service)."
+                    : "Political borders overlay hidden.";
+            }
+            else
+            {
+                SetProperty(ref _isBordersVisible, !requested);
+                StatusMessage = "Political borders could not be changed; see globe/provider diagnostics.";
             }
         }
 

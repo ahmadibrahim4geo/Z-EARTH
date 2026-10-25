@@ -3722,6 +3722,32 @@
           respondSuccess({ reordered: ok, id: data.payload?.id });
           break;
         }
+        case 'layers.setBorders': {
+          // Independent opt-in Esri reference overlay, not the hybrid satellite
+          // labels: hiding boundaries must never hide the selected base map.
+          const id = 'zearth-country-borders';
+          const show = data.payload?.visible === true;
+          let result = { success: true };
+          if (show) {
+            if (ImageryManager.overlayLayers.has(id)) {
+              result.success = ImageryManager.setLayerVisibility(id, true);
+            } else {
+              result = ImageryManager.addCustomLayer({
+                id,
+                name: 'Esri World Boundaries & Places',
+                type: 'RasterTile',
+                url: 'https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
+                attribution: 'Esri World Boundaries and Places — © Esri and data contributors',
+                maximumLevel: 19
+              });
+            }
+          } else {
+            ImageryManager.removeLayer(id);
+          }
+          if (result.success === false) respond('failed', null, result.error || 'Boundary overlay unavailable');
+          else respondSuccess({ bordersVisible: show, source: 'Esri World Boundaries and Places' });
+          break;
+        }
         case 'layers.setGraticules': {
           const vis = data.payload?.visible !== false;
           GraticuleManager.setConfig({ visible: vis });
