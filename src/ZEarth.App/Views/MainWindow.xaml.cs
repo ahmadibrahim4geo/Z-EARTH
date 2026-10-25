@@ -127,6 +127,43 @@ namespace ZEarth.App.Views
             }
         }
 
+        // A chooser is less error-prone than cycling blindly through status-bar formats.
+        private void OnCoordinateFormatMenuClick(object sender, RoutedEventArgs e)
+        {
+            if (sender is not System.Windows.Controls.Button button) return;
+            var menu = new System.Windows.Controls.ContextMenu
+            {
+                PlacementTarget = button,
+                Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom,
+                Background = (System.Windows.Media.Brush)FindResource("Brush.Control.Background"),
+                Foreground = (System.Windows.Media.Brush)FindResource("Brush.Text.Primary")
+            };
+            foreach (var option in new[]
+            {
+                ("Decimal degrees (DD)", ZEarth.Domain.Crs.CoordinateDisplayFormat.DecimalDegrees),
+                ("Degrees, minutes, seconds (DMS)", ZEarth.Domain.Crs.CoordinateDisplayFormat.DegreesMinutesSeconds),
+                ("UTM coordinates", ZEarth.Domain.Crs.CoordinateDisplayFormat.Utm),
+                ("MGRS grid reference", ZEarth.Domain.Crs.CoordinateDisplayFormat.Mgrs)
+            })
+            {
+                var item = new System.Windows.Controls.MenuItem
+                {
+                    Header = option.Item1,
+                    IsCheckable = true,
+                    IsChecked = ViewModel.SelectedCoordinateFormat == option.Item2,
+                    Tag = option.Item2
+                };
+                item.Click += (_, _) =>
+                {
+                    if (item.Tag is ZEarth.Domain.Crs.CoordinateDisplayFormat choice)
+                        ViewModel.SelectedCoordinateFormat = choice;
+                };
+                menu.Items.Add(item);
+            }
+            button.ContextMenu = menu;
+            menu.IsOpen = true;
+        }
+
         private void MainWindow_SourceInitialized(object? sender, EventArgs e)
         {
             ThemeService.Instance.ApplyWindowTheme(this, ThemeService.Instance.CurrentTheme);
