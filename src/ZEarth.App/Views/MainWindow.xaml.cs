@@ -348,17 +348,17 @@ namespace ZEarth.App.Views
                             appSettings.ShowLongitudeLines,
                             appSettings.ShowLatitudeLines,
                             appSettings.LongitudeIntervalDegrees,
-                            appSettings.LatitudeIntervalDegrees);
+                            appSettings.LatitudeIntervalDegrees,
+                            appSettings.GridLabelFormat);
 
                         if (!string.IsNullOrEmpty(ViewModel.SelectedBasemapId))
                         {
                             await ViewModel.GlobeBridge.SetBasemapAsync(ViewModel.SelectedBasemapId);
                         }
 
-                        await ViewModel.GlobeBridge.SetTerrainProviderAsync(
-                            appSettings.TerrainProviderId,
-                            appSettings.CustomTerrainUrl,
-                            appSettings.CesiumIonToken);
+                        // Update the WPF ribbon only after Cesium acknowledges activation;
+                        // the earlier direct bridge call left Terrain visually OFF at startup.
+                        await ViewModel.InitializeConfiguredTerrainAsync();
 
                         // Restore saved startup scene on launch (SIDEBAR-01 SB-05 & SB-06)
                         await ViewModel.RestoreStartupSceneAsync();
