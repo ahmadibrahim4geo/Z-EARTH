@@ -222,8 +222,8 @@ namespace ZEarth.App.Views
                 if (isLeft)
                 {
                     ColLeft.Width = new GridLength(ViewModel.SidebarWidth);
-                    ColLeft.MinWidth = 220;
-                    ColLeft.MaxWidth = 520;
+                    ColLeft.MinWidth = 340;
+                    ColLeft.MaxWidth = 740;
                     ColRight.Width = new GridLength(1, GridUnitType.Star);
                     ColRight.MinWidth = 400;
                     ColRight.MaxWidth = double.PositiveInfinity;
@@ -239,8 +239,8 @@ namespace ZEarth.App.Views
                     ColLeft.MinWidth = 400;
                     ColLeft.MaxWidth = double.PositiveInfinity;
                     ColRight.Width = new GridLength(ViewModel.SidebarWidth);
-                    ColRight.MinWidth = 220;
-                    ColRight.MaxWidth = 520;
+                    ColRight.MinWidth = 340;
+                    ColRight.MaxWidth = 740;
 
                     Grid.SetColumn(ViewportBorder, 0);
                     Grid.SetColumn(WorkspaceSplitter, 1);
