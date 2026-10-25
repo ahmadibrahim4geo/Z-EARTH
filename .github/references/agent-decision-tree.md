@@ -2,6 +2,10 @@
 
 For general tasks start with the [free-first policy](free-first-policy.md). For a request explicitly tied to ArcGIS or Global Mapper, keep its intended host but disclose commercial licensing and independently suitable free alternatives.
 
+For multi-step Arabic/English user requests, first use [Prompt Intent Orchestrator](../skills/prompt-intent-orchestrator/SKILL.md) and the [plan/review contract](intent-orchestration-workflow.md). Review the task graph and obtain user approval for a specific revision before nontrivial changes; authenticate high-impact permissions separately in the actual tool host.
+
+For multi-stage project work use [Agent Development Journal](../skills/agent-development-journal/SKILL.md), recovering and verifying project-local reports before the next action and logging a new event after each meaningful operation. A log never substitutes for authenticated approvals or T3/T4 native acceptance.
+
 Select **the delivery target**, not just the programming language. The general [router](../skills/gis-development/SKILL.md) stays small; this file holds details.
 
 1. Is the user building inside ArcGIS? **ArcMap 10.x:** Python 2.7 and `arcpy.mapping` where applicable. **ArcGIS Pro:** supported Python 3 / ArcPy / `arcpy.mp`; distinguish `.pyt`, script tool and Pro SDK add-in. Consult the [official Esri Python distribution checker](esri-python-environment-compatibility.md) for package compatibility, and use C# SDK snippets only for Pro-hosted add-ins.
