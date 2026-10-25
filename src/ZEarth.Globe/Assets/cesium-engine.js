@@ -2318,7 +2318,7 @@
           const labelLat = Math.max(segment.south + 0.001,
             Math.min(segment.north - 0.001, centerLat));
           this.dataSource.entities.add({
-            position: new Cesium.CallbackProperty(() => {
+            position: new Cesium.CallbackPositionProperty(() => {
               const center = getScreenCenterGround();
               const longitude = center.valid ? center.longitude : labelLon;
               const latitude = center.valid ? center.latitude : labelLat;
@@ -2361,7 +2361,7 @@
       if (showLabel && label) {
         [Number.isFinite(preferredLon) ? preferredLon : 0].forEach(labelLon => {
           this.dataSource.entities.add({
-            position: new Cesium.CallbackProperty(() => {
+            position: new Cesium.CallbackPositionProperty(() => {
               const center = getScreenCenterGround();
               return Cesium.Cartesian3.fromDegrees(center.valid ? center.longitude : labelLon, lat);
             }, false),
@@ -2399,7 +2399,7 @@
       if (showLabel && label) {
         [Number.isFinite(preferredLat) ? preferredLat : 0].forEach(labelLat => {
           this.dataSource.entities.add({
-            position: new Cesium.CallbackProperty(() => {
+            position: new Cesium.CallbackPositionProperty(() => {
               const center = getScreenCenterGround();
               return Cesium.Cartesian3.fromDegrees(lon,
                 center.valid ? Math.max(south, Math.min(north, center.latitude)) : labelLat);

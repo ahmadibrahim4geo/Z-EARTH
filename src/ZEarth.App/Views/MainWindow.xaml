@@ -471,7 +471,7 @@
 
                 <!-- TAB 2: VIEW (ZE-009, ZE-011) -->
                 <TabItem Header="View">
-                    <StackPanel Orientation="Horizontal" Height="90" Background="{DynamicResource Brush.Ribbon.Background}" Margin="4,2">
+                    <StackPanel Orientation="Horizontal" Height="112" Background="{DynamicResource Brush.Ribbon.Background}" Margin="4,2">
                         <!-- Compact basemap selector in View, as requested. -->
                         <Border Style="{StaticResource RibbonGroupBorderStyle}">
                             <Grid>

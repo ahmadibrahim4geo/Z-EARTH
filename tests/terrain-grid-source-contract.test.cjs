@@ -34,3 +34,10 @@ test('local UTM helper loads before Cesium engine in shipped HTML', () => {
   const cesium = html.indexOf('src="cesium-engine.js"');
   assert.ok(geometry > 0 && cesium > geometry);
 });
+
+test('camera-following graticule labels use Cesium PositionProperty and deduplicate overlaps', () => {
+  const js = read('src/ZEarth.Globe/Assets/cesium-engine.js');
+  assert.equal((js.match(/position: new Cesium\.CallbackPositionProperty\(/g) || []).length, 3);
+  assert.match(js, /const regularOverlap = this\.config\.showLongitudeLines/);
+  assert.doesNotMatch(js, /this\.addMeridian\(-180, primeColor/);
+});
