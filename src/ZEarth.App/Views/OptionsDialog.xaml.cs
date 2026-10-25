@@ -147,6 +147,11 @@ namespace ZEarth.App.Views
             settings.ShowOptionalProviderLogos = ProviderLogosCheck.IsChecked == true;
             settings.ZoomSensitivity = ZoomSensitivitySlider.Value;
 
+            // Keep the domain unit and snapping models in sync BEFORE serialization.
+            // A later unrelated Save must not silently revert these selections.
+            SettingsService.Instance.ApplyToDomain();
+            UnitService.Instance.NotifyUnitsChanged();
+            SnappingSettings.Instance.NotifySettingsChanged();
             SettingsService.Instance.Save();
 
             // Apply to globe bridge

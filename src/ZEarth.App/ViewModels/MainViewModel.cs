@@ -1083,11 +1083,25 @@ namespace ZEarth.App.ViewModels
             // Theme service subscription
             ThemeService.Instance.ThemeChanged += (s, theme) =>
             {
+                SettingsService.Instance.Settings.Theme = theme.ToString();
+                SettingsService.Instance.Save();
                 OnPropertyChanged(nameof(CurrentTheme));
                 OnPropertyChanged(nameof(IsDarkTheme));
                 OnPropertyChanged(nameof(IsLightTheme));
                 OnPropertyChanged(nameof(ThemeToggleLabel));
                 OnPropertyChanged(nameof(ThemeToggleIcon));
+            };
+
+            LocalizationService.Instance.LanguageChanged += (s, language) =>
+            {
+                SettingsService.Instance.Settings.Language = language;
+                SettingsService.Instance.Save();
+                RunOnUi(() =>
+                {
+                    OnPropertyChanged(nameof(CurrentLanguageCode));
+                    OnPropertyChanged(nameof(CurrentLanguageText));
+                    UpdateWindowTitle();
+                });
             };
 
             ToggleThemeCommand = new RelayCommand(ExecuteToggleTheme);
@@ -2396,11 +2410,19 @@ namespace ZEarth.App.ViewModels
             {
                 if (target.ExtendedData.TryGetValue("sceneMode", out var smStr) && Enum.TryParse<SceneMode>(smStr, out var sm))
                 {
-                    _ = _globeBridge.SetSceneModeAsync(sm);
+                    if (!await _globeBridge.SetSceneModeAsync(sm))
+                    {
+                        StatusMessage = "Saved scene mode could not be applied.";
+                        return;
+                    }
                 }
                 if (target.ExtendedData.TryGetValue("basemapId", out var bmapId) && !string.IsNullOrEmpty(bmapId))
                 {
-                    _ = _globeBridge.SetBasemapAsync(bmapId);
+                    if (!await _globeBridge.SetBasemapAsync(bmapId))
+                    {
+                        StatusMessage = "Saved scene basemap could not be loaded.";
+                        return;
+                    }
                 }
                 await _globeBridge.FlyToAsync(target.Camera, 1.5);
                 return;
@@ -3459,8 +3481,30 @@ namespace ZEarth.App.ViewModels
                     IsTerrainEnabled = false;
                     UpdateTerrainStatusDisplay();
                 }
+                // The Options dialog changes values in Settings, but user-facing
+                // services and the globe must observe the same selected appearance.
+                var desiredTheme = string.Equals(s.Theme, "light", StringComparison.OrdinalIgnoreCase)
+                    ? AppTheme.Light : AppTheme.Dark;
+                if (ThemeService.Instance.CurrentTheme != desiredTheme)
+                    ThemeService.Instance.SetTheme(desiredTheme, Application.Current?.MainWindow);
+                if (!string.Equals(LocalizationService.Instance.CurrentLanguage, s.Language, StringComparison.OrdinalIgnoreCase))
+                    LocalizationService.Instance.SetLanguage(s.Language, Application.Current?.MainWindow);
+                _ = ApplyGlobeThemeFromOptionsAsync(desiredTheme);
                 OnPropertyChanged(nameof(DefaultBasemapDisplay));
                 UpdateTelemetryStrings();
+            }
+        }
+
+        private async Task ApplyGlobeThemeFromOptionsAsync(AppTheme theme)
+        {
+            try
+            {
+                if (!await _globeBridge.SetThemeAsync(theme == AppTheme.Light ? "light" : "dark"))
+                    StatusMessage = "Interface theme saved, but the globe did not acknowledge the update.";
+            }
+            catch (Exception ex)
+            {
+                LoggerService.Instance.LogWarning("Unable to synchronize globe theme: " + ex.Message);
             }
         }
 

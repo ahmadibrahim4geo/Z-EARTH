@@ -374,8 +374,27 @@ namespace ZEarth.App.Views
                     LoggerService.Instance.LogError($"CesiumJS Web Error/Warning: {msg}");
                 };
 
+                // Prevent a navigated/embedded untrusted page from invoking native
+                // WPF commands through WebMessageReceived.
+                GlobeWebView.CoreWebView2.NavigationStarting += (_, args) =>
+                {
+                    if (IsTrustedGlobeUri(args.Uri)) return;
+                    args.Cancel = true;
+                    LoggerService.Instance.LogWarning("Blocked untrusted globe navigation.");
+                };
+                GlobeWebView.CoreWebView2.NewWindowRequested += (_, args) =>
+                {
+                    args.Handled = true; // never launch popups from KML/remote content
+                    LoggerService.Instance.LogWarning("Blocked popup from embedded globe.");
+                };
+
                 GlobeWebView.CoreWebView2.WebMessageReceived += (s, args) =>
                 {
+                    if (!IsTrustedGlobeUri(args.Source))
+                    {
+                        LoggerService.Instance.LogWarning("Rejected WebView2 message from untrusted source.");
+                        return;
+                    }
                     string msg;
                     try
                     {
@@ -430,6 +449,13 @@ namespace ZEarth.App.Views
                 MessageBox.Show($"Globe initialization notice: {ex.Message}\nCheck WebView2 runtime or logs for details.", "Z EARTH Viewport", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
+
+        // Exact scheme+host check (never substring/suffix comparison).
+        internal static bool IsTrustedGlobeUri(string? uri)
+            => Uri.TryCreate(uri, UriKind.Absolute, out var parsed)
+               && parsed.Scheme == Uri.UriSchemeHttps
+               && parsed.Host.Equals("cesium.local", StringComparison.OrdinalIgnoreCase)
+               && parsed.IsDefaultPort;
 
         private async void TerrainWebResourceRequested(object? sender, CoreWebView2WebResourceRequestedEventArgs e)
         {

@@ -130,9 +130,14 @@ public sealed class SettingsService
     {
         try
         {
-            SyncFromDomain();
+            // Settings is the authoritative edited model. Implicit SyncFromDomain() used
+            // to overwrite freshly selected Options values with stale singleton state.
+            // Domain-origin changes must call SyncFromDomain() explicitly at their source.
             var json = JsonSerializer.Serialize(Settings, new JsonSerializerOptions { WriteIndented = true });
-            File.WriteAllText(_settingsPath, json);
+            // Avoid truncating the last good settings file during a crash/write failure.
+            var temp = _settingsPath + ".tmp";
+            File.WriteAllText(temp, json);
+            File.Move(temp, _settingsPath, overwrite: true);
             LoggerService.Instance.LogInfo($"Saved user settings to {_settingsPath}");
         }
         catch (Exception ex)
