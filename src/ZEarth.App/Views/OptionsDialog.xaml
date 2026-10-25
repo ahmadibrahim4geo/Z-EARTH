@@ -29,7 +29,7 @@
         </Border>
 
         <!-- Tabbed Settings Content -->
-        <TabControl Grid.Row="1" Background="{DynamicResource Brush.Ribbon.Background}" BorderBrush="{DynamicResource Brush.Ribbon.Border}">
+        <TabControl x:Name="SettingsTabs" Grid.Row="1" Background="{DynamicResource Brush.Ribbon.Background}" BorderBrush="{DynamicResource Brush.Ribbon.Border}">
             
             <!-- Tab 1: Measurement Units -->
             <TabItem Header="Measurement Units">
