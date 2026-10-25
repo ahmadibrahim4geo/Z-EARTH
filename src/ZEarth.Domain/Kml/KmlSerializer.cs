@@ -38,8 +38,19 @@ namespace ZEarth.Domain.Kml
                 Directory.CreateDirectory(dir);
             }
 
+            // Validate every preserved XML fragment before touching an existing
+            // user export, then write to a sibling temporary file.
             var doc = SerializeToDocument(root);
-            doc.Save(filePath);
+            var tempPath = filePath + ".tmp-" + Guid.NewGuid().ToString("N");
+            try
+            {
+                doc.Save(tempPath);
+                File.Move(tempPath, filePath, overwrite: true);
+            }
+            finally
+            {
+                if (File.Exists(tempPath)) File.Delete(tempPath);
+            }
         }
 
         public static XDocument SerializeToDocument(PlaceItem root)
@@ -67,9 +78,9 @@ namespace ZEarth.Domain.Kml
                     var xFrag = XElement.Parse(frag);
                     docElem.Add(xFrag);
                 }
-                catch
+                catch (System.Xml.XmlException ex)
                 {
-                    // If parsing fragment fails, skip to avoid invalid XML
+                    throw new InvalidDataException("Cannot export KML: preserved source XML is invalid.", ex);
                 }
             }
 
@@ -107,7 +118,10 @@ namespace ZEarth.Domain.Kml
                 {
                     folderElem.Add(XElement.Parse(frag));
                 }
-                catch { }
+                catch (System.Xml.XmlException ex)
+                {
+                    throw new InvalidDataException("Cannot export KML without losing source XML.", ex);
+                }
             }
 
             foreach (var child in folder.Children)
@@ -170,7 +184,10 @@ namespace ZEarth.Domain.Kml
                 {
                     pElem.Add(XElement.Parse(frag));
                 }
-                catch { }
+                catch (System.Xml.XmlException ex)
+                {
+                    throw new InvalidDataException("Cannot export KML without losing source XML.", ex);
+                }
             }
 
             // Geometry Serialization
