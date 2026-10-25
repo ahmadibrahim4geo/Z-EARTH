@@ -2310,7 +2310,9 @@ namespace ZEarth.App.ViewModels
             {
                 try
                 {
-                    var exportRoot = SelectedPlace ?? new PlaceItem(CurrentProject.Name, PlaceItemType.Folder);
+                    var exportRoot = SelectedPlace != null
+                        ? KmlSelectionExport.Create(SelectedPlace, MyPlaces)
+                        : new PlaceItem(CurrentProject.Name, PlaceItemType.Folder);
                     if (SelectedPlace == null)
                     {
                         foreach (var item in MyPlaces) exportRoot.AddChild(item.Clone());
@@ -2916,7 +2918,7 @@ namespace ZEarth.App.ViewModels
 
             if (dlg.ShowDialog() == true)
             {
-                var exportRoot = target.Clone();
+                var exportRoot = KmlSelectionExport.Create(target, MyPlaces);
                 if (!CanExportPortableKml(exportRoot, dlg.FileName)) return;
                 if (dlg.FileName.EndsWith(".kmz", StringComparison.OrdinalIgnoreCase))
                 {
