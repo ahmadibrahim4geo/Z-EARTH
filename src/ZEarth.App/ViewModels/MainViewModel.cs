@@ -439,6 +439,13 @@ namespace ZEarth.App.ViewModels
             ? "تشغيل الملاحة بالطيران ثلاثي الأبعاد. الأسهم للتحكم، Page Up/Down للسرعة، Esc للخروج."
             : "Basic 3D flight navigation: arrow keys steer, Page Up/Down throttle, Esc exits. Not an aircraft dynamics model.";
 
+        private bool _isGpsPlaybackEnabled;
+        public bool IsGpsPlaybackEnabled
+        {
+            get => _isGpsPlaybackEnabled;
+            set => SetProperty(ref _isGpsPlaybackEnabled, value);
+        }
+
         public string GpsImportLabel => LocalizationService.Instance.IsArabic ? "استيراد GPS" : "Import GPS";
         public string GpsImportTooltip => LocalizationService.Instance.IsArabic ? "استيراد ملفات GPX للمسارات والطرق والنقاط وأوقاتها" : "Import GPX tracks, routes, waypoints and UTC timestamps";
         public string CloudsLabel => LocalizationService.Instance.IsArabic ? "السحب" : "Clouds";
@@ -911,6 +918,8 @@ namespace ZEarth.App.ViewModels
         public ICommand ExportKmzCommand { get; }
         public ICommand ImportKmlCommand { get; }
         public ICommand ImportGpxCommand { get; }
+        public ICommand PlayGpsTrackCommand { get; }
+        public ICommand StopGpsTrackCommand { get; }
         public ICommand ToggleCoordinateFormatCommand { get; }
         public ICommand SelectCrsCommand { get; }
         public ICommand UndoCommand { get; }
@@ -1213,6 +1222,7 @@ namespace ZEarth.App.ViewModels
                 AreCloudsEnabled = enabled;
             });
             _globeBridge.FlightModeChanged += (s, enabled) => RunOnUi(() => IsFlightModeEnabled = enabled);
+            _globeBridge.GpsPlaybackChanged += (s, enabled) => RunOnUi(() => IsGpsPlaybackEnabled = enabled);
 
             // ActiveLayers strictly represents custom user overlay layers (WMS, WMTS, XYZ, GeoTIFF, etc.)
             // Built-in basemaps are mutually exclusive base layers managed by SelectedBasemapId / AvailableBasemaps.
@@ -1416,6 +1426,8 @@ namespace ZEarth.App.ViewModels
             ExportKmzCommand = new RelayCommand(ExecuteExportKmz);
             ImportKmlCommand = new RelayCommand(p => ExecuteImportKml(p as string));
             ImportGpxCommand = new RelayCommand(p => ExecuteImportGpx(p as string));
+            PlayGpsTrackCommand = AsyncCommand(ExecutePlayGpsTrackAsync, "Replay selected GPX path in UTC");
+            StopGpsTrackCommand = AsyncCommand(ExecuteStopGpsTrackAsync, "Stop GPS track replay");
             ToggleCoordinateFormatCommand = new RelayCommand(ExecuteToggleCoordinateFormat);
             SelectCrsCommand = new RelayCommand(ExecuteSelectCrs);
             UndoCommand = new RelayCommand(() => { if (_undoRedo.Undo()) { _projectService.IsModified = true; UpdatePlacesOnGlobe(); } }, () => _undoRedo.CanUndo);
@@ -3382,6 +3394,83 @@ namespace ZEarth.App.ViewModels
         private void NotifyPlannedFeature(string featureName)
         {
             MessageBox.Show($"{featureName}\n\nThis feature is tracked in the Z EARTH development roadmap.", "Z EARTH GIS", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+
+        private async Task ExecutePlayGpsTrackAsync()
+        {
+            PlaceItem? findTimed(PlaceItem item)
+            {
+                if (item.ItemType == PlaceItemType.Path &&
+                    item.ExtendedData.TryGetValue("GpsPointTimesUtcJson", out var value) &&
+                    !string.IsNullOrWhiteSpace(value))
+                    return item;
+                foreach (var child in item.Children)
+                {
+                    var found = findTimed(child);
+                    if (found != null) return found;
+                }
+                return null;
+            }
+
+            var path = SelectedPlace == null ? null : findTimed(SelectedPlace);
+            if (path == null || path.Coordinates.Count < 2)
+            {
+                StatusMessage = "Select an imported GPX track/route with at least two recorded timed fixes.";
+                return;
+            }
+            try
+            {
+                var utcValues = JsonSerializer.Deserialize<List<string?>>(path.ExtendedData["GpsPointTimesUtcJson"]);
+                if (utcValues == null || utcValues.Count != path.Coordinates.Count ||
+                    utcValues.Any(string.IsNullOrWhiteSpace))
+                {
+                    StatusMessage = "Selected GPS segment has missing timestamps; exact temporal replay is unavailable.";
+                    return;
+                }
+                var fixes = new List<object>();
+                DateTimeOffset? last = null;
+                for (int i = 0; i < path.Coordinates.Count; i++)
+                {
+                    if (!DateTimeOffset.TryParse(utcValues[i], CultureInfo.InvariantCulture,
+                        DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var current) ||
+                        (last.HasValue && current <= last.Value))
+                    {
+                        StatusMessage = "GPX timestamps are invalid or out of chronological order.";
+                        return;
+                    }
+                    var point = path.Coordinates[i];
+                    fixes.Add(new {
+                        longitude = point.Longitude,
+                        latitude = point.Latitude,
+                        timeUtc = current.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture)
+                    });
+                    last = current;
+                }
+                if (fixes.Count > 2000)
+                {
+                    StatusMessage = "GPS playback supports up to 2,000 timed fixes per segment.";
+                    return;
+                }
+                var result = await _globeBridge.PlayGpsTrackAsync(fixes, durationSeconds: 30);
+                IsGpsPlaybackEnabled = result;
+                StatusMessage = result
+                    ? $"Replaying {fixes.Count} GPS fixes in a 30-second preview; labels show original UTC times."
+                    : "GPS replay unavailable. Check the globe engine and selected track.";
+            }
+            catch (JsonException)
+            {
+                StatusMessage = "Invalid stored GPX timestamp metadata; no temporal playback started.";
+            }
+        }
+
+        private async Task ExecuteStopGpsTrackAsync()
+        {
+            if (await _globeBridge.StopGpsTrackAsync())
+            {
+                IsGpsPlaybackEnabled = false;
+                StatusMessage = "GPS track replay stopped.";
+            }
+            else StatusMessage = "GPS track replay stop was not acknowledged.";
         }
 
         public void ExecuteImportGpx(string? directFilePath = null)
