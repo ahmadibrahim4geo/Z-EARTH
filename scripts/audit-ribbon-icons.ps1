@@ -79,14 +79,16 @@ public static class ZEarthUIWin32 {
     $main = [System.Windows.Automation.AutomationElement]::FromHandle($hwnd)
     if ($null -eq $main) { throw "Windows UIA could not access the WPF main window." }
     $script:summary.WindowTitle = $main.Current.Name
-    $winCondition = New-Object System.Windows.Automation.OrCondition @(
-        (New-Object System.Windows.Automation.PropertyCondition ([System.Windows.Automation.AutomationElement]::ControlTypeProperty), ([System.Windows.Automation.ControlType]::Button)),
-        (New-Object System.Windows.Automation.PropertyCondition ([System.Windows.Automation.AutomationElement]::ControlTypeProperty), ([System.Windows.Automation.ControlType]::RadioButton))
-    )
-    $tabCondition = New-Object System.Windows.Automation.PropertyCondition (
+    $buttonCondition = [System.Windows.Automation.PropertyCondition]::new(
         [System.Windows.Automation.AutomationElement]::ControlTypeProperty,
-        [System.Windows.Automation.ControlType]::TabItem
-    )
+        [System.Windows.Automation.ControlType]::Button)
+    $radioCondition = [System.Windows.Automation.PropertyCondition]::new(
+        [System.Windows.Automation.AutomationElement]::ControlTypeProperty,
+        [System.Windows.Automation.ControlType]::RadioButton)
+    $winCondition = [System.Windows.Automation.OrCondition]::new($buttonCondition, $radioCondition)
+    $tabCondition = [System.Windows.Automation.PropertyCondition]::new(
+        [System.Windows.Automation.AutomationElement]::ControlTypeProperty,
+        [System.Windows.Automation.ControlType]::TabItem)
     $safeCommands = @(
         "HomeCommand", "FullExtentCommand", "PreviousExtentCommand", "NextExtentCommand",
         "ZoomInCommand", "ZoomOutCommand", "ResetNorthCommand", "ResetPitchCommand",
