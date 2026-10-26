@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import json
+import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -26,24 +27,85 @@ PROBES = {
     "R07": [("docs/google-earth-reference/reports/R07.md", "search.rcc")],
     "R08": [("docs/google-earth-reference/reports/R08.md", "flightsim")],
     "Z01": [
-        ("src/ZEarth.App/Views/MainWindow.xaml", "ToggleCloudsCommand"),
-        ("src/ZEarth.App/ViewModels/MainViewModel.cs", "ExecuteToggleCloudsAsync"),
+        ("src/ZEarth.App/Views/MainWindow.xaml", 'Command="{Binding'),
+        ("src/ZEarth.App/ViewModels/MainViewModel.cs", "public ICommand"),
     ],
     "Z02": [
-        ("src/ZEarth.Globe/Assets/cesium-engine.js", "environment.setClouds"),
-        ("src/ZEarth.Globe/GlobeBridge.cs", "SetCloudsAsync"),
-        ("src/ZEarth.Globe/Assets/index.html", "cloud-layer.js"),
+        ("src/ZEarth.Globe/Assets/cesium-engine.js", "setSceneMode"),
+        ("src/ZEarth.Globe/GlobeBridge.cs", "SendRequestAsync"),
+        ("src/ZEarth.Globe/Assets/index.html", "cesium-engine.js"),
     ],
     "Z03": [
         ("src/ZEarth.Domain/Kml/KmlParser.cs", "DtdProcessing.Prohibit"),
+        ("src/ZEarth.Domain/Kml/KmlParser.cs", 'e.Name.LocalName.Equals("Document"'),
         ("src/ZEarth.Domain/Kml/KmzService.cs", "MaxAllowedDecompressedBytes"),
+        ("tests/ZEarth.Tests/KmlLegacyGoogleEarth21Tests.cs", "Earth21DocumentRecognized"),
     ],
     "Z04": [
         ("src/ZEarth.Globe/Assets/cesium-engine.js", "GraticuleManager"),
         ("src/ZEarth.Globe/Assets/cesium-engine.js", "EnvironmentManager"),
-        ("src/ZEarth.App/Services/SettingsService.cs", "ShowClouds"),
+        ("src/ZEarth.App/ViewModels/MainViewModel.cs", "SearchByNameCommand"),
     ],
 }
+
+def analyze_source(role: str) -> tuple[dict, list[str]]:
+    """Semantic source *contract* coverage only, never a native execution claim."""
+    metrics: dict = {}
+    issues: list[str] = []
+    if role == "Z01":
+        xaml = (ROOT / "src/ZEarth.App/Views/MainWindow.xaml").read_text(encoding="utf-8")
+        viewmodel = (ROOT / "src/ZEarth.App/ViewModels/MainViewModel.cs").read_text(encoding="utf-8")
+        names = set(re.findall(r'Command="\{Binding\s+([A-Za-z]\w*)', xaml))
+        declarations = set(re.findall(r'\bpublic\s+ICommand\s+([A-Za-z]\w+)\b', viewmodel))
+        commands = {x for x in names if x.endswith("Command")}
+        unresolved = sorted(commands - declarations)
+        metrics = {
+            "wpf_command_bindings": len(re.findall(r'Command="\{Binding\s+([A-Za-z]\w*)', xaml)),
+            "unique_wpf_commands": len(commands),
+            "main_viewmodel_icommand_declarations": len(declarations),
+            "unresolved_mainwindow_commands": unresolved,
+        }
+        if unresolved:
+            issues.append("Unresolved MainWindow ICommand bindings: " + ", ".join(unresolved))
+    elif role == "Z02":
+        bridge = (ROOT / "src/ZEarth.Globe/GlobeBridge.cs").read_text(encoding="utf-8")
+        javascript = (ROOT / "src/ZEarth.Globe/Assets/cesium-engine.js").read_text(encoding="utf-8")
+        actions = set(re.findall(r'SendRequestAsync\(\s*"([^"]+)"', bridge))
+        javascript_cases = set(re.findall(r'case\s+[\'"]([^\'"]+)[\'"]\s*:', javascript))
+        unmatched = sorted(actions - javascript_cases)
+        metrics = {
+            "unique_bridge_actions": len(actions),
+            "js_switch_cases": len(javascript_cases),
+            "unmatched_bridge_actions": unmatched,
+        }
+        if unmatched:
+            issues.append("Bridge commands not recognized by JS switch: " + ", ".join(unmatched))
+    elif role == "Z03":
+        parser = (ROOT / "src/ZEarth.Domain/Kml/KmlParser.cs").read_text(encoding="utf-8")
+        tests = (ROOT / "tests/ZEarth.Tests/KmlLegacyGoogleEarth21Tests.cs").read_text(encoding="utf-8")
+        metrics = {
+            "legacy_kml_document_element_supported": 'e.Name.LocalName.Equals("Document"' in parser,
+            "xxe_dtd_prohibited": "DtdProcessing.Prohibit" in parser,
+            "has_synthetic_legacy_kml_fixture": "http://earth.google.com/kml/2.1" in tests,
+        }
+        if not all(metrics.values()):
+            issues.append("KML parser/source regression contract missing")
+    elif role == "Z04":
+        js = (ROOT / "src/ZEarth.Globe/Assets/cesium-engine.js").read_text(encoding="utf-8")
+        vm = (ROOT / "src/ZEarth.App/ViewModels/MainViewModel.cs").read_text(encoding="utf-8")
+        checks = {
+            "grid_master_visibility_gate": "this.dataSource.show = this.config.visible" in js,
+            "independent_longitude_interval": "longitudeIntervalDegrees" in js,
+            "independent_latitude_interval": "latitudeIntervalDegrees" in js,
+            "sunlight_bridge_readback": "SunlightChanged" in vm,
+            "atmosphere_bridge_readback": "AtmosphereChanged" in vm,
+            "offline_search_command": "SearchByNameCommand" in vm,
+        }
+        metrics = checks
+        if not all(checks.values()):
+            issues.append("Grid/environment/search source gate missing")
+    return metrics, issues
+
 
 def evaluate(role: str) -> dict:
     probes = []
@@ -56,7 +118,8 @@ def evaluate(role: str) -> dict:
         except OSError:
             found = False
         probes.append({"source": relative, "contains": needle, "found": found})
-    passed = all(item["found"] for item in probes)
+    metrics, issues = analyze_source(role)
+    passed = all(item["found"] for item in probes) and not issues
     reference = role.startswith("R")
     return {
         "schema": "zearth.reference-lab.evidence.v1",
@@ -69,6 +132,8 @@ def evaluate(role: str) -> dict:
         "independent_llm_agent_launched": False,
         "runtime_parity": "NOT_VERIFIED",
         "probes": probes,
+        "source_metrics": metrics,
+        "issues": issues,
     }
 
 def main() -> int:
