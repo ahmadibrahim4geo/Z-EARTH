@@ -427,6 +427,18 @@ namespace ZEarth.App.ViewModels
             }
         }
 
+        private bool _isFlightModeEnabled;
+        public bool IsFlightModeEnabled
+        {
+            get => _isFlightModeEnabled;
+            set => SetProperty(ref _isFlightModeEnabled, value);
+        }
+
+        public string FlightModeLabel => LocalizationService.Instance.IsArabic ? "الطيران" : "Flight";
+        public string FlightModeTooltip => LocalizationService.Instance.IsArabic
+            ? "تشغيل الملاحة بالطيران ثلاثي الأبعاد. الأسهم للتحكم، Page Up/Down للسرعة، Esc للخروج."
+            : "Basic 3D flight navigation: arrow keys steer, Page Up/Down throttle, Esc exits. Not an aircraft dynamics model.";
+
         public string GpsImportLabel => LocalizationService.Instance.IsArabic ? "استيراد GPS" : "Import GPS";
         public string GpsImportTooltip => LocalizationService.Instance.IsArabic ? "استيراد ملفات GPX للمسارات والطرق والنقاط وأوقاتها" : "Import GPX tracks, routes, waypoints and UTC timestamps";
         public string CloudsLabel => LocalizationService.Instance.IsArabic ? "السحب" : "Clouds";
@@ -930,6 +942,7 @@ namespace ZEarth.App.ViewModels
         public ICommand ToggleBordersCommand { get; }
         public ICommand ToggleGraticulesCommand { get; }
         public ICommand ToggleCloudsCommand { get; }
+        public ICommand ToggleFlightModeCommand { get; }
         public ICommand GridOptionsCommand { get; }
         public ICommand ToggleTerrainCommand { get; }
         public ICommand SelectBasemapCommand { get; }
@@ -1197,6 +1210,7 @@ namespace ZEarth.App.ViewModels
             {
                 AreCloudsEnabled = enabled;
             });
+            _globeBridge.FlightModeChanged += (s, enabled) => RunOnUi(() => IsFlightModeEnabled = enabled);
 
             // ActiveLayers strictly represents custom user overlay layers (WMS, WMTS, XYZ, GeoTIFF, etc.)
             // Built-in basemaps are mutually exclusive base layers managed by SelectedBasemapId / AvailableBasemaps.
@@ -1227,6 +1241,10 @@ namespace ZEarth.App.ViewModels
                     OnPropertyChanged(nameof(CurrentLanguageText));
                     OnPropertyChanged(nameof(CloudsLabel));
                     OnPropertyChanged(nameof(CloudsTooltip));
+                    OnPropertyChanged(nameof(GpsImportLabel));
+                    OnPropertyChanged(nameof(GpsImportTooltip));
+                    OnPropertyChanged(nameof(FlightModeLabel));
+                    OnPropertyChanged(nameof(FlightModeTooltip));
                     UpdateWindowTitle();
                 });
             };
@@ -1385,6 +1403,7 @@ namespace ZEarth.App.ViewModels
             ToggleSunlightCommand = AsyncCommand(ExecuteToggleSunlightAsync, "Toggle sunlight");
             ToggleAtmosphereCommand = AsyncCommand(ExecuteToggleAtmosphereAsync, "Toggle atmosphere");
             ToggleCloudsCommand = AsyncCommand(ExecuteToggleCloudsAsync, "Toggle offline illustrative clouds");
+            ToggleFlightModeCommand = AsyncCommand(ExecuteToggleFlightModeAsync, "Toggle 3D flight navigation");
 
             // Project Commands (Sprint 3 & Sprint 4)
             NewProjectCommand = new RelayCommand(ExecuteNewProject);
@@ -1621,6 +1640,20 @@ namespace ZEarth.App.ViewModels
             }
             else
                 StatusMessage = "Clouds not changed — globe request failed or timed out.";
+        }
+
+        private async Task ExecuteToggleFlightModeAsync()
+        {
+            var target = !IsFlightModeEnabled;
+            if (await _globeBridge.SetFlightModeAsync(target))
+            {
+                IsFlightModeEnabled = target;
+                StatusMessage = target
+                    ? "Basic flight navigation ON: click the globe, steer with arrows, Page Up/Down changes throttle, Esc exits."
+                    : "Flight navigation OFF; previous camera and regular mouse controls restored.";
+            }
+            else
+                StatusMessage = "Flight navigation unavailable. Switch to 3D, allow the globe to finish loading, then retry.";
         }
 
         private void ExecuteToggleTheme()
