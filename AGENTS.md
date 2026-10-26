@@ -2,6 +2,12 @@
 
 This repository is a **Windows desktop GIS application**; code inspection alone is never proof that the globe works. Preserve the official product name **Z EARTH**, stable `ZEarth.*` namespaces, dark gray primary style, English default UI, a complete Arabic UI, and **one canonical Preview folder**. Never bypass build/test failures to manufacture a release.
 
+## Google Earth reference research and controlled role audits
+
+Use [the 12-role reference lab](docs/google-earth-reference/README.md), [30-feature matrix](docs/google-earth-reference/FEATURE_PARITY_MATRIX.md) and [upstream Clean-Room skill](https://github.com/ahmadibrahim4geo/GIS-Development-Skills/blob/main/skills/clean-room-reference-implementation/SKILL.md) before changing Google Earth-inspired features. Eight roles analyze read-only permitted reference metadata and four audit ZEarth source. The deterministic runner `python scripts/reference_lab_audit.py --all` outputs explicit evidence levels; it cannot launch LLM workers or run Google Earth. Any AI worker dispatch requires an external authorized host. Never pass Google's resources or shader source to implementation workers.
+
+**New feature:** the offline illustrative 3D Clouds option uses `src/ZEarth.Globe/Assets/cloud-layer.js`, bridge `environment.setClouds`, WPF `ToggleCloudsCommand`, and persisted `ShowClouds`. It is NOT a live weather cloud product. Keep the view-specific toggle functional and test on Windows WebView2 before declaring it verified.
+
 ## Product goal and priority
 
 Z EARTH is an independent free-first alternative to **Google Earth Pro Desktop**. Use [Google Earth Pro parity contracts](docs/GOOGLE_EARTH_PRO_PARITY.md) before fixing Places, Temporary, startup Scenes, .kml/.kmz, Basemaps, terrain, measurements, drawing or profile. **Never generate plausible but fictitious terrain elevations**: true profile values must come from the active numeric terrain source (the current dialog only charts explicitly stored path Z). GEBCO 2026 is a dataset, not a ready Cesium TerrainServer. The upstream REA analysis tool is [morluto/rea](https://github.com/morluto/rea); the user's existing local working folder is `D:\\My Software\\Zearth\\rea`. Use `docs/GOOGLE_EARTH_PRO_PARITY.md` and `docs/FRESH_CLONE_VALIDATION.md` for authorized read-only desktop behavior inspection. Do not run the local tool blindly, reinstall it, or claim Google Earth Pro runtime evidence from the cloud. Preserve independent lawful code, do not copy Google Earth binaries or copyrighted map tiles.
