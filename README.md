@@ -85,3 +85,7 @@ This source review is not a promise that all basemap providers work or every fea
 ## Licensing
 
 See [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md) and [LEGAL_AND_PRIVACY_NOTICES.md](LEGAL_AND_PRIVACY_NOTICES.md). The copied GIS skill texts are MIT-licensed **separately from source projects they reference**. Never bundle proprietary GIS SDKs, cache prohibited tiles or publish personal credentials.
+
+## Development skills source snapshot
+
+Z EARTH vendors a reviewed [GIS Development Skills](https://github.com/ahmadibrahim4geo/GIS-Development-Skills) snapshot: **30 generic specialist skills and 76 references**, pinned to source `main` commit `222699fb04a8d6ea2583f13e5e37dbfc6a0f55cd`. See [integration and reproducible verification](docs/GIS_SKILLS_INTEGRATION.md) and [snapshot hashes](docs/GIS_SKILLS_SNAPSHOT.json). These are development-agent resources; application UI features require separate wiring and real Windows acceptance.

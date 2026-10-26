@@ -2,6 +2,8 @@
 
 Official documentation: https://docs.qgis.org/testing/en/docs/pyqgis_developer_cookbook/
 
+See the dedicated [QGIS Engine Integration reference](qgis-engine-integration.md) and [specialist skill](../skills/qgis-engine-integration/SKILL.md) for Qt/C++ GIS engines, standalone PyQGIS workers, QGIS Server and integration with other desktop/web mapping architectures. Upstream core: [qgis/QGIS](https://github.com/qgis/QGIS).
+
 ## Pick the smallest integration
 
 - **Processing algorithm** for one reproducible spatial operation, supporting processing models and batch execution.

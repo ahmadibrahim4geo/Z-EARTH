@@ -83,6 +83,8 @@ Treat these separately (see [preservation-first KML/KMZ contract](../../referenc
 - Test KML -> import -> export -> reimport and KMZ -> unpack -> repack -> reopen. Compare geometry/topology, CRS, feature counts, folder hierarchy, ExtendedData, time, styles, assets and altitude semantics. Classify expected versus unintended loss.
 - Include compatibility fixtures for Google Earth, ArcGIS Pro, ArcMap (legacy), QGIS and Cesium; label tests as unverified until executed in real hosts.
 
+**Repository interoperability inventory:** [KML/KMZ open-source project review](../../references/kml-kmz-repository-review.md), including Google libkml, GDAL/OGR LIBKML, fastkml, PyKML, Cesium and QGIS. These are review candidates, not claims of feature parity or successful host testing. See the [generic reliability guide](../../docs/PERFORMANCE_RELIABILITY.md).
+
 ## Performance, stability and crash prevention
 - Benchmark increasing feature counts, deeply nested folders, many icons, large overlays and large KMZ archives. Measure peak RAM, elapsed time, UI responsiveness and recovery after cancellation.
 - Apply memory budgets, lazy loading, background workers, progress reporting, cancellation and resource cleanup. Do not block the UI thread for large parsing or rendering tasks.

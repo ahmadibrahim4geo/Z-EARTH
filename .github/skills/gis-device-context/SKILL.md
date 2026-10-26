@@ -39,3 +39,7 @@ Produce a data record with `time_utc`, `display_time`, `timezone_id`, `timezone_
 - [Offline, injection-friendly Python example](../../examples/device-context/README.md) demonstrates timestamps/timezone, *not* automatic location or complete solar renderer.
 - Test DST gap and overlap, dateline, +/-90 latitude, no location, denied permission, low accuracy, stale fix, app restart, suspended/resumed live mode, out-of-area scene, offline mode and daylight/polar cases.
 - Native acceptance requires browser user gesture/HTTPS or Windows UI permissions and actual host execution. Static fixtures do not prove GPS hardware support, precise device location, or correct rendered sunlight.
+
+## System integration handoff
+
+For OS/browser permission lifecycles, native hardware, GPS/serial/BLE, camera/microphone, scoped files, external Agent Skills/MCP review, and system diagnostics, use [System Capabilities & Permissions](../system-capabilities-and-permissions/SKILL.md). This skill stays the owner of geographical coordinates, scene-vs-device source, GPS accuracy and freshness, UTC/timezone and Sunlight. Never infer location permission from a GIS scene.

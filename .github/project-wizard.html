@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>GIS Project Wizard</title>
+<style>:root{color-scheme:dark;font-family:system-ui,Arial,sans-serif;background:#0b1418;color:#eef6f2}body{max-width:1040px;margin:auto;padding:24px}main{background:#142329;border:1px solid #355057;border-top:3px solid #b0ef8d;border-radius:18px;padding:clamp(18px,3vw,34px);box-shadow:0 22px 60px #0003}label{display:block;margin:15px 0 5px}select,textarea,button{font:inherit;background:#1c343b;color:inherit;border:1px solid #607a7e;border-radius:8px;padding:10px;width:100%}button{cursor:pointer;margin-top:12px;background:#345b53}button:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid #b4eb91}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#081216;padding:16px;border-radius:8px}a{color:#b4eb91}.top{display:flex;justify-content:space-between;align-items:center;gap:20px}.top button{width:auto} .return-nav{display:flex;justify-content:space-between;gap:15px;flex-wrap:wrap;padding-bottom:16px;border-bottom:1px solid #355c4b;font-size:12px;color:#88b4a6}.top h1{font-size:clamp(26px,4vw,42px)}label{font-size:13px;font-weight:800;color:#d9f5de}select,textarea{box-sizing:border-box}textarea{resize:vertical;line-height:1.65}#intro{color:#b8d1c3;line-height:1.8}button:disabled{opacity:.45;cursor:not-allowed}#generate{background:#b0ef8d;color:#17251a;border-color:#b0ef8d;font-weight:800}#download{font-weight:800}#status{background:#1b3e31;border-radius:10px;padding:13px;color:#def7da;line-height:1.65;font-size:13px}#result{border:1px solid #436554;max-height:520px;overflow:auto;line-height:1.8}.privacy-note{font-size:12px;line-height:1.7;color:#aec8bc}.resources{font-size:13px;line-height:1.85}@media(max-width:550px){body{padding:14px}main{padding:19px}.top{gap:10px}}
+</style></head>
+<body><nav class="return-nav"><a id="homeLink" href="index.html#how-to-use">Back to GIS Skills homepage</a><span>GIS / PROJECT PLANNING</span></nav><div class="top"><h1 id="heading">GIS Project Wizard</h1><button id="lang" type="button">العربية</button></div><main><p id="intro">Build a free-first, testable GIS project plan.</p>
+<label for="type" id="typeLabel">Project type</label><select id="type"><option value="desktop">Desktop GIS</option><option value="mobile">Mobile GIS (Android/iOS)</option><option value="pro">ArcGIS Pro Toolbox</option><option value="arcmap">ArcMap Toolbox</option><option value="dual">ArcGIS Pro + ArcMap Toolbox</option><option value="qgis">QGIS Plugin</option><option value="qgis-engine">QGIS Engine / Standalone GIS</option><option value="web">Web GIS</option><option value="remote">Remote Sensing</option><option value="database">Spatial Database</option><option value="geoai">GeoAI</option></select>
+<label for="locale" id="localeLabel">Application languages</label><select id="locale"><option value="ar-en">Arabic + English</option><option value="en">English only</option><option value="multi">Multilingual (Arabic, English, French and others)</option></select>
+<label for="files" id="filesLabel">KML/KMZ support</label><select id="files"><option value="yes">Required</option><option value="no">Not required</option></select>
+<label for="license" id="licenseLabel">Licensing preference</label><select id="license"><option value="free">Free/open-source components first</option><option value="host">Existing commercial GIS host allowed</option></select>
+<label for="qualityFocus" id="qualityLabel">Optional GIS quality workflow</label>
+<select id="qualityFocus">
+  <option value="standard">General GIS verification (default)</option>
+  <option value="audit">UI Command Audit</option>
+  <option value="e2e">Desktop E2E / WebView2 Testing</option>
+  <option value="flow">GIS Data Flow Diagnostics</option>
+  <option value="ux">UI/UX Design &amp; Testing</option>
+  <option value="all">All four quality specialists</option>
+</select>
+<label for="deviceNeeds" id="deviceLabel">System and device capabilities</label>
+<select id="deviceNeeds"><option value="none">No OS/device integration</option><option value="time">Clock and time zone</option><option value="location">Location and GPS permission</option><option value="hardware">Files, sensors and hardware</option><option value="all">Multiple device capabilities</option></select>
+<div id="mobileSettings" hidden><label for="mobilePlatform" id="mobilePlatformLabel">Mobile platforms</label><select id="mobilePlatform"><option value="android">Android only</option><option value="ios">iOS only</option><option value="both">Android + iOS</option></select><label for="mobileNetwork" id="mobileNetworkLabel">Offline and synchronization</label><select id="mobileNetwork"><option value="local">Offline local data only</option><option value="offline-sync">Offline-first with verified server sync</option><option value="online">Online-first with offline failure handling</option></select><label for="mobileSignIn" id="mobileSignInLabel">Authentication</label><select id="mobileSignIn"><option value="guest">Local/guest (no online sign-in)</option><option value="optional">Optional secure sign-in</option><option value="required">Verified sign-in required for remote sync</option></select></div><label for="details" id="detailsLabel">What should your project do?</label><textarea id="details" rows="4" maxlength="4000" placeholder="Describe the desired features"></textarea>
+<label for="goal" id="goalLabel">What user outcome should this project achieve?</label><textarea id="goal" rows="2" maxlength="1500" placeholder="Describe the end result you need; the AI agent will review it"></textarea>
+<label for="success" id="successLabel">How will you know it works?</label><textarea id="success" rows="2" maxlength="1500" placeholder="Visible behavior, output files or tests you expect"></textarea>
+<button id="generate" type="button">Generate plan</button><button id="download" type="button" disabled>Download Markdown</button><button id="downloadJson" type="button" disabled>Download workflow JSON</button>
+<p id="jsonHint" class="privacy-note">To export a draft JSON workflow, fill in both the goal and observable success criteria. Export is not approval or execution.</p>
+<p id="status" role="status" aria-live="polite">Choose a project type and generate a plan.</p><h2 id="resultLabel">Project plan</h2><pre id="result" aria-live="polite"></pre>
+<p class="resources"><a id="workflowLink" href="references/repository-wide-skill-orchestration.md">Prompt-to-workflow guide</a> · <a id="roadmapLink" href="docs/PROJECT_WIZARD_PLAN.md">Implementation roadmap</a> · <a id="kmlLink" href="skills/kml-kmz-engineering/SKILL.md">KML/KMZ skill</a> · <a id="reliabilityLink" href="docs/PERFORMANCE_RELIABILITY.md">Reliability guide</a></p><p id="wizardPrivacy" class="privacy-note">Plans are generated locally. No AI is executed and no project text is uploaded.</p></main>
+<script>
+const $=id=>document.getElementById(id);let ar=false,output='',structuredPlan=null;
+const dict={en:{heading:'GIS Project Wizard',intro:'Build a free-first, testable GIS project plan.',typeLabel:'Project type',localeLabel:'Application languages',filesLabel:'KML/KMZ support',licenseLabel:'Licensing preference',detailsLabel:'What should your project do?',qualityLabel:'Optional GIS quality workflow',goalLabel:'Intended user outcome',successLabel:'Success criteria',goalPlaceholder:'Describe the final result you need',successPlaceholder:'Describe the observable tests or results',generate:'Generate plan',download:'Download Markdown',downloadJson:'Download workflow JSON',jsonHint:'Fill in the goal and success criteria to download draft JSON. This never approves or executes commands.',resultLabel:'Project plan',lang:'العربية',placeholder:'Describe the desired features',yes:'Required',no:'Not required',free:'Free/open-source components first',host:'Existing commercial GIS host allowed'},ar:{heading:'معالج مشاريع نظم المعلومات الجغرافية',intro:'أنشئ خطة مشروع قابلة للاختبار مع إعطاء الأولوية للمكونات المجانية.',typeLabel:'نوع المشروع',localeLabel:'لغات التطبيق',filesLabel:'دعم KML وKMZ',licenseLabel:'تفضيل الترخيص',detailsLabel:'ما الوظائف المطلوبة في المشروع؟',qualityLabel:'مسار الجودة الإضافي للمشروع',goalLabel:'الهدف النهائي الذي تريد تحقيقه',successLabel:'كيف نتحقق من نجاح العمل؟',goalPlaceholder:'صف النتيجة النهائية المطلوبة',successPlaceholder:'اكتب الاختبارات أو المخرجات التي تثبت النجاح',generate:'إنشاء الخطة',download:'تنزيل Markdown',downloadJson:'تنزيل خطة Workflow بصيغة JSON',jsonHint:'اكتب الهدف ومعايير النجاح لتنزيل خطة JSON كمسودة؛ لا تُعتبر موافقة ولا تنفذ أوامر.',resultLabel:'خطة المشروع',lang:'English',placeholder:'اكتب الوظائف المطلوبة',yes:'مطلوب',no:'غير مطلوب',free:'المكونات المجانية ومفتوحة المصدر أولاً',host:'السماح ببرنامج GIS تجاري متوفر'}};
+const localeLabels={en:{'ar-en':'Arabic + English',en:'English only',multi:'Multilingual (Arabic, English, French and others)'},ar:{'ar-en':'العربية والإنجليزية',en:'الإنجليزية فقط',multi:'متعدد اللغات (العربية والإنجليزية والفرنسية وغيرها)'}};
+const stacks={mobile:'Kotlin/Swift or tested Flutter/Qt/MAUI; licensed MapLibre/QGIS adapters, GeoPackage/SQLite, explicit CRS and offline queue',desktop:'Qt/PySide or .NET/WPF; GDAL, PROJ; optional Cesium for 3D',pro:'ArcGIS Pro Python 3, ArcPy, .pyt/.atbx',arcmap:'Legacy ArcMap Python 2.7, ArcPy, .pyt/.tbx',dual:'Isolated ArcMap Python 2.7 and ArcGIS Pro Python 3 adapters; shared compatible logic only',qgis:'PyQGIS and Qt; plugin metadata and packaging','qgis-engine':'Version-matched QGIS Core/GUI/Analysis/Processing or QGIS Server, optional isolated PyQGIS; independent UI renderer; GDAL/PROJ when sufficient',web:'MapLibre GL JS, optional Cesium, standards-based geospatial services',remote:'GDAL, rasterio, xarray and documented data provenance',database:'PostGIS, spatial indexes and migration scripts',geoai:'Python geospatial ML stack with reproducible data and model validation'};
+
+const typeNames={
+en:{mobile:'Mobile GIS (Android/iOS)',desktop:'Desktop GIS',pro:'ArcGIS Pro Toolbox',arcmap:'ArcMap Toolbox',dual:'ArcGIS Pro + ArcMap Toolbox',qgis:'QGIS Plugin','qgis-engine':'QGIS Engine / Standalone GIS',web:'Web GIS',remote:'Remote Sensing',database:'Spatial Database',geoai:'GeoAI'},
+ar:{mobile:'تطبيق GIS للموبايل (أندرويد وiOS)',desktop:'تطبيق GIS مكتبي',pro:'أدوات ArcGIS Pro',arcmap:'أدوات ArcMap',dual:'أداة لـ ArcGIS Pro وArcMap',qgis:'إضافة QGIS','qgis-engine':'محرك QGIS لتطبيق مستقل',web:'تطبيق خرائط ويب',remote:'الاستشعار عن بعد',database:'قاعدة بيانات مكانية',geoai:'الذكاء الاصطناعي الجغرافي'}};
+const qualityLabels={
+en:{standard:'General GIS verification (default)',audit:'UI Command Audit',e2e:'Desktop E2E / WebView2 Testing',flow:'GIS Data Flow Diagnostics',ux:'UI/UX Design & Testing',all:'All four quality specialists'},
+ar:{standard:'الفحوص الجغرافية العامة (افتراضي)',audit:'جرد أوامر وأيقونات الواجهة',e2e:'اختبار سطح المكتب وWebView2',flow:'تشخيص تدفق البيانات الجغرافية',ux:'تصميم واختبار تجربة المستخدم',all:'المهارات الأربع معًا'}
+};
+const deviceNames={en:{none:'No OS/device integration',time:'Clock and time zone',location:'Location and GPS permission',hardware:'Files, sensors and hardware',all:'Multiple device capabilities'},ar:{none:'دون تكامل خاص بالجهاز',time:'التاريخ والساعة والمنطقة الزمنية',location:'الموقع الجغرافي بموافقة المستخدم',hardware:'الملفات والمستشعرات والأجهزة',all:'قدرات متعددة للنظام'}};
+const mobileOptions={platform:{en:{android:'Android only',ios:'iOS only',both:'Android + iOS'},ar:{android:'أندرويد فقط',ios:'iOS فقط',both:'أندرويد وiOS'}},network:{en:{local:'Offline local data only','offline-sync':'Offline-first with verified server sync',online:'Online-first with offline failure handling'},ar:{local:'بيانات محلية دون اتصال','offline-sync':'عمل دون اتصال مع مزامنة آمنة بالخادم',online:'اتصال أساسي مع معالجة انقطاع الشبكة'}},signIn:{en:{guest:'Local/guest (no online sign-in)',optional:'Optional secure sign-in',required:'Verified sign-in required for remote sync'},ar:{guest:'استخدام محلي دون تسجيل دخول',optional:'تسجيل دخول آمن اختياري',required:'تسجيل دخول موثق للمزامنة'}}};
+const qualityRoutes={
+ standard:[],audit:['gis-ui-command-audit'],e2e:['gis-desktop-e2e-testing'],
+ flow:['gis-data-flow-diagnostics'],ux:['gis-ui-ux-design-testing'],
+ all:['gis-ui-command-audit','gis-desktop-e2e-testing','gis-data-flow-diagnostics','gis-ui-ux-design-testing']
+};
+const skills={mobile:'gis-mobile-application-development',desktop:'gis-desktop-application-development',pro:'arcgis-toolbox-engineering',arcmap:'arcgis-toolbox-engineering',dual:'arcgis-toolbox-engineering',qgis:'qgis-plugin-development','qgis-engine':'qgis-engine-integration',web:'geospatial-web-mapping',remote:'remote-sensing-pipelines',database:'spatial-databases',geoai:'geospatial-ai-agents'};
+Object.assign(dict.en,{mobilePlatformLabel:'Mobile platforms',mobileNetworkLabel:'Offline and synchronization',mobileSignInLabel:'Authentication',deviceLabel:'System and device capabilities',homeLink:'Back to GIS Skills homepage',workflowLink:'Prompt-to-workflow guide',roadmapLink:'Implementation roadmap',kmlLink:'KML/KMZ skill',reliabilityLink:'Reliability guide',wizardPrivacy:'Plans are generated locally. No AI is executed and no project text is uploaded.',statusInitial:'Choose a project type and generate a plan.',statusDirty:'Inputs changed. Regenerate the plan before downloading.',statusReady:'Plan generated. Review it before implementation.'});
+Object.assign(dict.ar,{mobilePlatformLabel:'أنظمة الموبايل',mobileNetworkLabel:'العمل دون اتصال والمزامنة',mobileSignInLabel:'تسجيل الدخول',deviceLabel:'قدرات الجهاز وصلاحيات النظام',homeLink:'العودة إلى الصفحة الرئيسية',workflowLink:'دليل تدفق الطلب إلى التنفيذ',roadmapLink:'دليل تطوير المشروع',kmlLink:'مهارة KML/KMZ',reliabilityLink:'دليل الأداء والثبات',wizardPrivacy:'إنشاء الخطة محليًا دون إرسال المدخلات إلى خادم أو تشغيل وكيل ذكاء اصطناعي.',statusInitial:'اختر نوع المشروع ثم أنشئ الخطة.',statusDirty:'تغيرت المدخلات. أنشئ الخطة من جديد قبل تنزيلها.',statusReady:'تم إنشاء الخطة. راجعها قبل التنفيذ.'});
+function translate(){
+  document.documentElement.lang=ar?'ar':'en';
+  document.documentElement.dir=ar?'rtl':'ltr';
+  const lang=ar?'ar':'en',t=dict[lang];
+  Object.keys(t).forEach(k=>{if(k!=='placeholder'&&!k.startsWith('status')&&$(k))$(k).textContent=t[k]});
+  $('details').placeholder=t.placeholder;
+  $('mobileSettings').hidden=$('type').value!=='mobile';
+  for(const [id,key] of [['mobilePlatform','platform'],['mobileNetwork','network'],['mobileSignIn','signIn']]){
+    for(const option of $(id).options)option.textContent=mobileOptions[key][lang][option.value];
+  }
+  $('goal').placeholder=t.goalPlaceholder;
+  $('success').placeholder=t.successPlaceholder;
+  for(const id of ['type','locale','files','license','qualityFocus','deviceNeeds']){
+    const data=id==='type'?typeNames[lang]:id==='locale'?localeLabels[lang]:id==='qualityFocus'?qualityLabels[lang]:id==='deviceNeeds'?deviceNames[lang]:t;
+    for(const option of $(id).options)option.textContent=(id==='qualityFocus'&&$('type').value==='mobile'&&option.value==='e2e')?(lang==='ar'?'اختبار الأجهزة الفعلية Android/iOS':'Native Android/iOS device testing'):data[option.value];
+  }
+  $('status').textContent=output?t.statusReady:t.statusInitial;
+}
+function invalidate(){
+  output='';
+  structuredPlan=null;
+  $('result').textContent='';
+  $('download').disabled=true;
+  $('downloadJson').disabled=true;
+  $('status').textContent=dict[ar?'ar':'en'].statusDirty;
+}
+function generatePlan(){
+  const type=$('type').value,locale=$('locale').value,kml=$('files').value==='yes',commercial=$('license').value==='host';
+  const deviceNeeds=$('deviceNeeds').value;
+  const mobilePlatform=$('mobilePlatform').value,mobileNetwork=$('mobileNetwork').value,mobileSignIn=$('mobileSignIn').value;
+  const qualityFocus=$('qualityFocus').value;
+  const qualitySkills=(qualityRoutes[qualityFocus]||[]).filter(x=>type!=='mobile'||x!=='gis-desktop-e2e-testing');
+  const requirement=$('details').value.trim();
+  const goal=$('goal').value.trim();
+  const success=$('success').value.trim();
+  const goalSpec='> '+(goal||(ar?'لم يحدد الهدف بعد؛ يجب على الوكيل استنتاج الهدف وطلب مراجعته قبل التنفيذ.':'Goal not specified. Hosting AI must propose and review the goal before implementation.')).replace(/\r?\n/g,'\n> ');
+  const successSpec='> '+(success||(ar?'معايير النجاح غير محددة؛ يجب إعداد نتائج واختبارات قابلة للملاحظة.':'Success criteria not specified. Define observable output and tests before execution.')).replace(/\r?\n/g,'\n> ');
+  const requirements='> '+(requirement||(ar?'التفاصيل لم تحدد بعد.':'Requirements not specified yet.')).replace(/\r?\n/g,'\n> ');
+  const references=['skills/prompt-intent-orchestrator/SKILL.md','references/repository-wide-skill-orchestration.md','skills/gis-development/SKILL.md','skills/'+skills[type]+'/SKILL.md','skills/gis-security-guardian/SKILL.md','references/agent-decision-tree.md','docs/PERFORMANCE_RELIABILITY.md'];
+  if(deviceNeeds!=='none')references.push('skills/system-capabilities-and-permissions/SKILL.md','references/system-capabilities-permissions.md','references/system-skill-interop.md');
+  if(deviceNeeds==='location'||deviceNeeds==='all')references.push('skills/gis-device-context/SKILL.md');
+  if(locale!=='en')references.push('skills/gis-internationalization-arabic/SKILL.md');
+  if(kml)references.push('skills/kml-kmz-engineering/SKILL.md');
+  if(qualitySkills.length)references.push('references/gis-ui-quality-coordination.md','references/gis-ui-quality-upstream-sources.md',...qualitySkills.map(x=>'skills/'+x+'/SKILL.md'));
+  if(type==='mobile')references.push('references/mobile-gis-architecture.md','references/mobile-gis-offline-sync.md','references/mobile-gis-authentication.md','references/mobile-gis-device-test-matrix.md','skills/system-capabilities-and-permissions/SKILL.md','skills/gis-device-context/SKILL.md','skills/coordinate-reference-systems/SKILL.md','skills/gis-ui-ux-design-testing/SKILL.md');
+  if(type==='qgis-engine')references.push('references/qgis-engine-integration.md','skills/coordinate-reference-systems/SKILL.md','skills/geospatial-data-processing/SKILL.md','skills/gis-security-guardian/SKILL.md');
+  const mobileAuthConflict=type==='mobile'&&mobileNetwork==='local'&&mobileSignIn==='required';
+  const mobileSpec=type!=='mobile'?'':[
+    (ar?'المنصات: ':'Platforms: ')+mobileOptions.platform[ar?'ar':'en'][mobilePlatform],
+    mobileOptions.network[ar?'ar':'en'][mobileNetwork],
+    mobileOptions.signIn[ar?'ar':'en'][mobileSignIn],
+    ar?'لا تعتبر اختبارات الأجهزة أو تسجيل الدخول ناجحة دون التحقق الفعلي.':'Device tests and remote sign-in remain NOT RUN until verified.',
+    ...(mobileAuthConflict?[ar?'تعارض: العمل المحلي فقط لا يتوافق مع اشتراط تسجيل دخول الخادم.':'Conflict: local-only mode cannot require remote verified sign-in.']:[])
+  ].join('; ');
+  const deviceSpec=deviceNeeds==='none'?(ar?'لا يحتاج المشروع إلى تكامل إضافي مع الجهاز.':'No special device integration requested.'):(ar?'القدرات المطلوبة: '+deviceNames.ar[deviceNeeds]+'. هذه مسودة؛ يجب فحص دعم الجهاز والحصول على إذن نظام التشغيل وتوفير بديل عند الرفض.':'Requested capabilities: '+deviceNames.en[deviceNeeds]+'. Draft only: verify hardware, obtain OS permission and provide a denied/unavailable fallback.');
+  const list=references.map(x=>'- '+x);
+  const phases=ar?[
+    '1. استلام البرومبت الأصلي واستخلاص هدف المستخدم والنتيجة المطلوبة.',
+    '2. فصل المتطلبات الصريحة عن الافتراضات والنواقص وشروط البيانات والترخيص.',
+    '3. بناء خطة مهام مرقمة بمعايير نجاح واعتماد النسخة والنطاق قبل التعديل.',
+    '4. توجيه المهام من الموجّه العام إلى المهارات المتخصصة وتحديد مسؤول كل ناتج.',
+    '5. فحص الأمان والإصدارات والأدوات المتاحة والبيانات وخطة التراجع.',
+    '6. تنفيذ المعتمد فقط بالترتيب مع تسجيل النتائج وسلامة الملفات.',
+    '7. اختبار المخرجات وإعادة الفتح وواجهات GIS الفعلية عند توفرها.',
+    '8. تقديم تقرير التنفيذ والاختبارات الموثقة والقيود والسجل.'
+  ]:[
+    '1. Capture the original prompt and identify the user goal and desired outcome.',
+    '2. Separate explicit requirements from assumptions, gaps, licenses and data constraints.',
+    '3. Show numbered tasks, measurable success criteria and scope for review and approval.',
+    '4. Route reviewed tasks to accountable specialist skills in dependency order.',
+    '5. Preflight security, versions, real host tools, data, licenses and rollback.',
+    '6. Execute approved changes only and record every observable result.',
+    '7. Verify output readback, GIS correctness and native UI behavior where available.',
+    '8. Report completed, failed, blocked and not-run checks with project journal.'
+  ];
+  const local=locale==='en'?(ar?'واجهة إنجليزية LTR مع موارد قابلة للتعريب.':'English LTR; keep resources localization-ready.'):(ar?'اختبار واجهة RTL/Unicode وملصقات الخرائط العربية والتنسيق المختلط.':'Test Arabic RTL/BiDi, Unicode attributes and map labels, including mixed scripts.');
+  const license=commercial?(ar?'استخدام البرامج التجارية المتوفرة يتطلب التحقق من الترخيص، مع عرض بديل مجاني عند الإمكان.':'Commercial host allowed with verified license; suggest free alternatives when feasible.'):(ar?'ابدأ بالمكتبات والبيانات المجانية والمفتوحة، وراجع تراخيص كل مصدر.':'Prioritize free/open-source libraries and permitted data; check each license.');
+  const fileSpec=kml?(ar?'حافظ على رموز وألوان وأنماط ومجلدات وارتفاعات KML/KMZ، وأمّن XML/ZIP واختبر الاستيراد والتصدير وإعادة الفتح.':'Secure ZIP/XML and preserve original KML/KMZ styles, icons, folders and altitude; test import/export/reopen fidelity.'):(ar?'دعم KML/KMZ غير مطلوب حاليًا.':'KML/KMZ not requested for this project.');
+  const checks=ar?[
+    '- تحقق من CRS وترتيب المحاور والوحدات وNoData وسلامة الهندسة.',
+    '- اختبر مدخلات تالفة وملفات صغيرة وكبيرة وإلغاء العمليات والتعافي.',
+    '- لا تعتبر الفحص الثابت دليلًا على تشغيل واجهة ArcGIS أو QGIS أو تطبيق مكتبي.',
+    '- قدّم دليلًا على النتائج وسجلًا مرقمًا بالتعديلات.'
+  ]:[
+    '- Verify CRS, axis order, units, NoData and geometry validity.',
+    '- Test malformed inputs, small/large cases, cancellation and recovery.',
+    '- Do not infer ArcGIS/QGIS/desktop UI success from static checks.',
+    '- Include real output evidence and numbered development records.'
+  ];
+  const mobileQualityLabel=type==='mobile'&&qualityFocus==='e2e'?(ar?'اختبارات Android/iOS الفعلية':'Native Android/iOS device testing'):qualityLabels[ar?'ar':'en'][qualityFocus];
+  const sections=ar?[
+    '# خطة تنفيذ مشروع GIS','','## نوع المشروع',typeNames.ar[type],'','## الهدف المطلوب تحقيقه',goalSpec,'','## معايير النجاح',successSpec,'','## متطلبات المستخدم',requirements,'','## التقنيات المقترحة',stacks[type],
+    '','## اللغات والتعريب',local,'','## التراخيص',license,'','## مراحل التنفيذ',...phases,'',
+    '## اختبارات الجودة والثبات',...checks,'','## دعم KML/KMZ',fileSpec,'',
+    '## جودة الواجهة ومسار التحقق',mobileQualityLabel,qualitySkills.length?'راجع جاهزية بيئة التشغيل واحتياج كل مهارة؛ لا تعتبر اختبارات Windows ناجحة دون تشغيل Windows فعلي.':'اختر مهارة جودة إضافية فقط إذا كانت مهمة المستخدم تتطلبها.','',
+    '## تكامل الجهاز والصلاحيات',deviceSpec,'','## تعليمات الوكيل البرمجي','استنتج الهدف من طلب المستخدم وراجعه ثم استخدم موجّه المهارات لإنشاء Workflow بمهام مرتبة واختبارات قابلة للتحقق. لا تنفذ بمجرد استلام البرومبت، ولا تعتبر هذه الخطة موافقة أو إذنًا بتنفيذ الأوامر:',...list,
+    '','## مستوى التحقق','هذه خطة مقترحة وليست إثباتًا بنجاح تنفيذ المشروع.'
+  ]:[
+    '# GIS Project Implementation Plan','','## Project type',typeNames.en[type],'','## Intended user goal',goalSpec,'','## Observable success criteria',successSpec,'','## User requirements',requirements,'','## Suggested stack',stacks[type],
+    '','## Application languages',local,'','## Licensing',license,'','## Implementation phases',...phases,'',
+    '## Reliability and acceptance',...checks,'','## KML/KMZ',fileSpec,'',
+    '## UI quality and verification scope',mobileQualityLabel,qualitySkills.length?'Verify each selected specialist applies to the host; Windows E2E needs a real Windows GUI.':'Add specialist checks only when the user goal requires them.','',
+    '## OS/device capability and permission scope',deviceSpec,'','## Agent instructions','Interpret and review the user goal, then route through the GIS skills to a dependency-ordered workflow. Never execute directly from the prompt; this plan is not authenticated approval or host authorization:',...list,
+    '','## Verification status','This is a proposed plan, not evidence of project completion.'
+  ];
+  if(type==='mobile')sections.push('',ar?'## تنفيذ واختبارات GIS Mobile':'## Mobile GIS implementation and native testing',mobileSpec,ar?'اختبارات Android وiOS وGPS وتسجيل الدخول والمزامنة على الأجهزة الفعلية لا يمكن إثباتها من المتصفح.':'Native Android/iOS, GNSS, sign-in and sync checks are NOT RUN without matching device, app build and server evidence.');
+  // Machine-readable handoff uses the exact offline Intent Router v1 schema.
+  // No browser-side language model, authorization, network access or tool dispatch.
+  // Missing goals/criteria are NOT guessed; Markdown still supports exploration.
+  const outcomes=success.split(/\r?\n/).map(item=>item.trim()).filter(Boolean);
+  structuredPlan=null;
+  if(goal && outcomes.length){
+    const owner=skills[type];
+    const selected=[owner,'gis-security-guardian'];
+    if(qualitySkills.length)selected.push(...qualitySkills);
+    if(deviceNeeds!=='none')selected.push('system-capabilities-and-permissions');
+    if(deviceNeeds==='location'||deviceNeeds==='all')selected.push('gis-device-context');
+    if(type==='mobile')selected.push('system-capabilities-and-permissions','gis-device-context','gis-ui-ux-design-testing','coordinate-reference-systems','geospatial-data-processing');
+    if(type==='qgis-engine')selected.push('gis-desktop-application-development','coordinate-reference-systems','geospatial-data-processing');
+    if(kml)selected.push('kml-kmz-engineering');
+    if(locale!=='en')selected.push('gis-internationalization-arabic');
+    const specialisms=[...new Set(selected)];
+    const userLanguage=/[\u0600-\u06FF]/.test(goal+' '+requirement+' '+success)?'ar':(ar?'ar':'en');
+    structuredPlan={
+      schema_version:'1.0',
+      request_id:'GIS-WIZARD-UNASSIGNED',
+      revision:'r1',
+      original_request:requirement||goal,
+      language:userLanguage,
+      status:'draft',
+      approval:{approved_by_user:false,approved_revision:null,high_risk_approved:false},
+      goal:goal,
+      target:typeNames.en[type],
+      desired_outcomes:[goal],
+      success_criteria:outcomes,
+      constraints:[license,local,fileSpec,deviceSpec,...(type==='mobile'?[mobileSpec]:[])],
+      non_goals:[],
+      assumptions:['Draft, not AI-verified: suggested technologies, GIS host version and dependencies need actual validation.','Assign a unique request ID and confirm the entire goal with the user before approval.'],
+      open_questions:[...(requirement?['Confirm GIS runtime versions, original data, CRS/units and project scope before execution.']:['Describe project features, input/output GIS data, target GIS runtime and CRS before implementation.']),...(mobileAuthConflict?['Resolve local-only versus remote authenticated sign-in conflict before implementation.']:[])],
+      tasks:[
+        {id:'T1',title:'Review goal and architecture',description:'Confirm the user goal, requirements, platform, GIS engine, data contracts and licensing.',
+         priority:'must',kind:'planning',owner_skill:owner,skills:specialisms,depends_on:[],risk:'low',
+         acceptance_criteria:['Host and user confirm the objective, intended deliverable, constraints and success criteria.'],tools:[]},
+        {id:'T2',title:'Implement reviewed GIS deliverable',description:requirement||goal,
+         priority:'must',kind:type,owner_skill:owner,skills:specialisms,depends_on:['T1'],risk:'medium',
+         acceptance_criteria:outcomes,tools:[]},
+        {id:'T3',title:'Verify results and record evidence',description:'Check the user-visible GIS outcome, output files, native runtime when available, and documented limits.',
+         priority:'must',kind:'qa',owner_skill:owner,skills:specialisms,depends_on:['T2'],risk:'low',
+         acceptance_criteria:['Provide observed test evidence for the agreed success criteria.','Report blocked and NOT RUN native checks, change history and rollback information.'],tools:[]}
+      ]
+    };
+  }
+  $('downloadJson').disabled=!structuredPlan;
+  output=sections.join('\n');$('result').textContent=output;$('download').disabled=false;
+  $('status').textContent=dict[ar?'ar':'en'].statusReady;
+}
+$('lang').onclick=()=>{const previous=Boolean(output);ar=!ar;translate();if(previous)generatePlan()};
+for(const id of ['type','locale','files','license','qualityFocus','deviceNeeds','mobilePlatform','mobileNetwork','mobileSignIn'])$(id).addEventListener('change',()=>{if(id==='type')translate();invalidate();});
+for(const id of ['goal','success'])$(id).addEventListener('input',invalidate);
+$('details').addEventListener('input',invalidate);
+$('generate').onclick=generatePlan;
+$('download').onclick=()=>{
+  if(!output)return;
+  const url=URL.createObjectURL(new Blob([output],{type:'text/markdown;charset=utf-8'}));
+  const a=document.createElement('a');a.href=url;a.download=ar?'gis-project-plan-ar.md':'gis-project-plan-en.md';a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+};
+$('downloadJson').onclick=()=>{
+  if(!structuredPlan)return;
+  const data=JSON.stringify(structuredPlan,null,2)+'\n';
+  const url=URL.createObjectURL(new Blob([data],{type:'application/json;charset=utf-8'}));
+  const a=document.createElement('a');a.href=url;a.download='gis-workflow-draft.json';a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+};
+translate();
+</script></body></html>

@@ -53,6 +53,9 @@ The sample is illustrative. A host must actually inspect files and execute tests
 
 ## Acceptance & evidence
 
+Before recording completed work, apply [DoneProof](../completion-evidence/SKILL.md) and link per-criterion evidence, revision and incomplete/blocked/not-run checks. Journal history does not prove an external action happened.
+
+
 Report numbers are project-local, chronological and unbroken. A revision/cancellation/rollback refers to earlier steps, old records remain, and verification detects altered/missing reports. Run real GIS acceptance tests separately using [GIS Acceptance Report](../../templates/GIS_ACCEPTANCE_REPORT.md), distinguishing T0–T2 static/offline evidence from T3–T4 host-native proof.
 
 Read [journal lifecycle](../../references/agent-development-journal-guide.md), [inspiring upstream skills](../../references/agent-memory-skill-references.md) and [offline example](../../examples/development-journal/README.md). The helper does NOT implement code changes, perform Git revert, verify user identity, watch processes, or authenticate an approval.
