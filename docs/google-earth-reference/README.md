@@ -1,7 +1,7 @@
 # Google Earth Reference Framework — controlled research
 
 ## Scope and evidence (2026-10-26)
-User-authorized Google Drive folder: [private connected Google Drive reference — URL withheld]?usp=drive_link . Read-only directory inventory was performed through the connected Drive account. **No Google binaries executed, decompiled, or copied into this repository.** Filenames imply component categories but do not prove runtime behavior.
+User-authorized connected Google Drive installation folder (private URL intentionally withheld from this public repository). Read-only directory inventory was performed through the connected Drive account. **No Google binaries executed, decompiled, or copied into this repository.** Filenames imply component categories but do not prove runtime behavior.
 
 Observed `client/`: Qt5Widgets.dll, Qt5Gui.dll, Qt5OpenGL.dll, Qt5Network.dll, Qt5WebKit.dll, Qt5Positioning.dll, qt.conf, drivers.ini; subfolders `shaders/`, `plugins/`, `res/`, `lang/`, `alchemy/`.
 Observed `client/shaders/`: atmosphere.glslesf/v, lighting.h, stars.glslesf/v, watersurface.glslesf/v, hammer_aitoff.glslesf/v, viewshed.h and vegetation shader variants. These are names only, not validated feature contracts.
@@ -19,6 +19,9 @@ Use [clean-room skill](https://github.com/ahmadibrahim4geo/GIS-Development-Skill
 
 ## Delivered research assets
 
+- [Whole-program second-pass study](WHOLE_PROGRAM_SECOND_PASS.md) — verified text configuration insights, flight-simulator resource findings and legacy KML interoperability fix.
+- [Official functional gap checklist](OFFICIAL_FUNCTIONAL_GAP_CHECKLIST.md) — documented keyboard navigation, flight simulator, GPS tracks, layers, historical imagery and ZEarth-specific improvements.
+- [Privacy-first Windows data-folder inventory script](../../scripts/inspect-google-earth-userdata.ps1) — metadata only, no personal KML content or cache.
 - [Twelve role-specific reports](reports/) — R01–R08 reference investigation and Z01–Z04 ZEarth source audit.
 - [Feature comparison matrix](FEATURE_PARITY_MATRIX.md) — 30 distinct functions, shared vs ZEarth extras vs missing/review/paid exclusions.
 - [Agent manifest](AGENT_MANIFEST.json) — deterministic, auditable role definitions and skill ownership.
