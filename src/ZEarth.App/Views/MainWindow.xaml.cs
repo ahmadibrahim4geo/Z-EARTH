@@ -27,7 +27,7 @@ namespace ZEarth.App.Views
         {
             var client = new HttpClient
             {
-                Timeout = TimeSpan.FromSeconds(20)
+                Timeout = TimeSpan.FromSeconds(25)
             };
             client.DefaultRequestHeaders.UserAgent.ParseAdd("ZEarth-Desktop-GIS/2.2");
             return client;
