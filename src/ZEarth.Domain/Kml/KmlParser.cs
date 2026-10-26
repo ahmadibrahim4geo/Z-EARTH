@@ -184,9 +184,9 @@ namespace ZEarth.Domain.Kml
                 "ExtendedData", "Point", "LineString", "Polygon"
             };
 
-            if (placemark.ExtendedData.ContainsKey("GpsKmlTrack"))
-                knownNames.Add("Track"); // parsed into model and safely rebuilt on export.
-
+            // Keep the original gx:Track XML (including gx:angles/Model metadata)
+            // as a preserved fragment: we render sampled coordinates but export
+            // the exact source geometry instead of replacing it with a LineString.
             foreach (var elem in placemarkElem.Elements())
             {
                 if (!knownNames.Contains(elem.Name.LocalName))
