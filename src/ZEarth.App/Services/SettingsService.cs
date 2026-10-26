@@ -18,6 +18,8 @@ public class AppSettingsModel
     [System.Text.Json.Serialization.JsonIgnore]
     public string? CesiumIonToken { get; set; } = null;
     public string? CustomTerrainUrl { get; set; } = null;
+    // Procedural visual clouds are optional and offline, not live meteorological data.
+    public bool ShowClouds { get; set; } = false;
     public bool ShowGraticules { get; set; } = false;
     public bool ShowGraticuleLabels { get; set; } = true;
     public string GridLabelFormat { get; set; } = "DMS";
