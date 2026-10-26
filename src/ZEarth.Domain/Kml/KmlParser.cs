@@ -49,11 +49,17 @@ namespace ZEarth.Domain.Kml
 
             var rootFolder = new PlaceItem(defaultRootName, PlaceItemType.Folder);
 
-            // Find Document or direct Folder/Placemark elements
-            var docElement = doc.Root.Element(KmlNs + "Document") ?? doc.Root.Element("Document");
+            // KML 2.2 is the standard, but installed Google Earth Pro also ships
+            // userpalette.kml with the legacy earth.google.com/kml/2.1 namespace.
+            // Use the immediate element's local name so versioned namespaces are
+            // accepted without discarding Document/Style/StyleMap children.
+            var docElement = doc.Root.Name.LocalName.Equals("Document", StringComparison.OrdinalIgnoreCase)
+                ? doc.Root
+                : doc.Root.Elements().FirstOrDefault(e =>
+                    e.Name.LocalName.Equals("Document", StringComparison.OrdinalIgnoreCase));
             if (docElement != null)
             {
-                var docName = docElement.Element(KmlNs + "name")?.Value ?? docElement.Element("name")?.Value;
+                var docName = GetElementValue(docElement, "name");
                 if (!string.IsNullOrWhiteSpace(docName))
                 {
                     rootFolder.Name = docName;
