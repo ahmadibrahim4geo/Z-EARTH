@@ -43,9 +43,9 @@ public sealed class KmlLegacyGoogleEarth21Tests
         Assert.AreEqual(PlaceItemType.Placemark, point.ItemType);
         Assert.AreEqual("القاهرة", point.Name);
         Assert.IsFalse(point.IsVisible);
-        Assert.AreEqual(31.2357, point.Longitude, 1e-7);
-        Assert.AreEqual(30.0444, point.Latitude, 1e-7);
-        Assert.AreEqual(22.0, point.Altitude, 1e-7);
+        Assert.AreEqual(31.2357, point.Longitude.GetValueOrDefault(), 1e-7);
+        Assert.AreEqual(30.0444, point.Latitude.GetValueOrDefault(), 1e-7);
+        Assert.AreEqual(22.0, point.Altitude.GetValueOrDefault(), 1e-7);
         Assert.AreEqual("#style-map", point.StyleUrl);
         Assert.IsTrue(root.PreservedXmlFragments.Any(x => x.Contains("StyleMap")));
         Assert.IsTrue(root.PreservedXmlFragments.Any(x => x.Contains("IconStyle")));
