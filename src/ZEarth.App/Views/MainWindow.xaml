@@ -234,6 +234,8 @@
 
                 <!-- TAB 0: PROJECT -->
                 <TabItem Header="Project">
+                    <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled"
+                                  Focusable="False" Background="{DynamicResource Brush.Ribbon.Background}">
                     <StackPanel Orientation="Horizontal" Height="90" Background="{DynamicResource Brush.Ribbon.Background}" Margin="4,2">
                         <!-- Group: File Management -->
                         <Border Style="{StaticResource RibbonGroupBorderStyle}">
@@ -328,10 +330,14 @@
                             </Grid>
                         </Border>
                     </StackPanel>
+                
+                    </ScrollViewer>
                 </TabItem>
 
                 <!-- TAB 1: NAVIGATION -->
                 <TabItem Header="Navigation">
+                    <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled"
+                                  Focusable="False" Background="{DynamicResource Brush.Ribbon.Background}">
                     <StackPanel Orientation="Horizontal" Height="90" Background="{DynamicResource Brush.Ribbon.Background}" Margin="4,2">
                         <!-- Group: Standard Views -->
                         <Border Style="{StaticResource RibbonGroupBorderStyle}">
@@ -467,10 +473,14 @@
                             </Grid>
                         </Border>
                     </StackPanel>
+                
+                    </ScrollViewer>
                 </TabItem>
 
                 <!-- TAB 2: VIEW (ZE-009, ZE-011) -->
                 <TabItem Header="View">
+                    <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled"
+                                  Focusable="False" Background="{DynamicResource Brush.Ribbon.Background}">
                     <StackPanel Orientation="Horizontal" Height="112" Background="{DynamicResource Brush.Ribbon.Background}" Margin="4,2">
                         <!-- Compact basemap selector in View, as requested. -->
                         <Border Style="{StaticResource RibbonGroupBorderStyle}">
@@ -677,10 +687,14 @@
                             </Grid>
                         </Border>
                     </StackPanel>
+                
+                    </ScrollViewer>
                 </TabItem>
 
                 <!-- TAB 3: DRAWING -->
                 <TabItem Header="Drawing">
+                    <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled"
+                                  Focusable="False" Background="{DynamicResource Brush.Ribbon.Background}">
                     <StackPanel Orientation="Horizontal" Height="90" Background="{DynamicResource Brush.Ribbon.Background}" Margin="4,2">
                         <!-- Group: Vector Annotation -->
                         <Border Style="{StaticResource RibbonGroupBorderStyle}">
@@ -750,10 +764,14 @@
                             </Grid>
                         </Border>
                     </StackPanel>
+                
+                    </ScrollViewer>
                 </TabItem>
 
                 <!-- TAB 4: MEASUREMENT -->
                 <TabItem Header="Measurement">
+                    <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled"
+                                  Focusable="False" Background="{DynamicResource Brush.Ribbon.Background}">
                     <StackPanel Orientation="Horizontal" Height="90" Background="{DynamicResource Brush.Ribbon.Background}" Margin="4,2">
                         <!-- Group 1: Geodesic Tools (ZE-046, ZE-047) -->
                         <Border Style="{StaticResource RibbonGroupBorderStyle}">
@@ -837,10 +855,14 @@
                             </Grid>
                         </Border>
                     </StackPanel>
+                
+                    </ScrollViewer>
                 </TabItem>
 
                 <!-- TAB 5: LAYERS (ZE-048, ZE-049, ZE-052) -->
                 <TabItem Header="Basemap">
+                    <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled"
+                                  Focusable="False" Background="{DynamicResource Brush.Ribbon.Background}">
                     <StackPanel Orientation="Horizontal" Height="90" Background="{DynamicResource Brush.Ribbon.Background}" Margin="4,2">
                         <Border Style="{StaticResource RibbonGroupBorderStyle}">
                             <Grid>
@@ -876,10 +898,14 @@
                             </StackPanel>
                         </Border>
                     </StackPanel>
+                
+                    </ScrollViewer>
                 </TabItem>
 
                 <!-- Dedicated historical imagery workspace -->
                 <TabItem Header="Historical Imagery">
+                    <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled"
+                                  Focusable="False" Background="{DynamicResource Brush.Ribbon.Background}">
                     <StackPanel Orientation="Horizontal" Height="90" Background="{DynamicResource Brush.Ribbon.Background}" Margin="4,2">
                         <Border Style="{StaticResource RibbonGroupBorderStyle}">
                             <Grid>
@@ -900,10 +926,14 @@
                             </Grid>
                         </Border>
                     </StackPanel>
+                
+                    </ScrollViewer>
                 </TabItem>
 
                 <!-- TAB 6: TERRAIN (ZE-050, ZE-051, AC-019) -->
                 <TabItem Header="Terrain">
+                    <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled"
+                                  Focusable="False" Background="{DynamicResource Brush.Ribbon.Background}">
                     <StackPanel Orientation="Horizontal" Height="90" Background="{DynamicResource Brush.Ribbon.Background}" Margin="4,2">
                         <!-- Group 1: Elevation Model Selection -->
                         <Border Style="{StaticResource RibbonGroupBorderStyle}">
@@ -958,10 +988,14 @@
                             </Grid>
                         </Border>
                     </StackPanel>
+                
+                    </ScrollViewer>
                 </TabItem>
 
                 <!-- TAB 7: TOOLS -->
                 <TabItem Header="Tools">
+                    <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled"
+                                  Focusable="False" Background="{DynamicResource Brush.Ribbon.Background}">
                     <StackPanel Orientation="Horizontal" Height="90" Background="{DynamicResource Brush.Ribbon.Background}" Margin="4,2">
                         <Border Style="{StaticResource RibbonGroupBorderStyle}">
                             <Grid>
@@ -1011,10 +1045,14 @@
                             </Grid>
                         </Border>
                     </StackPanel>
+                
+                    </ScrollViewer>
                 </TabItem>
 
                 <!-- TAB 8: HELP -->
                 <TabItem Header="Help">
+                    <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled"
+                                  Focusable="False" Background="{DynamicResource Brush.Ribbon.Background}">
                     <StackPanel Orientation="Horizontal" Height="90" Background="{DynamicResource Brush.Ribbon.Background}" Margin="4,2">
                         <Border Style="{StaticResource RibbonGroupBorderStyle}">
                             <Grid>
@@ -1034,6 +1072,8 @@
                             </Grid>
                         </Border>
                     </StackPanel>
+                
+                    </ScrollViewer>
                 </TabItem>
             </TabControl>
         </Border>
