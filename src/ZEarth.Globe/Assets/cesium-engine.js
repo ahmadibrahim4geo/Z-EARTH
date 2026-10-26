@@ -2875,7 +2875,7 @@
     atmosphereEnabled: true,
     animationTimer: null,
     dateUtc: new Date().toISOString().slice(0, 10),
-    setTimeOfDay(timeHours, dateUtc) {
+    setTimeOfDay(timeHours, dateUtc, isRealTime = false) {
       const hours = Math.max(0, Math.min(24, Number(timeHours) || 0));
       // Date/time is UTC; geographic sun angle automatically follows the
       // globe's actual Earth location in Cesium's lighting calculation.
@@ -2895,7 +2895,8 @@
       const label = document.getElementById('sunlight-time-label');
       if (slider) slider.value = String(hours);
       if (label) label.textContent = `${String(whole).padStart(2, '0')}:${String(minutes).padStart(2, '0')} UTC`;
-      sendHostMessage({ event: 'environment.timeChanged', timeHours: hours });
+      sendHostMessage({ event: 'environment.timeChanged', timeHours: hours,
+        dateUtc: this.dateUtc, isRealTime });
       viewer.scene.requestRender();
       return hours;
     },
@@ -2910,7 +2911,7 @@
       else if (enabled) {
         const now = new Date();
         this.setTimeOfDay(now.getUTCHours() + now.getUTCMinutes() / 60,
-          now.toISOString().slice(0, 10));
+          now.toISOString().slice(0, 10), true);
       }
       viewer.scene.requestRender();
       sendHostMessage({ event: 'environment.sunlightChanged', enabled });
@@ -3019,7 +3020,7 @@
   document.getElementById('btn-sunlight-now')?.addEventListener('click', () => {
     const now = new Date();
     EnvironmentManager.setTimeOfDay(now.getUTCHours() + now.getUTCMinutes() / 60,
-      now.toISOString().slice(0, 10));
+      now.toISOString().slice(0, 10), true);
   });
   document.getElementById('btn-sunlight-play')?.addEventListener('click', () => EnvironmentManager.toggleAnimation());
   document.getElementById('btn-sunlight-close')?.addEventListener('click', () => EnvironmentManager.setSunlight({ enabled: false }));
