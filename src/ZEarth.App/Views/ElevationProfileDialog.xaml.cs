@@ -31,6 +31,22 @@ namespace ZEarth.App.Views
             ComputeStatisticsAndDraw();
         }
 
+        /// <summary>Measured samples supplied by the active terrain provider through WebView2.</summary>
+        public ElevationProfileDialog(IEnumerable<ProfileSample> measuredSamples, string provenance)
+        {
+            InitializeComponent();
+            var values = measuredSamples?.ToList() ?? new List<ProfileSample>();
+            if (values.Count >= 2 && values.All(p =>
+                double.IsFinite(p.DistanceMeters) && double.IsFinite(p.ElevationMeters) &&
+                double.IsFinite(p.Longitude) && double.IsFinite(p.Latitude)))
+            {
+                _samples.AddRange(values);
+            }
+            ProfileTitleText.Text = "Terrain Elevation Profile (DEM samples)";
+            ProfileSourceText.Text = provenance ?? "Active DEM height source; height datum is provider-specific.";
+            ComputeStatisticsAndDraw();
+        }
+
         private void GenerateProfileSamples(IEnumerable<CoordinatePoint>? rawPoints)
         {
             _samples.Clear();
