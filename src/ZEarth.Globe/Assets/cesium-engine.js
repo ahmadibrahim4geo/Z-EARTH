@@ -4037,6 +4037,54 @@
           respondSuccess({ cleared: true });
           break;
         }
+        case 'terrain.samplePath': {
+          const points = data.payload?.points;
+          const provider = viewer.terrainProvider;
+          if (!Array.isArray(points) || points.length < 2 || points.length > 256 ||
+              points.some(p => !Number.isFinite(p?.longitude) || !Number.isFinite(p?.latitude) ||
+                p.latitude < -90 || p.latitude > 90 || p.longitude < -180 || p.longitude > 180)) {
+            respond('failed', null, 'Terrain profile requires 2–256 valid geographic points.');
+            break;
+          }
+          if (TerrainManager.currentType === 'ellipsoid' ||
+              provider instanceof Cesium.EllipsoidTerrainProvider) {
+            respond('failed', null, 'No elevation DEM active; ellipsoid heights are not terrain measurements.');
+            break;
+          }
+          const cartographics = points.map(p =>
+            Cesium.Cartographic.fromDegrees(p.longitude, p.latitude));
+          respondAccepted({ started: true, source: TerrainManager.currentType });
+          const terrainSampling = async () => {
+            // The local Terrarium CustomHeightmap provider has no availability tree,
+            // so sampleTerrainMostDetailed cannot always determine a target level.
+            if (provider.availability && typeof Cesium.sampleTerrainMostDetailed === 'function') {
+              try {
+                return await Cesium.sampleTerrainMostDetailed(provider, cartographics);
+              } catch (error) {
+                console.warn('Falling back to fixed-level terrain sampling:', error);
+              }
+            }
+            return await Cesium.sampleTerrain(provider, 11, cartographics);
+          };
+          terrainSampling().then(sampled => {
+            if (!Array.isArray(sampled) || sampled.length !== points.length ||
+                sampled.some(p => !Number.isFinite(p.height))) {
+              respond('failed', null, 'No complete numeric terrain profile: one or more DEM samples are missing.');
+              return;
+            }
+            respondSuccess({
+              source: TerrainManager.currentType,
+              verticalUnits: 'metres (source terrain elevation datum)',
+              samples: sampled.map((p,i) => ({
+                longitude: points[i].longitude,
+                latitude: points[i].latitude,
+                height: p.height
+              }))
+            });
+          }).catch(err => respond('failed', null,
+            'Terrain elevation request failed: ' + String(err?.message || err)));
+          break;
+        }
         case 'terrain.setProvider': {
           const type = data.payload?.type || 'ellipsoid';
           const url = data.payload?.url;
