@@ -10,6 +10,17 @@ Open-source-oriented **Windows desktop GIS development project** using **.NET 10
 
 **Developer:** Ahmed Ibrahim. [الدليل بالعربية](README.ar.md) · [Agent guide](AGENTS.md) · [User manual EN](docs/USER_MANUAL_EN.md) · [User manual AR](docs/USER_MANUAL_AR.md) · [Licensing and privacy](LEGAL_AND_PRIVACY_NOTICES.md).
 
+## Start here — development preview
+
+| Goal | Resource |
+| --- | --- |
+| Try the Windows x64 portable preview | [Download instructions](docs/PORTABLE_PREVIEW.md) · [Actions builds](https://github.com/ahmadibrahim4geo/Z-EARTH/actions/workflows/build-and-test.yml) |
+| Understand current capabilities and test tiers | [Repository onboarding](docs/REPOSITORY_ONBOARDING.md) · [Parity matrix](docs/GOOGLE_EARTH_PRO_PARITY.md) |
+| Report Windows / KML / globe bugs | [New issue](https://github.com/ahmadibrahim4geo/Z-EARTH/issues/new/choose) · [Contribute](CONTRIBUTING.md) |
+| Review code licensing and privacy | [Source license status — review required](docs/LICENSE_STATUS.md) · [Security](SECURITY.md) |
+
+**Project status:** source and portable preview are under active development; CI build success does not confirm native GPU/WebView2 behavior. **A root project-wide source-code license still needs explicit owner approval and upstream compatibility review**; third-party license notices alone do not provide one.
+
 ## Download the Windows EXE (Portable Preview)
 
 The GitHub source repository previously **did not publish its compiled .exe**; green Actions builds only uploaded unit-test logs. The [Windows portable preview guide](docs/PORTABLE_PREVIEW.md) now explains how to download the **latest successful main-branch Actions artifact** named `Z-EARTH-v2.2.4-win-x64-portable-preview`, extract it, and launch `Z EARTH.exe` with bundled Cesium assets.
