@@ -2972,6 +2972,10 @@
     Cesium, viewer,
     onStatus: details => sendHostMessage(details)
   });
+  const GpsPlayback = window.ZEarthGpsPlayback.create({
+    Cesium, viewer,
+    onChange: details => sendHostMessage({ event: 'gps.playbackChanged', ...details })
+  });
 
   const SwipeManager = {
     active: false,
@@ -3988,9 +3992,25 @@
           break;
         }
         case 'flight.setActive': {
+          if (data.payload?.enabled === true) GpsPlayback.stop();
           const state = FlightSimulator.setActive(data.payload?.enabled === true);
           if (state.error) respond('failed', state, state.error);
           else respondSuccess(state);
+          break;
+        }
+        case 'gps.playTrack': {
+          if (FlightSimulator.getState().enabled) FlightSimulator.stop(false);
+          const state = GpsPlayback.start(data.payload?.points, data.payload?.durationSeconds ?? 30);
+          if (state.error) respond('failed', state, state.error);
+          else respondSuccess(state);
+          break;
+        }
+        case 'gps.stopTrack': {
+          respondSuccess(GpsPlayback.stop());
+          break;
+        }
+        case 'gps.pauseTrack': {
+          respondSuccess(GpsPlayback.setPaused(data.payload?.paused === true));
           break;
         }
         case 'environment.setTimeOfDay': {
