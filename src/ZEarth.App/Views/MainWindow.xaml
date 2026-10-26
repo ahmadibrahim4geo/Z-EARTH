@@ -313,6 +313,12 @@
                                             <TextBlock Text="Import KML" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
                                         </StackPanel>
                                     </Button>
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding ImportGpxCommand}" ToolTip="{Binding GpsImportTooltip}" AutomationProperties.AutomationId="ZE.Main.021a.ImportGpxCommand" AutomationProperties.Name="{Binding GpsImportLabel}">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <TextBlock Text="GPS" FontSize="18" Foreground="{DynamicResource Brush.Accent}" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+                                            <TextBlock Text="{Binding GpsImportLabel}" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Button>
                                     <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding ExportKmlCommand}" ToolTip="Export current Places hierarchy to KML 2.2" AutomationProperties.AutomationId="ZE.Main.022.ExportKmlCommand" AutomationProperties.Name="Export current Places hierarchy to KML 2.2">
                                         <StackPanel HorizontalAlignment="Center">
                                             <Path Data="{StaticResource Icon.KmlExport}" Style="{StaticResource RibbonLargeIconStyle}" Fill="#f472b6"/>
@@ -1431,6 +1437,7 @@
                                                     <MenuItem Header="📁 Add Folder" Command="{Binding AddFolderCommand}"/>
                                                     <MenuItem Header="🎬 Add Saved Scene" Command="{Binding AddSavedSceneCommand}"/>
                                                     <MenuItem Header="📥 Import KML/KMZ..." Command="{Binding ImportKmlCommand}"/>
+                                                    <MenuItem Header="GPS / GPX Import..." Command="{Binding ImportGpxCommand}"/>
                                                     <Separator/>
                                                     <MenuItem Header="💾 Save Active Project" Command="{Binding SaveProjectCommand}"/>
                                                     <MenuItem Header="📤 Export Selected Item..." Command="{Binding ExportSelectedItemCommand}"/>
