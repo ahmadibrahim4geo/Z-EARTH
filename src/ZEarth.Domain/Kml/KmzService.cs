@@ -50,7 +50,13 @@ namespace ZEarth.Domain.Kml
                 {
                     // 1. Defend against ZipSlip (path traversal via ../ or rooted paths)
                     string destPath = Path.GetFullPath(Path.Combine(fullDestDir, entry.FullName));
-                    if (!destPath.StartsWith(fullDestDir, StringComparison.OrdinalIgnoreCase))
+                    // Windows paths are case-insensitive; Unix paths are not. Using an
+                    // unconditional OrdinalIgnoreCase comparison allows ../archive to
+                    // escape an extraction folder named Archive on Linux.
+                    var pathComparison = OperatingSystem.IsWindows()
+                        ? StringComparison.OrdinalIgnoreCase
+                        : StringComparison.Ordinal;
+                    if (!destPath.StartsWith(fullDestDir, pathComparison))
                     {
                         throw new UnauthorizedAccessException($"Malicious entry detected (ZipSlip attempt): '{entry.FullName}'");
                     }
