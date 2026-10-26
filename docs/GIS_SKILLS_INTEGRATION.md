@@ -1,26 +1,25 @@
-# GIS Development Skills — reviewed upstream main snapshot for Z EARTH
+# GIS Development Skills — only active Z EARTH agent skill source
 
-**Updated:** 2026-10-26. **Canonical source:** https://github.com/ahmadibrahim4geo/GIS-Development-Skills/tree/222699fb04a8d6ea2583f13e5e37dbfc6a0f55cd
-**Source branch:** `main`. **Pinned commit:** `222699fb04a8d6ea2583f13e5e37dbfc6a0f55cd`.
-**Verification manifest:** [GIS_SKILLS_SNAPSHOT.json](GIS_SKILLS_SNAPSHOT.json).
+**Migrated:** 2026-10-26. **Canonical source:** https://github.com/ahmadibrahim4geo/GIS-Development-Skills/tree/222699fb04a8d6ea2583f13e5e37dbfc6a0f55cd  
+**Pinned upstream `main`:** `222699fb04a8d6ea2583f13e5e37dbfc6a0f55cd` · [exact checksums](GIS_SKILLS_SNAPSHOT.json)
 
-## Vendored content and unchanged project boundaries
+## Removed: duplicated local specialist instructions
 
-- **30** source-matched `.github/skills/<specialist>/SKILL.md` files and **76** source-matched `.github/references/` files. Every mirrored source file has the upstream Git blob SHA listed in the manifest. The archived `gis-development/LEGACY_FULL_SKILL.md` is a companion, not another routed specialist.
-- Imported compatible helpers, fixtures, tests and the upstream planning wizard live in `.github/scripts/`, `.github/examples/`, `.github/tests/`, `.github/templates/`, `.github/docs/`, `.github/native_tests/` and `.github/project-wizard.html`.
-- The source repo's generated `references/repository-manifest.json` is **not** copied: instead, `.github/references/repository-manifest.json` is a separately generated **ZEarth-local** inventory including all local `zearth-*` and `cesiumjs-*` skills. It does not claim the external source site's catalog counts.
-- All Z EARTH/CesiumJS project specialists and code under `src/` are preserved. Installing a development skill does not automatically add a WPF Ribbon command, GIS renderer, device permission or new app feature.
+Z EARTH previously had 63 discoverable agent skills: **30 pinned GIS Development Skills specialists** and **33 project-specific `zearth-*`/`cesiumjs-*`/`using-cesiumjs-skills` entries**. Following the requested simplification, all 33 project-specific specialist folders were removed from the *active skill directory*. Their previous content remains accessible through Git history, **not** as a runtime or agent fallback.
 
-## Routing and new scope
+This change **does not remove WPF, CesiumJS, WebView2, .NET, KML/KMZ or any project runtime code or saved user data**. Local application-specific requirements remain in [root AGENTS.md](../AGENTS.md), [Google Earth Pro parity](GOOGLE_EARTH_PRO_PARITY.md), [KML/Explorer acceptance](KML_EXPLORER_ACCEPTANCE_2026-10-25.md), [terrain/grid acceptance](TERRAIN_GRID_ACCEPTANCE.md), [historical imagery](HISTORICAL_IMAGERY_TIMELINE.md), and [full runtime validation](FRESH_CLONE_VALIDATION.md). Historical reports may mention paths that were valid when they were written; they are not active routing documentation.
 
-1. Start with [root Z EARTH AGENTS.md](../AGENTS.md), [Earth workflow adapter](../.github/skills/zearth-google-earth-pro-workflows/SKILL.md), and [project workflow](ZEARTH_AGENT_WORKFLOW.md).
-2. For multi-step development, use [Prompt Intent Orchestrator](../.github/skills/prompt-intent-orchestrator/SKILL.md) → [GIS Development Router](../.github/skills/gis-development/SKILL.md) → project-specific domain owner → [GIS Security Guardian](../.github/skills/gis-security-guardian/SKILL.md) → [DoneProof](../.github/skills/completion-evidence/SKILL.md). An agent's Markdown cannot itself grant user/OS permissions.
-3. GIS command audits: `gis-ui-command-audit`; native WPF/WebView2/Windows interaction tests: `gis-desktop-e2e-testing`; import/CRS/renderer/save/export lineage: `gis-data-flow-diagnostics`; interface design, accessibility and Arabic: `gis-ui-ux-design-testing` + `gis-internationalization-arabic`.
-4. Conditional related expertise: `system-capabilities-and-permissions` and `gis-device-context` for device/time/location; `qgis-engine-integration` for reviewed optional engine integration; `gis-mobile-application-development` only for actual mobile projects, **not** a mandate to convert this desktop app.
-5. The upstream [Project Wizard](../.github/project-wizard.html) is a separate developer planning aid. Nothing is automatically installed or invoked from external repositories. Keep the local JavaScript globe, provider licenses, data and project formats under Z EARTH's existing contracts.
+## What remains active
 
-## Integrity and tests
+- **30 source-matched upstream specialist `SKILL.md` documents** in `.github/skills/` and **76 corresponding upstream references**, unchanged from the pinned source, with Git blob SHA verification.
+- The existing reviewed utility scripts, fixtures, tests, and developer-only [Project Wizard](../.github/project-wizard.html), which do **not** run as app plugins.
+- One source router: [GIS Development](../.github/skills/gis-development/SKILL.md), with relevant upstream [Desktop](../.github/skills/gis-desktop-application-development/SKILL.md), [KML](../.github/skills/kml-kmz-engineering/SKILL.md), [Web Mapping/Cesium](../.github/skills/geospatial-web-mapping/SKILL.md), [UI Command Audit](../.github/skills/gis-ui-command-audit/SKILL.md), [Desktop E2E](../.github/skills/gis-desktop-e2e-testing/SKILL.md), [Data Flow](../.github/skills/gis-data-flow-diagnostics/SKILL.md), and [UI/UX](../.github/skills/gis-ui-ux-design-testing/SKILL.md) as needed.
+- Security and completion: `gis-security-guardian` and `completion-evidence`; no local duplicate specialist can override them.
 
-Run `python scripts/validate-agent-skills.py` in the Z EARTH root for checksum/frontmatter/link/XAML checks. Run relevant offline Python helper tests from the `.github` working directory; they validate contracts and synthetic fixtures only. Run actual app `dotnet build`, `dotnet test`, `node --check`, relevant Node tests, and a **real Windows WebView2/Cesium acceptance session** before claiming end-to-end function. A GitHub CI success is **not** a native GUI test.
+## Safety and verification
 
-This snapshot is intentionally pinned, not live-syncing with upstream `main`. Refresh through reviewed changes, regenerate the manifest and record actual evidence. Upstream original content is MIT; third-party code, icon packs, satellite maps, online services and data remain subject to their independent terms. Preserve user data, one canonical Preview, and existing local project skills.
+Agents read [root AGENTS.md](../AGENTS.md) → upstream router → one or more relevant generic specialists → exact project contracts and real code. No skill file itself can grant permission, send data or make Cesium render successfully.
+
+Run `python scripts/validate-agent-skills.py` for upstream hashes, **exact inventory (reject unexpected extra SKILL.md)**, local link checks, removal of stale active routing, and XML/XAML syntax. Native Windows/real GPU/WebView2/terrain/KML acceptance remains required before declaring actual features working. Changes to an installed app need separate code changes and T3/T4 evidence; static source checks only establish agent instruction consistency.
+
+Third-party plugins/data/imagery retain their independent license terms. Never auto-sync a moving upstream branch or restore legacy skills without a reviewed change.

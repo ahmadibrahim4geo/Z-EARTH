@@ -43,19 +43,15 @@ Launch `dist/Z EARTH-Preview/Z EARTH.exe` **only after** tests and package valid
 | `src/ZEarth.Domain/` | Geospatial data, CRS/GDAL, KML/KMZ, SQLite, snapping, geometry |
 | `tests/ZEarth.Tests/` | Automated unit/component tests; many use **FakeGlobeEngine** |
 | `scripts/` | Safe build, Windows screenshot harnesses, reproducibility |
-| `.github/skills/` | Project-specialized Z EARTH/CesiumJS skills **and 21 pinned GIS Development Skills** |
+| `.github/skills/` | **30 pinned GIS Development Skills** (single skill source; no local duplicates) |
 
-## GIS skill integration: new Codex/Agent checkout
+## GIS Development Skills — single development-agent source
 
-Read [AGENTS.md](AGENTS.md) as the first action. The [vendor snapshot](docs/GIS_SKILLS_INTEGRATION.md) copies **21** domain skills and **54** version-pinned references/catalogs with original MIT attribution from [GIS Development Skills](https://github.com/ahmadibrahim4geo/GIS-Development-Skills), **without replacing existing Z EARTH skills**.
+The **only active skills** in `.github/skills/` are the **30 verified source-matched GIS Development Skills specialists**, pinned with **76 references** from upstream [GIS Development Skills](https://github.com/ahmadibrahim4geo/GIS-Development-Skills) `main` commit `222699fb04a8d6ea2583f13e5e37dbfc6a0f55cd`. The 33 duplicated local Z EARTH/CesiumJS specialist skills have been removed, not used as fallback. Original history remains recoverable from Git. No executable, Cesium assets, or application behavior has been changed by this documentation migration.
 
-The source commit `ef26b76a134b89e950b616e30326df91bd226b43` is recorded in [the checksum manifest](docs/GIS_SKILLS_SNAPSHOT.json). Run `python scripts/validate-agent-skills.py` to verify all copied source Git hashes, local links and XAML before development. The project-specific [Google Earth Pro agent adapter](.github/skills/zearth-google-earth-pro-workflows/SKILL.md) maps [Earth behavior](.github/references/google-earth-pro-engineering.md), [historical imagery design](.github/references/historical-imagery-timeline.md), [KML fidelity](.github/references/google-kml-kmz-compatibility.md) and [World Gazetteer](.github/references/world-gazetteer-reference-layer.md) to real WPF → GlobeBridge → Cesium workflows. The cross-cutting `gis-security-guardian` accompanies the local security specialist.
+Start from [root agent instructions](AGENTS.md), then [the GIS router](.github/skills/gis-development/SKILL.md), selecting the relevant upstream specialist. The actual Z EARTH implementation requirements remain in [Google Earth parity](docs/GOOGLE_EARTH_PRO_PARITY.md), [KML/Explorer acceptance](docs/KML_EXPLORER_ACCEPTANCE_2026-10-25.md), [terrain/grid acceptance](docs/TERRAIN_GRID_ACCEPTANCE.md), and [historical imagery contract](docs/HISTORICAL_IMAGERY_TIMELINE.md). For safety/verification use `gis-security-guardian`, `completion-evidence` and true native test results.
 
-**New agent workflow:** [Prompt Intent Orchestrator](.github/skills/prompt-intent-orchestrator/SKILL.md) handles scoped, reviewable development plans; [Agent Development Journal](.github/skills/agent-development-journal/SKILL.md) adds optional numbered, private project-local history with real file/test evidence. Both are bundled with runnable offline Python helpers and regression tests. See [Z EARTH agent workflow](docs/ZEARTH_AGENT_WORKFLOW.md). The pin comes from upstream [PR #20](https://github.com/ahmadibrahim4geo/GIS-Development-Skills/pull/20), **still open at the time of integration**, rather than assuming a release on upstream main.
-
-**This integration teaches coding agents working on the repository; the compiled Z EARTH executable does not dynamically execute or interpret SKILL.md.** Existing Esri Wayback dates are **release dates**, not sensor acquisition dates. Source-guided upgrades require actual implementation and native acceptance.
-
-The agent picks the task-specific chain. Example: *Sunlight toggle not working* → `gis-development` router → `gis-desktop-application-development` + `geospatial-web-mapping` → existing `zearth-globe-bridge` and `cesiumjs-terrain-environment` → correct source and acceptance tests.
+[Integration and replacement record](docs/GIS_SKILLS_INTEGRATION.md) · [Pinned source checksum manifest](docs/GIS_SKILLS_SNAPSHOT.json). Execute `python scripts/validate-agent-skills.py` to check inventory, provenance, source file links and XAML. **SKILL.md documents do not run in the installed desktop program.**
 
 ## Before reporting a feature as fixed
 
@@ -71,7 +67,7 @@ Newly cloned agents must not conflate T2 with T3/T4. Follow [release evidence ch
 
 Our project targets the useful **Google Earth Pro Desktop** workflows (saved camera scenes and ordered My Places, Temporary Places, KML/KMZ, name/coordinate search, 3D terrain, profiles, measurement, drawing, themes, imagery). The [detailed parity matrix](docs/GOOGLE_EARTH_PRO_PARITY.md) separates implemented fixes from still-planned features. Unlike the previous draft, profile elevation is never *fabricated* from sine waves; the current chart is clearly labelled **stored path vertex Z** until true active-DEM sampling is implemented.
 
-**REA tool:** [morluto/rea](https://github.com/morluto/rea) is the existing MIT-licensed local reverse-engineering **analysis tool**, not Google Earth Pro source. The user's `D:\\My Software\\Zearth\\rea` workspace stays outside tracked Z EARTH. We reviewed REA docs but have **not run REA on the user's local Google Earth Pro installation**; refer to [REA task skill](.github/skills/zearth-rea-parity/SKILL.md). No proprietary Google Earth binaries or extracted code are bundled.
+**REA tool:** [morluto/rea](https://github.com/morluto/rea) is the existing MIT-licensed local reverse-engineering **analysis tool**, not Google Earth Pro source. The user's `D:\\My Software\\Zearth\\rea` workspace stays outside tracked Z EARTH. We reviewed REA docs but have **not run REA on the user's local Google Earth Pro installation**; use the documented [Google Earth parity criteria](docs/GOOGLE_EARTH_PRO_PARITY.md). No proprietary Google Earth binaries or extracted code are bundled.
 
 ## Historical imagery timeline (Esri Wayback)
 
@@ -88,4 +84,4 @@ See [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md) and [LEGAL_AND_PRIVACY_NO
 
 ## Development skills source snapshot
 
-Z EARTH vendors a reviewed [GIS Development Skills](https://github.com/ahmadibrahim4geo/GIS-Development-Skills) snapshot: **30 generic specialist skills and 76 references**, pinned to source `main` commit `222699fb04a8d6ea2583f13e5e37dbfc6a0f55cd`. See [integration and reproducible verification](docs/GIS_SKILLS_INTEGRATION.md) and [snapshot hashes](docs/GIS_SKILLS_SNAPSHOT.json). These are development-agent resources; application UI features require separate wiring and real Windows acceptance.
+The single reviewed [GIS Development Skills](https://github.com/ahmadibrahim4geo/GIS-Development-Skills) skill catalog includes 30 specialists and 76 source references, pinned to upstream `main` commit `222699fb04a8d6ea2583f13e5e37dbfc6a0f55cd`. All duplicate Z EARTH/CesiumJS skills were removed from the active skill directory. See [migration documentation](docs/GIS_SKILLS_INTEGRATION.md) and [checksums](docs/GIS_SKILLS_SNAPSHOT.json).

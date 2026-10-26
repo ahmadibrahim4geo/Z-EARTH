@@ -31,13 +31,11 @@ dotnet test tests/ZEarth.Tests/ZEarth.Tests.csproj -c Release --no-build
 
 ## استخدام مهارات GIS Development Skills
 
-أضفنا **21 مهارة GIS مثبتة النسخة** و**54 ملفًا مرجعيًا** داخل `.github/skills/` جنبًا إلى جنب مع مهارات CesiumJS وZ EARTH الموجودة بالفعل. يقرأ الـAgent [AGENTS.md](AGENTS.md) أولًا، ثم مهارة `gis-development` الأساسية، ثم مهارات التخصص الضرورية حسب المشكلة.
+أصبح **GIS Development Skills المصدر الوحيد لمهارات التطوير داخل Z EARTH**. يحتفظ المستودع بـ **30 مهارة عامة و76 مرجعًا فنيًا** مطابقين لنسخة معتمدة من الفرع `main` للمستودع الأصلي، وتمت إزالة **33 مهارة محلية مكررة** خاصة بـ Z EARTH وCesiumJS من نظام توجيه الـAgent.
 
-تم تثبيت إصدار المصدر برقم Commit محدد وتسجيل بصمات الملفات في [سجل المزامنة](docs/GIS_SKILLS_SNAPSHOT.json)، ويمكن التأكد منها بالأمر `python scripts/validate-agent-skills.py`. وأضفنا [مهارة مخصصة لوظائف Google Earth Pro](.github/skills/zearth-google-earth-pro-workflows/SKILL.md)، مرتبطة بـ[الصور التاريخية](.github/references/historical-imagery-timeline.md)، و[KML/KMZ](.github/references/google-kml-kmz-compatibility.md)، و[World Gazetteer](.github/references/world-gazetteer-reference-layer.md)، إلى جانب مهارة الأمان. **دي تعليمات للـAgent اللي بيطوّر البرنامج، ومش معناها إن التطبيق المثبت بيقرأ SKILL.md أثناء تشغيله**.
+يبدأ الوكيل من [تعليمات المشروع](AGENTS.md)، ثم [مهارة GIS Development الرئيسية](.github/skills/gis-development/SKILL.md)، ويختار التخصص المناسب. تُؤخذ تفاصيل البرنامج من [عقود مطابقة Google Earth](docs/GOOGLE_EARTH_PRO_PARITY.md)، [KML وExplorer](docs/KML_EXPLORER_ACCEPTANCE_2026-10-25.md)، [الشبكة والتضاريس](docs/TERRAIN_GRID_ACCEPTANCE.md)، و[الخرائط التاريخية](docs/HISTORICAL_IMAGERY_TIMELINE.md)، وليس من مهارات متنافسة.
 
-أضفنا مهارتين جديدتين: **Prompt Intent Orchestrator** لتنظيم ومراجعة طلبات التطوير وخططها، و**Agent Development Journal** لتسجيل خطوات التنفيذ والاختبارات والتعديلات في سجل محلي مرقم ومحمي من النشر العام. توجد أدوات Python واختبارات فعلية تحت `.github/scripts` و`.github/tests`. يشرح [دليل تشغيل الـAgent](docs/ZEARTH_AGENT_WORKFLOW.md) الإجراءات. تم تثبيت الملفات من [PR #20 المفتوح في المستودع الأصلي](https://github.com/ahmadibrahim4geo/GIS-Development-Skills/pull/20)، وليس من نسخة نهائية مدمجة. المهارات لا تشغّل نفسها تلقائيًا داخل البرنامج.
-
-الهدف إن الـAgent يحدد السبب، ويصلح الكود، ويضيف اختبارًا، وبعدها يتحقق من التشغيل الحقيقي دون الادعاء بنجاح لم يختبره. [شرح الربط والمصادر](docs/GIS_SKILLS_INTEGRATION.md) و[قائمة الاختبار العملي](docs/FRESH_CLONE_VALIDATION.md).
+يمكن فحص سلامة النسخة بالأمر `python scripts/validate-agent-skills.py`. [تفاصيل الربط والحذف](docs/GIS_SKILLS_INTEGRATION.md) و[الملف المثبت بالبصمات](docs/GIS_SKILLS_SNAPSHOT.json). هذا تنظيم لتعليمات التطوير **ولا يغيّر البرنامج التنفيذي أو يثبت تشغيل جميع أوامره**.
 
 ## التأهيل ليصبح بديلًا لبرنامج Google Earth Pro
 
@@ -47,7 +45,7 @@ dotnet test tests/ZEarth.Tests/ZEarth.Tests.csproj -c Release --no-build
 
 **الدقة العلمية:** أزلنا الارتفاعات الاصطناعية من نافذة القطاع التضاريسي. العرض الحالي يعكس منسوب رأس الخط المخزن فقط، وليس عينات DEM الفعلية. ما زال إنشاء قطاع تضاريسي متصل بنموذج الارتفاعات المختار، والتحكم في نافذة القطاع داخل مساحة العمل، وتطوير المقياس والعناصر الرمزية، من المهام قيد التنفيذ وغير معتمدة للاستخدام العلمي بعد.
 
-**أداة REA:** المستودع المرجعي الصحيح هو [morluto/rea](https://github.com/morluto/rea)، وهو برنامج MIT لتحليل سلوك التطبيقات. نسخة المطور المحلية داخل `D:\\My Software\\Zearth\\rea` مستقلة عن Z EARTH. أضفنا [مهارة مخصصة لاستخدامها](.github/skills/zearth-rea-parity/SKILL.md) بعد تحقق الـAgent من الإعداد المحلي، من دون إعادة التنزيل أو نسخ برنامج Google Earth الأصلي. تمت مراجعة توثيق REA على GitHub، لكن لم نحلل برنامج Google Earth Pro المثبت على جهاز المطور عمليًا في هذه المحادثة.
+**أداة REA:** المستودع المرجعي الصحيح هو [morluto/rea](https://github.com/morluto/rea)، وهو برنامج MIT لتحليل سلوك التطبيقات. نسخة المطور المحلية داخل `D:\\My Software\\Zearth\\rea` مستقلة عن Z EARTH. يُستخدم [دليل مطابقة الوظائف](docs/GOOGLE_EARTH_PRO_PARITY.md) للتحقق من الإعداد المحلي، من دون إعادة التنزيل أو نسخ برنامج Google Earth الأصلي. تمت مراجعة توثيق REA على GitHub، لكن لم نحلل برنامج Google Earth Pro المثبت على جهاز المطور عمليًا في هذه المحادثة.
 
 ## شريط الصور التاريخية داخل الخريطة
 
