@@ -803,6 +803,12 @@ namespace ZEarth.Globe
         public Task<bool> SetFlightModeAsync(bool enabled) =>
             SendRequestAsync("flight.setActive", new { enabled });
 
+        public Task<bool> SetNasaGibsImageryAsync(string layer, string date) =>
+            SendRequestAsync("historical.nasaSet", new { layer, date }, timeoutMs: 18000);
+
+        public Task<bool> ClearNasaGibsImageryAsync() =>
+            SendRequestAsync("historical.nasaClear");
+
         public Task<bool> SetTimeOfDayAsync(double timeHours, string? dateUtc = null) =>
             SendRequestAsync("environment.setTimeOfDay", new { timeHours, dateUtc });
 
