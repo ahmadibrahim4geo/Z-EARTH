@@ -1,0 +1,29 @@
+<Window x:Class="ZEarth.App.Views.NasaGibsDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="NASA GIBS — Dated Satellite Imagery"
+        Width="480" SizeToContent="Height"
+        ResizeMode="NoResize" WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource Brush.Window.Background}"
+        Foreground="{DynamicResource Brush.Text.Primary}"
+        FontFamily="Segoe UI">
+    <StackPanel Margin="18">
+        <TextBlock Text="NASA GIBS — Daily Historical MODIS"
+                   FontSize="15" FontWeight="Bold" Margin="0,0,0,9"/>
+        <TextBlock Text="Public satellite visualizations by acquisition date. This is lower-resolution (~250–500 m) regional/daily imagery, not Google Earth high-resolution historical photos."
+                   TextWrapping="Wrap" FontSize="11" Margin="0,0,0,14"/>
+        <TextBlock Text="Satellite / product" FontWeight="SemiBold" Margin="0,0,0,5"/>
+        <ComboBox x:Name="SensorCombo" Height="30" Margin="0,0,0,10">
+            <ComboBoxItem Content="MODIS Terra — Corrected Reflectance True Color" Tag="MODIS_Terra_CorrectedReflectance_TrueColor" IsSelected="True"/>
+            <ComboBoxItem Content="MODIS Aqua — Corrected Reflectance True Color" Tag="MODIS_Aqua_CorrectedReflectance_TrueColor"/>
+        </ComboBox>
+        <TextBlock Text="Observation date (UTC day)" FontWeight="SemiBold" Margin="0,0,0,5"/>
+        <DatePicker x:Name="ImageryDatePicker" Height="30" Margin="0,0,0,9"/>
+        <TextBlock Text="NASA GIBS • Image coverage varies by day and location. Cloud cover is not automatically removed. The application confirms layer configuration, not that every image tile was downloaded."
+                   Foreground="{DynamicResource Brush.Text.Secondary}" FontSize="11" TextWrapping="Wrap"/>
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
+            <Button Content="Show Date" Width="104" Height="30" Margin="0,0,9,0" Click="OnApplyClick" IsDefault="True"/>
+            <Button Content="Cancel" Width="84" Height="30" IsCancel="True"/>
+        </StackPanel>
+    </StackPanel>
+</Window>
