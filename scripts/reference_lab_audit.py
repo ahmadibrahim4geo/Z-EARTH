@@ -56,7 +56,7 @@ def analyze_source(role: str) -> tuple[dict, list[str]]:
         xaml = (ROOT / "src/ZEarth.App/Views/MainWindow.xaml").read_text(encoding="utf-8")
         viewmodel = (ROOT / "src/ZEarth.App/ViewModels/MainViewModel.cs").read_text(encoding="utf-8")
         names = set(re.findall(r'Command="\{Binding\s+([A-Za-z]\w*)', xaml))
-        declarations = set(re.findall(r'\bpublic\s+ICommand\s+([A-Za-z]\w+)\b', viewmodel))
+        declarations = set(re.findall(r'\bpublic\s+(?:ICommand|RelayCommand)\s+([A-Za-z]\w+)\b', viewmodel))
         commands = {x for x in names if x.endswith("Command")}
         unresolved = sorted(commands - declarations)
         metrics = {
