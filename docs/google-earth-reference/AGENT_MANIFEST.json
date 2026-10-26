@@ -1,0 +1,153 @@
+{
+  "schema": "zearth.reference-lab.workstreams.v1",
+  "date": "2026-10-26",
+  "reference_drive_folder": "1_G-2MOuE2qd53WMrC7zYhY_sVgi-Rrs0",
+  "executed_as": "single assistant source and metadata review; no autonomous independent agents were launched",
+  "gate": "native Windows evidence required before VERIFIED",
+  "agents": [
+    {
+      "id": "R01",
+      "kind": "reference",
+      "role": "Installation and dependency inventory",
+      "skills": [
+        "gis-desktop-application-development",
+        "gis-security-guardian"
+      ],
+      "report": "reports/R01.md",
+      "status": "OBSERVED_METADATA_ONLY",
+      "acceptance": "Generate dependency manifest, verify runtime assets and run clean Windows startup without internet."
+    },
+    {
+      "id": "R02",
+      "kind": "reference",
+      "role": "Visible UI and command flow",
+      "skills": [
+        "gis-ui-command-audit",
+        "gis-ui-ux-design-testing"
+      ],
+      "report": "reports/R02.md",
+      "status": "SOURCE_INSPECTED_RUNTIME_NOT_VERIFIED",
+      "acceptance": "Record approved manual menu inventory and automate UI-command => ViewModel => GlobeBridge => readback."
+    },
+    {
+      "id": "R03",
+      "kind": "reference",
+      "role": "Globe camera and navigation",
+      "skills": [
+        "gis-desktop-e2e-testing",
+        "gis-ui-ux-design-testing"
+      ],
+      "report": "reports/R03.md",
+      "status": "SOURCE_INSPECTED_RUNTIME_NOT_VERIFIED",
+      "acceptance": "Automate 2D/3D transitions, heading/pitch, home/full extent, recovery after invalid camera."
+    },
+    {
+      "id": "R04",
+      "kind": "reference",
+      "role": "Rendering, atmosphere and clouds",
+      "skills": [
+        "gis-desktop-e2e-testing",
+        "gis-security-guardian"
+      ],
+      "report": "reports/R04.md",
+      "status": "NEW_SOURCE_IMPL_RUNTIME_NOT_VERIFIED",
+      "acceptance": "Run cloud-layer mock test, Windows screenshot test, GPU profiling and reproducible lighting scenarios."
+    },
+    {
+      "id": "R05",
+      "kind": "reference",
+      "role": "KML/KMZ, Places and tours",
+      "skills": [
+        "kml-kmz-engineering",
+        "gis-data-flow-diagnostics"
+      ],
+      "report": "reports/R05.md",
+      "status": "SOURCE_INSPECTED_RUNTIME_NOT_VERIFIED",
+      "acceptance": "Export/import fixtures with Unicode, styles, hierarchy, referenced embedded assets and negative KMZ cases."
+    },
+    {
+      "id": "R06",
+      "kind": "reference",
+      "role": "Graticule, coordinate reference and overlays",
+      "skills": [
+        "coordinate-reference-systems",
+        "gis-desktop-e2e-testing"
+      ],
+      "report": "reports/R06.md",
+      "status": "SOURCE_INSPECTED_RUNTIME_NOT_VERIFIED",
+      "acceptance": "Test all Show Grid combinations at poles/dateline and after mode switching; add readback for actual dataSource entity count."
+    },
+    {
+      "id": "R07",
+      "kind": "reference",
+      "role": "Search, gazetteer and network services",
+      "skills": [
+        "geospatial-api-integration",
+        "geospatial-data-discovery"
+      ],
+      "report": "reports/R07.md",
+      "status": "SOURCE_INSPECTED_RUNTIME_NOT_VERIFIED",
+      "acceptance": "Benchmark offline search, remote timeout and Arabic/English place-name quality; respect provider terms."
+    },
+    {
+      "id": "R08",
+      "kind": "reference",
+      "role": "Reliability, language, flight simulator and data",
+      "skills": [
+        "gis-desktop-application-development",
+        "gis-internationalization-arabic"
+      ],
+      "report": "reports/R08.md",
+      "status": "SOURCE_INSPECTED_RUNTIME_NOT_VERIFIED",
+      "acceptance": "Prioritize reliability first; defer optional flight simulator until user value and independent implementation are reviewed."
+    },
+    {
+      "id": "Z01",
+      "kind": "zearth",
+      "role": "WPF command, ribbon and dialog audit",
+      "skills": [
+        "gis-ui-command-audit",
+        "gis-ui-ux-design-testing"
+      ],
+      "report": "reports/Z01.md",
+      "status": "SOURCE_INSPECTED_RUNTIME_NOT_VERIFIED",
+      "acceptance": "Run GIS UI command audit and enumerate all AutomationId mappings to command implementation, add UI automation evidence."
+    },
+    {
+      "id": "Z02",
+      "kind": "zearth",
+      "role": "Cesium engine, modes and bridge audit",
+      "skills": [
+        "gis-desktop-e2e-testing",
+        "gis-data-flow-diagnostics"
+      ],
+      "report": "reports/Z02.md",
+      "status": "SOURCE_IMPLEMENTED_MOCK_TESTED",
+      "acceptance": "Run node cloud-layer.test.cjs; verify WPF bridge environment.setClouds and environment.cloudsChanged on Windows."
+    },
+    {
+      "id": "Z03",
+      "kind": "zearth",
+      "role": "KML, KMZ and Places persistence audit",
+      "skills": [
+        "kml-kmz-engineering",
+        "gis-data-flow-diagnostics"
+      ],
+      "report": "reports/Z03.md",
+      "status": "SOURCE_INSPECTED_RUNTIME_NOT_VERIFIED",
+      "acceptance": "Build fixture catalog, run export/import and XML semantic diff on Windows/.NET, capture unsupported properties."
+    },
+    {
+      "id": "Z04",
+      "kind": "zearth",
+      "role": "Grid, sunlight, search and performance audit",
+      "skills": [
+        "gis-desktop-e2e-testing",
+        "gis-ui-command-audit"
+      ],
+      "report": "reports/Z04.md",
+      "status": "SOURCE_INSPECTED_RUNTIME_NOT_VERIFIED",
+      "acceptance": "Instrument visible datasource state; add 2D/3D/pole/grid regression cases; stress 50 toggle cycles and inspect FPS/memory."
+    }
+  ]
+}
