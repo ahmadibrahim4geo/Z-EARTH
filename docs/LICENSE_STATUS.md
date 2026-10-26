@@ -1,15 +1,23 @@
-# Z EARTH source-code licensing status — review required
+# Z EARTH — license status and release compliance
 
-**As of 26 October 2026:** GitHub does not identify a conventional root `LICENSE` file. The existing [legal/privacy notice](../LEGAL_AND_PRIVACY_NOTICES.md) says “Open-Source Software (GPLv3 / Independent)” and labels product release v1.0.0, while the project README currently describes a v2.2.4 **development preview**. The [third-party license notes](../THIRD_PARTY_LICENSES.md) are not a replacement for an explicit author-granted project-wide source license.
+**Source license selected:** [GNU General Public License version 3 only (`GPL-3.0-only`)](../LICENSE) for the independently authored project code to the extent of the maintainer's ownership/authority. This is the full, unmodified GPLv3 license text from the [SPDX reference](https://github.com/spdx/license-list-data/blob/main/text/GPL-3.0-only.txt). The new root license replaces the ambiguous historic wording “GPLv3 / Independent” for *project-authored code*.
 
-**No new root license has been issued in this documentation PR.** License selection is reserved for the project owner after checking rights in personally authored code and bundled third-party code, imagery, fonts, map tiles, extensions and binary dependencies. The wording “GPLv3 / Independent” by itself is not a complete explicit license grant, and “Independent” is not an SPDX license identifier.
+**Current version:** 2.2.4 development source / unsigned portable preview. v1.0.0 release notes are historical, not current production certification.
 
-## Proposed decision checklist
+## What is covered
 
-1. Inventory all source files, external copied code/assets, CesiumJS/WebView2, GDAL/PROJ, fonts, installer assets and sample data.
-2. Identify exact version, upstream license, redistribution requirements, notice preservation, copyleft compatibility and dynamic/linked binaries.
-3. Confirm whether the author intends GPL-3.0-only, GPL-3.0-or-later, MIT or another project license; consult counsel when compatibility is uncertain. Do not conflate library licenses with the application's own license.
-4. Add an accurate root `LICENSE`, `SPDX-License-Identifier` where applicable, attribution/NOTICE updates and complete third-party details **only after the owner approves**.
-5. Update outdated v1.0.0 release/legal labels to distinguish historical documents from present preview source; check legal/privacy claims against actual runtime behavior instead of inheriting assurances blindly.
+- **Project author's original code:** GPL-3.0-only (not “or later”).
+- **Bundled third-party code, CesiumJS assets, WebAssembly, libraries, SDKs, geospatial datasets/tiles/fonts:** their respective upstream licenses/usage terms remain effective. Z EARTH cannot relicense those materials just by adding a root LICENSE.
+- **Copied GIS Development Skills under `.github/`:** previously recorded [MIT license](../.github/LICENSE) and original attributions apply independently.
 
-**Current use caution:** access to a public repository does not by itself prove that every component may be redistributed commercially or that a third-party provider permits offline caching.
+See [third-party inventory](../THIRD_PARTY_LICENSES.md) and [legal/privacy notices](../LEGAL_AND_PRIVACY_NOTICES.md).
+
+## Verification completed and outstanding
+
+**Completed in the source audit (26 October 2026):** GPL-3.0-only legal text retrieved verbatim; inspected the root legal notice, `.github/LICENSE`, README, .NET package versions and the Git tree. The repository contains vendored CesiumJS/worker assets and independent license scopes that need preservation.
+
+**Not verified / outstanding before declaring a compiled release redistribution-compliant:** a complete executable dependency and asset license/NOTICE manifest; exact vendored Cesium version/license copies; WebAssembly origins; third-party fonts/images; Microsoft runtime terms and linkage; build-artifact corresponding-source delivery; provider tile caching/attribution; ownership/permissions for any non-original code. CI and static checks cannot replace a legal review.
+
+**Next action:** preserve full upstream licenses and attribution/NOTICE for all shipped binaries/assets, complete a versioned SBOM/build manifest, and review actual Windows published artifact rights before promoting a preview to an official production release.
+
+This checklist records due diligence, not a legal opinion or guarantee.
