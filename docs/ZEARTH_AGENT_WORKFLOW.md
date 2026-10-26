@@ -4,9 +4,9 @@
 
 ## Why this integration exists
 
-Z EARTH previously contained 19 generic GIS skills without a standardized intent-review and numbered progress recording workflow. This update brings two cross-cutting skills and preserves all Z EARTH/CesiumJS specialists:
+The previous project-specific agent skills were removed because they duplicated/conflicted with the upstream router. The project's behavior contracts remain in root `AGENTS.md`, project `docs/`, real source and tests. The resulting single-route workflow is:
 
-`User request → Prompt Intent Orchestrator → user/host review → GIS router + relevant Z EARTH specialties + Security Guardian → real tool execution → test and source readback → Agent Development Journal → handoff`.
+`User request → Prompt Intent Orchestrator → user/host review → GIS router + appropriate upstream specialist + Security Guardian + DoneProof → real tool execution → test and source readback → Agent Development Journal → handoff`.
 
 These are **instructions and offline Python utilities for coding agents**, not an LLM, event observer, built-in Z EARTH application feature or automatic source-code patch service. They do not execute at application startup.
 
@@ -46,4 +46,4 @@ After any actual work, record a new event with truthful affected files, Git comm
 
 An agent keeps one per-project chronological log locally and uses Git commits/PRs as the independent source-of-code truth. A `rollback` journal event records a proposed or *verified* rollback, but cannot itself undo files. Agents must inspect and obtain permission before any real revert.
 
-See [existing acceptance procedure](FRESH_CLONE_VALIDATION.md), [TERRAIN_GRID_ACCEPTANCE](TERRAIN_GRID_ACCEPTANCE.md), and [project adapter](../.github/skills/zearth-agent-workflow/SKILL.md).
+See [existing acceptance procedure](FRESH_CLONE_VALIDATION.md), [TERRAIN_GRID_ACCEPTANCE](TERRAIN_GRID_ACCEPTANCE.md), and [upstream GIS router](../.github/skills/gis-development/SKILL.md).

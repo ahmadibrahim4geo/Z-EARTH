@@ -10,8 +10,6 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SKILLS = ROOT / ".github" / "skills"
 SNAPSHOT = ROOT / "docs" / "GIS_SKILLS_SNAPSHOT.json"
-ADAPTER = SKILLS / "zearth-google-earth-pro-workflows" / "SKILL.md"
-WORKFLOW_ADAPTER = SKILLS / "zearth-agent-workflow" / "SKILL.md"
 PINNED_SKILL_COUNT = 30
 PINNED_REFERENCE_COUNT = 76
 
@@ -81,7 +79,13 @@ def main():
         if skill:
             pinned.append(full)
 
-    for path in pinned + [ADAPTER, WORKFLOW_ADAPTER]:
+    actual_skills = {p.resolve() for p in SKILLS.glob("*/SKILL.md")}
+    expected_skills = {p.resolve() for p in pinned}
+    for unexpected in sorted(actual_skills - expected_skills):
+        errors.append("Unexpected local/duplicate skill: " + str(unexpected.relative_to(ROOT)))
+    for missing in sorted(expected_skills - actual_skills):
+        errors.append("Upstream skill missing from active directory: " + str(missing.relative_to(ROOT)))
+    for path in pinned:
         if not path.is_file():
             errors.append("Missing source or Z EARTH routing skill: " + str(path))
             continue
@@ -105,7 +109,6 @@ def main():
         ".github/examples/intent-orchestrator/example-plan.json",
         ".github/examples/intent-orchestrator/README.md",
         ".github/examples/development-journal/README.md",
-        ".github/skills/zearth-agent-workflow/SKILL.md",
         ".github/skills/completion-evidence/SKILL.md",
         ".github/skills/gis-ui-command-audit/SKILL.md",
         ".github/skills/gis-desktop-e2e-testing/SKILL.md",
@@ -150,13 +153,31 @@ def main():
         if not (ROOT / expected).is_file():
             errors.append("Missing fresh-checkout guide: " + expected)
 
+    # Current entrypoints must not route developers to the removed local specialist files.
+    live_docs = (
+        "AGENTS.md", ".github/AGENTS.md", "README.md", "README.ar.md",
+        "docs/GIS_SKILLS_INTEGRATION.md", "docs/ZEARTH_AGENT_WORKFLOW.md",
+    )
+    removed_route = re.compile(r"(?:\.github/)?skills/(?:zearth-|cesiumjs-|using-cesiumjs-skills)")
+    for rel in live_docs:
+        doc = ROOT / rel
+        if doc.is_file() and removed_route.search(doc.read_text(encoding="utf-8")):
+            errors.append("Active guide still routes to deleted specialist: " + rel)
     agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8") if (ROOT / "AGENTS.md").is_file() else ""
-    if "zearth-google-earth-pro-workflows" not in agents or "GIS_SKILLS_SNAPSHOT.json" not in agents:
-        errors.append("AGENTS.md must route to pinned source and Z EARTH Earth adapter")
+    if "gis-development/SKILL.md" not in agents or "GIS_SKILLS_SNAPSHOT.json" not in agents:
+        errors.append("AGENTS.md must route to the upstream pinned GIS Development Skills router")
+    local_manifest = ROOT / ".github/references/repository-manifest.json"
+    try:
+        m = json.loads(local_manifest.read_text(encoding="utf-8"))
+        ids = sorted(p.parent.name for p in actual_skills)
+        if m.get("skill_count") != len(ids) or m.get("skill_ids") != ids:
+            errors.append("Local skill inventory does not match exact active source skills")
+    except (OSError, ValueError, TypeError) as exc:
+        errors.append("Invalid project-local skill inventory: " + str(exc))
     if errors:
         print("\n".join("ERROR: " + item for item in errors))
         return 1
-    print("PASS: {} pinned upstream GIS skills, {} references, Earth + agent adapters and XAML checked.".format(
+    print("PASS: {} pinned upstream GIS skills, {} references, single upstream router, no local duplicates, links and XAML checked.".format(
         PINNED_SKILL_COUNT, PINNED_REFERENCE_COUNT))
     print("WARNING: documentation integrity is NOT proof of native WPF/WebView2/Wayback runtime behavior.")
     return 0
