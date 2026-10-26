@@ -2957,6 +2957,13 @@
     })
   });
 
+  // Independent basic 3D flight navigation. This is a camera-based simulation,
+  // not a Google Earth asset, aircraft dynamics model, or certified flight tool.
+  const FlightSimulator = window.ZEarthFlightSimulator.create({
+    Cesium, viewer,
+    onChange: state => sendHostMessage({ event: 'flight.changed', enabled: state.enabled })
+  });
+
   const SwipeManager = {
     active: false,
     leftId: null,
@@ -3945,6 +3952,12 @@
           respondSuccess(state);
           break;
         }
+        case 'flight.setActive': {
+          const state = FlightSimulator.setActive(data.payload?.enabled === true);
+          if (state.error) respond('failed', state, state.error);
+          else respondSuccess(state);
+          break;
+        }
         case 'environment.setTimeOfDay': {
           const timeHours = EnvironmentManager.setTimeOfDay(data.payload?.timeHours, data.payload?.dateUtc);
           respondSuccess({ timeHours });
@@ -4101,6 +4114,7 @@
     SnapManager,
     MeasurementManager,
     CloudManager,
+    FlightSimulator,
     runModeToggleStressTest,
     flyToHome,
     flyToFullExtent,
