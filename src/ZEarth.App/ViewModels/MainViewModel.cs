@@ -25,6 +25,7 @@ using ZEarth.App.Views;
 using ZEarth.Globe;
 using ZEarth.Domain.Layers;
 using ZEarth.Domain.Search;
+using ZEarth.Domain.Gps;
 
 namespace ZEarth.App.ViewModels
 {
@@ -426,6 +427,8 @@ namespace ZEarth.App.ViewModels
             }
         }
 
+        public string GpsImportLabel => LocalizationService.Instance.IsArabic ? "استيراد GPS" : "Import GPS";
+        public string GpsImportTooltip => LocalizationService.Instance.IsArabic ? "استيراد ملفات GPX للمسارات والطرق والنقاط وأوقاتها" : "Import GPX tracks, routes, waypoints and UTC timestamps";
         public string CloudsLabel => LocalizationService.Instance.IsArabic ? "السحب" : "Clouds";
         public string CloudsTooltip => LocalizationService.Instance.IsArabic
             ? "إظهار أو إخفاء سحب ثلاثية الأبعاد توضيحية دون اتصال بالإنترنت، وليست بيانات طقس حية."
@@ -895,6 +898,7 @@ namespace ZEarth.App.ViewModels
         public ICommand ExportKmlCommand { get; }
         public ICommand ExportKmzCommand { get; }
         public ICommand ImportKmlCommand { get; }
+        public ICommand ImportGpxCommand { get; }
         public ICommand ToggleCoordinateFormatCommand { get; }
         public ICommand SelectCrsCommand { get; }
         public ICommand UndoCommand { get; }
@@ -1390,6 +1394,7 @@ namespace ZEarth.App.ViewModels
             ExportKmlCommand = new RelayCommand(ExecuteExportKml);
             ExportKmzCommand = new RelayCommand(ExecuteExportKmz);
             ImportKmlCommand = new RelayCommand(p => ExecuteImportKml(p as string));
+            ImportGpxCommand = new RelayCommand(p => ExecuteImportGpx(p as string));
             ToggleCoordinateFormatCommand = new RelayCommand(ExecuteToggleCoordinateFormat);
             SelectCrsCommand = new RelayCommand(ExecuteSelectCrs);
             UndoCommand = new RelayCommand(() => { if (_undoRedo.Undo()) { _projectService.IsModified = true; UpdatePlacesOnGlobe(); } }, () => _undoRedo.CanUndo);
@@ -1553,6 +1558,8 @@ namespace ZEarth.App.ViewModels
                 LocalizationService.Instance.ToggleLanguage(Application.Current?.MainWindow);
                 OnPropertyChanged(nameof(CurrentLanguageCode));
                 OnPropertyChanged(nameof(CurrentLanguageText));
+                OnPropertyChanged(nameof(GpsImportLabel));
+                OnPropertyChanged(nameof(GpsImportTooltip));
                 UpdateWindowTitle();
             });
             CoordinateConverterCommand = new RelayCommand(ExecuteShowCoordinateConverter);
@@ -3338,6 +3345,42 @@ namespace ZEarth.App.ViewModels
         private void NotifyPlannedFeature(string featureName)
         {
             MessageBox.Show($"{featureName}\n\nThis feature is tracked in the Z EARTH development roadmap.", "Z EARTH GIS", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+
+        public void ExecuteImportGpx(string? directFilePath = null)
+        {
+            var filePath = directFilePath;
+            if (string.IsNullOrWhiteSpace(filePath))
+            {
+                var dlg = new OpenFileDialog
+                {
+                    Filter = "GPS Exchange files (*.gpx)|*.gpx",
+                    Title = "Import GPX tracks, routes and waypoints"
+                };
+                if (dlg.ShowDialog() != true) return;
+                filePath = dlg.FileName;
+            }
+
+            if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath)) return;
+            try
+            {
+                var imported = GpxService.ImportFile(filePath);
+                imported.Name = Path.GetFileName(filePath);
+                _undoRedo.ExecuteAction(new AddPlaceAction(TemporaryPlaces, imported));
+                _temporarySessionService.SaveSession(TemporaryPlaces);
+                _projectService.IsModified = true;
+                SelectedPlace = imported;
+                UpdatePlacesOnGlobe();
+                OnPropertyChanged(nameof(TemporaryPlaces));
+                var total = imported.ExtendedData.TryGetValue("GpsPointCount", out var count) ? count : "unknown";
+                StatusMessage = $"Imported {total} GPX fixes. Times preserved as UTC. Missing elevations are not sampled from terrain.";
+            }
+            catch (Exception ex) when (ex is IOException or System.Xml.XmlException or
+                UnauthorizedAccessException or ArgumentException)
+            {
+                StatusMessage = "GPS import failed: " + ex.Message;
+                MessageBox.Show(ex.Message, "GPX Import", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
         }
 
         public void ExecuteImportKml(string? directFilePath = null)
