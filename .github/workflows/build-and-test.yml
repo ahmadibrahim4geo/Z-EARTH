@@ -42,12 +42,14 @@ jobs:
       - name: Parse Cesium command JavaScript and test drawn rectangle geometry
         run: |
           node --check src/ZEarth.Globe/Assets/cloud-layer.js
+          node --check src/ZEarth.Globe/Assets/flight-simulator.js
+          node --check src/ZEarth.Globe/Assets/nasa-gibs-imagery.js
           node --check src/ZEarth.Globe/Assets/cesium-engine.js
           node --check src/ZEarth.Globe/Assets/rectangle-geometry.js
           node --check src/ZEarth.Globe/Assets/historical-timeline.js
           node --check src/ZEarth.Globe/Assets/graticule-labels.js
           node --check src/ZEarth.Globe/Assets/graticule-geometry.js
-          node --test tests/cloud-layer.test.cjs tests/rectangle-geometry.test.cjs tests/measurement-hud-contract.test.cjs tests/historical-timeline.test.cjs tests/graticule-labels.test.cjs tests/graticule-geometry.test.cjs tests/terrain-grid-source-contract.test.cjs tests/repo-command-contract.test.cjs tests/branding-ui-contracts.test.cjs
+          node --test tests/flight-simulator.test.cjs tests/nasa-gibs-imagery.test.cjs tests/cloud-layer.test.cjs tests/rectangle-geometry.test.cjs tests/measurement-hud-contract.test.cjs tests/historical-timeline.test.cjs tests/graticule-labels.test.cjs tests/graticule-geometry.test.cjs tests/terrain-grid-source-contract.test.cjs tests/repo-command-contract.test.cjs tests/branding-ui-contracts.test.cjs
 
   reference-lab:
     name: Reference role ${{ matrix.role }} (source evidence only)
