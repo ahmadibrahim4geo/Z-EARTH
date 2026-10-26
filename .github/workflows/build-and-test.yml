@@ -49,6 +49,29 @@ jobs:
           node --check src/ZEarth.Globe/Assets/graticule-geometry.js
           node --test tests/cloud-layer.test.cjs tests/rectangle-geometry.test.cjs tests/measurement-hud-contract.test.cjs tests/historical-timeline.test.cjs tests/graticule-labels.test.cjs tests/graticule-geometry.test.cjs tests/terrain-grid-source-contract.test.cjs tests/repo-command-contract.test.cjs tests/branding-ui-contracts.test.cjs
 
+  reference-lab:
+    name: Reference role ${{ matrix.role }} (source evidence only)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        role: [R01, R02, R03, R04, R05, R06, R07, R08, Z01, Z02, Z03, Z04]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run read-only evidence probes
+        run: python scripts/reference_lab_audit.py --role "${{ matrix.role }}" --out-dir reference-evidence
+      - name: Upload explicit evidence level
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reference-role-${{ matrix.role }}
+          path: reference-evidence/
+          if-no-files-found: warn
+          retention-days: 30
+
   windows-build-test:
     runs-on: windows-latest
     timeout-minutes: 65
