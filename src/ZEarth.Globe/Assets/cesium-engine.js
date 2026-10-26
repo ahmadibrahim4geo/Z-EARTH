@@ -3351,6 +3351,7 @@
   }
 
   function resetNorth(onComplete = null, onCancel = null) {
+    if (FlightSimulator.getState().enabled) FlightSimulator.stop(false);
     viewer.camera.flyTo({
       destination: Cesium.Cartesian3.clone(viewer.camera.position),
       orientation: {
@@ -3365,6 +3366,7 @@
   }
 
   function resetPitch(onComplete = null, onCancel = null) {
+    if (FlightSimulator.getState().enabled) FlightSimulator.stop(false);
     viewer.camera.flyTo({
       destination: Cesium.Cartesian3.clone(viewer.camera.position),
       orientation: {
@@ -3390,6 +3392,7 @@
   }
 
   function zoomAtScreenPosition(zoomingIn, requestedPosition, requestedFactor) {
+    if (FlightSimulator.getState().enabled) FlightSimulator.stop(false);
     const camera = viewer.camera;
     const canvas = viewer.canvas;
     if (!camera || !canvas) return false;
