@@ -8,6 +8,17 @@
 
 **المطور:** Ahmed Ibrahim. [English README](README.md) · [ملف تعليمات الـAgent](AGENTS.md) · [دليل المستخدم](docs/USER_MANUAL_AR.md).
 
+## ابدأ من هنا — نسخة تطوير تجريبية
+
+| المطلوب | الرابط |
+| --- | --- |
+| تحميل النسخة المكتبية التجريبية | [طريقة التنزيل](docs/PORTABLE_PREVIEW.md) · [نتائج GitHub Actions](https://github.com/ahmadibrahim4geo/Z-EARTH/actions/workflows/build-and-test.yml) |
+| معرفة الوظائف الحالية ومستوى اختبارها | [دليل البدء](docs/REPOSITORY_ONBOARDING.md) · [مصفوفة المقارنة](docs/GOOGLE_EARTH_PRO_PARITY.md) |
+| الإبلاغ عن خطأ أو المساهمة | [فتح بلاغ](https://github.com/ahmadibrahim4geo/Z-EARTH/issues/new/choose) · [دليل المساهمة](CONTRIBUTING.md) |
+| الأمان وترخيص المصدر | [حالة الترخيص والمراجعة المطلوبة](docs/LICENSE_STATUS.md) · [سياسة الأمان](SECURITY.md) |
+
+**حالة المشروع:** البرنامج لا يزال قيد التطوير؛ نجاح GitHub Actions لا يثبت اكتمال تشغيل واجهة Windows وWebView2. كما يلزم اعتماد ترخيص صريح لكود المشروع بعد فحص تراخيص المكونات والبيانات الخارجية.
+
 ## تحميل Z EARTH.exe لتجربة البرنامج
 
 لم يكن المستودع ينشر ملف EXE في قسم Releases رغم نجاح بناء الكود. أضفنا آلية تجهيز نسخة **Windows x64 Portable Preview** قابلة للتنزيل من GitHub Actions بعد اجتياز اختبارات المشروع. افتح [صفحة البناء والتحميل](https://github.com/ahmadibrahim4geo/Z-EARTH/actions/workflows/build-and-test.yml)، واختر أحدث تشغيل ناجح على فرع main، ثم حمّل `Z-EARTH-v2.2.4-win-x64-portable-preview` من قسم Artifacts. بعد فك الضغط ستجد `Z EARTH.exe` مع ملفات تشغيل Cesium؛ **لا تنقل EXE بمفرده**.
