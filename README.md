@@ -22,6 +22,21 @@ python scripts/reference_lab_audit.py --all --out-dir reference-evidence
 node --test tests/cloud-layer.test.cjs
 ```
 
+## Latest application feature work — 26 October 2026
+
+These are **runtime code changes to ZEarth itself**, not additional GIS skills. Source and test presence does not yet prove Windows GPU/WebView2 parity with Google Earth Pro.
+
+| Application feature | Added behavior | Honest limit |
+| --- | --- | --- |
+| **GPS / GPX** | Import GPX 1.0/1.1 waypoints, routes and track segments into Temporary Places; retain UTC fix times. Select a timed path to **Play GPS / Stop GPS** as a 30-second timeline preview | Missing/out-of-order fix times are rejected for playback; marker replay is not live GPS or a terrain-elevation measurement |
+| **Flight** | Basic independent Cesium 3D navigation, keyboard steering/throttle, status HUD and safe exit with mouse controls restored | Navigation prototype only: not an aircraft flight-physics model, autopilot, takeoff/landing simulator or Google asset |
+| **Coordinate grid** | User-selectable UTM hemisphere zone (36N), geographic grid zone designation (36R), or both. Latitude/longitude intervals stay independently configurable | Native polar/label overlap testing and accessibility review still needed |
+| **Historical imagery** | Existing Esri Wayback release timeline plus date-selectable **NASA GIBS** MODIS Terra/Aqua WMS, with removal and NASA attribution | NASA true color is lower-resolution daily observation imagery, not Google Earth's commercial high-resolution archive; layer configuration does not guarantee a matching tile |
+| **Elevation Profile** | Resample a path geometrically, request real numeric height samples from the active Cesium terrain provider and graph measured DEM heights | If terrain service is unavailable/incomplete the graph explicitly reverts to **stored vertex Z**, not a fabricated DEM; WebView2 live terrain requests require verification |
+| **Camera navigation** | Flight mode no longer overrides Home/North/Zoom; North/Pitch command acknowledgements occur after camera animation finishes | Native camera gesture and pole/dateline acceptance tests remain necessary |
+
+Implementation: [GPX parser](src/ZEarth.Domain/Gps/GpxService.cs) · [GPS playback](src/ZEarth.Globe/Assets/gps-track-playback.js) · [flight navigation](src/ZEarth.Globe/Assets/flight-simulator.js) · [grid labels](src/ZEarth.Globe/Assets/graticule-geometry.js) · [NASA GIBS](src/ZEarth.Globe/Assets/nasa-gibs-imagery.js) · [terrain path sampler](src/ZEarth.Domain/Terrain/TerrainProfilePathBuilder.cs). Source-specific unit/JS tests are exercised in [CI](.github/workflows/build-and-test.yml); **real application functionality must still be tested on a Windows desktop with WebView2 and GPU**.
+
 ## Download the Windows EXE (Portable Preview)
 
 The GitHub source repository previously **did not publish its compiled .exe**; green Actions builds only uploaded unit-test logs. The [Windows portable preview guide](docs/PORTABLE_PREVIEW.md) now explains how to download the **latest successful main-branch Actions artifact** named `Z-EARTH-v2.2.4-win-x64-portable-preview`, extract it, and launch `Z EARTH.exe` with bundled Cesium assets.
