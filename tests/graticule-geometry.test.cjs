@@ -34,3 +34,19 @@ test('Egypt viewport contains realistic zone geometries and latitudes', () => {
   assert.deepEqual(segments.map(s => s.zone), [34, 35, 36, 37]);
   assert.ok(segments.every(s => s.south === 21 && s.north === 33));
 });
+
+test('camera-facing horizon culls north/south poles and 0/0 when they are behind globe', () => {
+  const { isSurfaceAnchorVisible: visible } =
+    require('../src/ZEarth.Globe/Assets/graticule-geometry.js');
+  const north = { x: 0, y: 0, z: 1 };
+  const south = { x: 0, y: 0, z: -1 };
+  const origin = { x: 1, y: 0, z: 0 };
+  assert.equal(visible(north, north, { x: 0, y: 0, z: 4 }), true);
+  assert.equal(visible(north, north, { x: 0, y: 0, z: -4 }), false);
+  assert.equal(visible(south, south, { x: 0, y: 0, z: -4 }), true);
+  assert.equal(visible(south, south, { x: 0, y: 0, z: 4 }), false);
+  assert.equal(visible(origin, origin, { x: 3, y: 0, z: 0 }), true);
+  assert.equal(visible(origin, origin, { x: -3, y: 0, z: 0 }), false);
+  assert.equal(visible(north, north, { x: 2, y: 0, z: 1 }), false);
+  assert.equal(visible(north, north, { x: NaN, y: 0, z: 4 }), false);
+});
