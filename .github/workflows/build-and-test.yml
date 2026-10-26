@@ -22,6 +22,8 @@ jobs:
           node-version: '22'
       - name: Verify bundled GIS skills and XAML markup
         run: python scripts/validate-agent-skills.py
+      - name: Verify GPL project metadata and independent third-party license notices
+        run: python scripts/verify-license-notices.py
       - name: Test reviewed intent routing and numbered agent journal (offline)
         run: |
           python -m unittest discover -s .github/tests -p "test_intent_orchestrator.py" -v
