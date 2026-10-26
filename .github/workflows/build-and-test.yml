@@ -57,6 +57,21 @@ jobs:
       - name: Build portable Windows x64 PREVIEW after all tests pass
         shell: pwsh
         run: ./scripts/create-portable-preview.ps1 -TestsAlreadyPassed
+      - name: Audit real WPF icon controls through Windows UI Automation
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        shell: pwsh
+        continue-on-error: true
+        timeout-minutes: 8
+        run: |
+          ./scripts/audit-ribbon-icons.ps1 -ExePath 'dist/Z EARTH-Preview/Z EARTH.exe' -OutputDir 'ui-icon-evidence' -InvokeSafe -CaptureScreenshots
+      - name: Upload Windows icon UI Automation evidence
+        if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: zearth-windows-icon-uia-evidence
+          path: ui-icon-evidence/
+          if-no-files-found: warn
+          retention-days: 30
       - name: Upload Z EARTH Windows executable and complete Assets (preview only)
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: actions/upload-artifact@v4
