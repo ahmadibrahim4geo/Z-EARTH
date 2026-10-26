@@ -66,15 +66,15 @@ public sealed class GpxImportTests
     [TestMethod]
     public void InvalidCoordinatesAndDtdAreRejected()
     {
-        Assert.ThrowsExactly<InvalidDataException>(() =>
+        Assert.ThrowsException<InvalidDataException>(() =>
             Parse("<gpx><wpt lat='99' lon='31'/></gpx>"));
-        Assert.ThrowsExactly<System.Xml.XmlException>(() =>
+        Assert.ThrowsException<System.Xml.XmlException>(() =>
             Parse("<!DOCTYPE gpx [<!ENTITY x SYSTEM 'file:///C:/secret'>]><gpx><wpt lat='30' lon='31'/></gpx>"));
     }
 
     [TestMethod]
     public void NoInventedGpsTrackForEmptyFile()
     {
-        Assert.ThrowsExactly<InvalidDataException>(() => Parse("<gpx xmlns='http://www.topografix.com/GPX/1/1' />"));
+        Assert.ThrowsException<InvalidDataException>(() => Parse("<gpx xmlns='http://www.topografix.com/GPX/1/1' />"));
     }
 }
