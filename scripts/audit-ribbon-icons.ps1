@@ -116,9 +116,19 @@ public static class ZEarthUIWin32 {
         "ZoomInCommand", "ZoomOutCommand", "ResetNorthCommand", "ResetPitchCommand",
         "Set2DModeCommand", "Set3DModeCommand", "ToggleGraticulesCommand",
         "ToggleSunlightCommand", "ToggleAtmosphereCommand", "SetCompassModeCommand",
-        "ToggleThemeCommand", "ClearMeasurementCommand", "Is3DMode", "Is2DMode"
+        "ToggleThemeCommand", "ClearMeasurementCommand", "Is3DMode", "Is2DMode",
+        "ToggleSidebarDockCommand", "ExpandAllSectionsCommand", "CollapseAllSectionsCommand",
+        "ClearSearchCommand", "ToggleCoordinateFormatCommand",
+        "SetVerticalExaggerationCommand", "ResetVerticalExaggerationCommand",
+        "MeasureDistanceCommand", "MeasureAreaCommand", "ToggleTerrainCommand",
+        "ToggleLanguageCommand"
     )
-    $invokedCommands = New-Object 'System.Collections.Generic.HashSet[string]'
+    $screenshotCommands = @(
+        "Set2DModeCommand", "Set3DModeCommand", "ToggleGraticulesCommand",
+        "ToggleSunlightCommand", "ToggleAtmosphereCommand", "ToggleThemeCommand",
+        "ToggleTerrainCommand", "ToggleLanguageCommand", "SetVerticalExaggerationCommand"
+    )
+    $invokedIds = New-Object 'System.Collections.Generic.HashSet[string]'
     function Get-AllControls {
         param([string]$TabName)
         $items = $main.FindAll([System.Windows.Automation.TreeScope]::Descendants, $winCondition)
@@ -135,9 +145,9 @@ public static class ZEarthUIWin32 {
                 if (-not $InvokeSafe) { continue }
                 $cmd = $entry.Command
                 if (-not ($safeCommands -contains $cmd)) { continue }
-                if ($invokedCommands.Contains($cmd)) { continue }
+                if ($invokedIds.Contains($id)) { continue }
                 if (-not $el.Current.IsEnabled -or $el.Current.IsOffscreen) { continue }
-                $null = $invokedCommands.Add($cmd)
+                $null = $invokedIds.Add($id)
                 try {
                     $pattern = $null
                     if ($el.TryGetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern, [ref]$pattern)) {
@@ -155,7 +165,13 @@ public static class ZEarthUIWin32 {
                     }
                     $entry.Status = "INVOKED_EFFECT_UNVERIFIED"
                     $entry.Proof = "WINDOWS_UIA_PATTERN_INVOKED"
-                    Start-Sleep -Milliseconds 250
+                    if ($screenshotCommands -contains $cmd) {
+                        Start-Sleep -Milliseconds 700
+                        Save-WindowScreenshot -name ("action-" + ($id -replace '[^a-zA-Z0-9_-]', '_'))
+                    }
+                    else {
+                        Start-Sleep -Milliseconds 300
+                    }
                 }
                 catch {
                     $entry.Status = "INVOKE_FAILED"
