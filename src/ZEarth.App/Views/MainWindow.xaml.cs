@@ -381,7 +381,8 @@ namespace ZEarth.App.Views
                             appSettings.ShowLatitudeLines,
                             appSettings.LongitudeIntervalDegrees,
                             appSettings.LatitudeIntervalDegrees,
-                            appSettings.GridLabelFormat);
+                            appSettings.GridLabelFormat,
+                            appSettings.UtmLabelMode);
 
                         if (!string.IsNullOrEmpty(ViewModel.SelectedBasemapId))
                         {
