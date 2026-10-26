@@ -57,7 +57,7 @@
     <!-- ToolTip Style -->
     <Style TargetType="ToolTip">
         <Setter Property="Background" Value="#FFFFFF"/>
-        <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}"/>
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}"/>
         <Setter Property="BorderBrush" Value="{StaticResource Brush.Control.Border}"/>
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="Padding" Value="8,5"/>
@@ -86,12 +86,12 @@
         <Setter Property="BorderBrush" Value="{StaticResource Brush.Control.Border}"/>
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="Padding" Value="2"/>
-        <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}"/>
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}"/>
     </Style>
 
     <!-- MenuItem Style -->
     <Style TargetType="MenuItem">
-        <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}"/>
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}"/>
         <Setter Property="Padding" Value="8,5"/>
         <Setter Property="FontSize" Value="12"/>
         <Style.Triggers>
@@ -106,7 +106,7 @@
 
     <!-- CheckBox Style -->
     <Style TargetType="CheckBox">
-        <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}"/>
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}"/>
         <Setter Property="FontSize" Value="12"/>
         <Setter Property="VerticalContentAlignment" Value="Center"/>
         <Setter Property="Cursor" Value="Hand"/>
@@ -115,7 +115,7 @@
     <!-- TextBox Style (Search / Inputs) -->
     <Style x:Key="SearchTextBoxStyle" TargetType="TextBox">
         <Setter Property="Background" Value="#FFFFFF"/>
-        <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}"/>
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}"/>
         <Setter Property="CaretBrush" Value="{StaticResource Brush.Accent}"/>
         <Setter Property="BorderBrush" Value="{StaticResource Brush.Control.Border}"/>
         <Setter Property="BorderThickness" Value="1"/>
@@ -148,7 +148,7 @@
     <!-- Quick Access Toolbar Button -->
     <Style x:Key="QuickAccessBtnStyle" TargetType="Button">
         <Setter Property="Background" Value="Transparent"/>
-        <Setter Property="Foreground" Value="{StaticResource Brush.Text.Secondary}"/>
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Secondary}"/>
         <Setter Property="BorderThickness" Value="0"/>
         <Setter Property="Width" Value="28"/>
         <Setter Property="Height" Value="24"/>
@@ -180,7 +180,7 @@
     <!-- Large Ribbon Button (Icon top, Label bottom) -->
     <Style x:Key="RibbonLargeBtnStyle" TargetType="Button">
         <Setter Property="Background" Value="Transparent"/>
-        <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}"/>
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}"/>
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="BorderBrush" Value="Transparent"/>
         <Setter Property="MinWidth" Value="54"/>
@@ -219,7 +219,7 @@
     <!-- Small Horizontal Ribbon Button (Icon left, Label right) -->
     <Style x:Key="RibbonSmallBtnStyle" TargetType="Button">
         <Setter Property="Background" Value="Transparent"/>
-        <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}"/>
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}"/>
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="BorderBrush" Value="Transparent"/>
         <Setter Property="Height" Value="24"/>
@@ -257,7 +257,7 @@
     <!-- Sidebar Panel Tab Button (Places / Layers selector) -->
     <Style x:Key="SidebarTabBtnStyle" TargetType="RadioButton">
         <Setter Property="Background" Value="{StaticResource Brush.Control.Background}"/>
-        <Setter Property="Foreground" Value="{StaticResource Brush.Text.Secondary}"/>
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Secondary}"/>
         <Setter Property="FontWeight" Value="SemiBold"/>
         <Setter Property="FontSize" Value="11.5"/>
         <Setter Property="Height" Value="28"/>
@@ -274,7 +274,7 @@
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="tabBorder" Property="Background" Value="{StaticResource Brush.Control.Hover}"/>
-                            <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}"/>
+                            <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}"/>
                         </Trigger>
                         <Trigger Property="IsChecked" Value="True">
                             <Setter TargetName="tabBorder" Property="Background" Value="{StaticResource Brush.Sidebar.Background}"/>
@@ -305,7 +305,7 @@
         <Setter Property="VerticalContentAlignment" Value="Center"/>
         <Setter Property="Background" Value="Transparent"/>
         <Setter Property="BorderThickness" Value="0"/>
-        <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}"/>
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ComboBoxItem">
@@ -323,7 +323,7 @@
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsHighlighted" Value="True">
                             <Setter TargetName="Bd" Property="Background" Value="{StaticResource Brush.Control.Hover}"/>
-                            <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}"/>
+                            <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}"/>
                         </Trigger>
                         <Trigger Property="IsSelected" Value="True">
                             <Setter TargetName="Bd" Property="Background" Value="{StaticResource Brush.Accent}"/>
@@ -371,7 +371,7 @@
         <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto"/>
         <Setter Property="ScrollViewer.CanContentScroll" Value="True"/>
         <Setter Property="Background" Value="{StaticResource Brush.Control.Background}"/>
-        <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}"/>
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}"/>
         <Setter Property="BorderBrush" Value="{StaticResource Brush.Control.Border}"/>
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="Padding" Value="8,3"/>
@@ -466,7 +466,7 @@
     <!-- TreeViewItem Professional Styling (Eliminates Bright Cyan OS Hover - WCAG compliant) -->
     <Style TargetType="{x:Type TreeViewItem}">
         <Setter Property="Background" Value="Transparent"/>
-        <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}"/>
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}"/>
         <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
         <Setter Property="VerticalContentAlignment" Value="Center"/>
         <Setter Property="Padding" Value="2,2"/>
@@ -511,12 +511,12 @@
                         </Trigger>
                         <Trigger Property="IsMouseOver" SourceName="Bd" Value="true">
                             <Setter TargetName="Bd" Property="Background" Value="{StaticResource Brush.TreeItem.Hover}"/>
-                            <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}"/>
+                            <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}"/>
                         </Trigger>
                         <Trigger Property="IsSelected" Value="true">
                             <Setter TargetName="Bd" Property="Background" Value="{StaticResource Brush.TreeItem.Selected}"/>
                             <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource Brush.TreeItem.SelectedBorder}"/>
-                            <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}"/>
+                            <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}"/>
                         </Trigger>
                         <MultiTrigger>
                             <MultiTrigger.Conditions>
@@ -525,7 +525,7 @@
                             </MultiTrigger.Conditions>
                             <Setter TargetName="Bd" Property="Background" Value="{StaticResource Brush.TreeItem.SelectedHover}"/>
                             <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource Brush.TreeItem.SelectedBorder}"/>
-                            <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}"/>
+                            <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}"/>
                         </MultiTrigger>
                         <Trigger Property="IsEnabled" Value="false">
                             <Setter Property="Foreground" Value="{StaticResource Brush.Text.Disabled}"/>
@@ -539,7 +539,7 @@
     <!-- Status Bar Clickable Item Button -->
     <Style x:Key="StatusBarBtnStyle" TargetType="Button">
         <Setter Property="Background" Value="Transparent"/>
-        <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}"/>
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}"/>
         <Setter Property="BorderThickness" Value="0"/>
         <Setter Property="Padding" Value="4,2"/>
         <Setter Property="Cursor" Value="Hand"/>
