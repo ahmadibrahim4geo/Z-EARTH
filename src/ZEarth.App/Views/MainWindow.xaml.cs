@@ -369,6 +369,9 @@ namespace ZEarth.App.Views
                             !await ViewModel.GlobeBridge.SetBordersVisibleAsync(true))
                             LoggerService.Instance.LogWarning("Saved political borders overlay was not acknowledged.");
 
+                        if (!await ViewModel.GlobeBridge.SetCloudsAsync(appSettings.ShowClouds))
+                            LoggerService.Instance.LogWarning("Saved offline clouds state was not acknowledged.");
+
                         await ViewModel.GlobeBridge.SetGraticulesConfigAsync(
                             appSettings.ShowGraticules,
                             appSettings.ShowGraticuleLabels,
