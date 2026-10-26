@@ -415,6 +415,21 @@ namespace ZEarth.App.ViewModels
             ? new SolidColorBrush(Color.FromRgb(56, 189, 248)) // #38bdf8 Atmospheric Sky
             : (Application.Current?.TryFindResource("Brush.Text.Secondary") as Brush ?? Brushes.Gray);
 
+        private bool _areCloudsEnabled;
+        public bool AreCloudsEnabled
+        {
+            get => _areCloudsEnabled;
+            set
+            {
+                if (SetProperty(ref _areCloudsEnabled, value))
+                    OnPropertyChanged(nameof(CloudsIconBrush));
+            }
+        }
+
+        public Brush CloudsIconBrush => AreCloudsEnabled
+            ? new SolidColorBrush(Color.FromRgb(226, 232, 240))
+            : (Application.Current?.TryFindResource("Brush.Text.Secondary") as Brush ?? Brushes.Gray);
+
         // UTC is unambiguous; Cesium's sun/terminator is geographic and varies by the
         // map location. Never invent a country's civil time zone from longitude.
         private DateTime? _sunlightDateUtc = DateTime.UtcNow.Date;
@@ -905,6 +920,7 @@ namespace ZEarth.App.ViewModels
 
         public ICommand ToggleBordersCommand { get; }
         public ICommand ToggleGraticulesCommand { get; }
+        public ICommand ToggleCloudsCommand { get; }
         public ICommand GridOptionsCommand { get; }
         public ICommand ToggleTerrainCommand { get; }
         public ICommand SelectBasemapCommand { get; }
@@ -1168,6 +1184,10 @@ namespace ZEarth.App.ViewModels
                     OnPropertyChanged(nameof(AtmosphereIconBrush));
                 });
             };
+            _globeBridge.CloudsChanged += (s, enabled) => RunOnUi(() =>
+            {
+                AreCloudsEnabled = enabled;
+            });
 
             // ActiveLayers strictly represents custom user overlay layers (WMS, WMTS, XYZ, GeoTIFF, etc.)
             // Built-in basemaps are mutually exclusive base layers managed by SelectedBasemapId / AvailableBasemaps.
@@ -1353,6 +1373,7 @@ namespace ZEarth.App.ViewModels
 
             ToggleSunlightCommand = AsyncCommand(ExecuteToggleSunlightAsync, "Toggle sunlight");
             ToggleAtmosphereCommand = AsyncCommand(ExecuteToggleAtmosphereAsync, "Toggle atmosphere");
+            ToggleCloudsCommand = AsyncCommand(ExecuteToggleCloudsAsync, "Toggle offline illustrative clouds");
 
             // Project Commands (Sprint 3 & Sprint 4)
             NewProjectCommand = new RelayCommand(ExecuteNewProject);
@@ -1570,6 +1591,22 @@ namespace ZEarth.App.ViewModels
                 IsAtmosphereEnabled = desired;
             else
                 StatusMessage = "Atmosphere not changed — globe request failed or timed out.";
+        }
+
+        private async Task ExecuteToggleCloudsAsync()
+        {
+            var desired = !AreCloudsEnabled;
+            if (await _globeBridge.SetCloudsAsync(desired))
+            {
+                AreCloudsEnabled = desired;
+                SettingsService.Instance.Settings.ShowClouds = desired;
+                SettingsService.Instance.Save();
+                StatusMessage = desired
+                    ? "Illustrative 3D clouds enabled (offline; not live weather)."
+                    : "Illustrative 3D clouds disabled.";
+            }
+            else
+                StatusMessage = "Clouds not changed — globe request failed or timed out.";
         }
 
         private void ExecuteToggleTheme()
