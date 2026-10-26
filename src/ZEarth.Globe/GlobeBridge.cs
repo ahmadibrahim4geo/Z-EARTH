@@ -90,6 +90,8 @@ namespace ZEarth.Globe
         public event EventHandler<string>? TerrainFallbackOccurred;
         public event EventHandler<string>? TerrainChanged;
         public event EventHandler<double>? TimeOfDayChanged;
+        // Carries UTC date and whether the globe's Now button was pressed.
+        public event EventHandler<string>? TimeContextChanged;
         public event EventHandler<bool>? SunlightChanged;
         public event EventHandler<bool>? AtmosphereChanged;
         public event EventHandler<string>? DeviceLocationReceived;
@@ -420,6 +422,7 @@ namespace ZEarth.Globe
                     if (root.TryGetProperty("timeHours", out var tProp) && tProp.TryGetDouble(out var th))
                     {
                         TimeOfDayChanged?.Invoke(this, th);
+                        TimeContextChanged?.Invoke(this, json);
                     }
                     return;
                 }
@@ -731,7 +734,7 @@ namespace ZEarth.Globe
             // Terrain providers perform a real readiness check before they are reported as
             // active. Allow enough time for the first elevation tile/provider metadata to
             // arrive on slower connections instead of incorrectly showing a bridge timeout.
-            => SendRequestAsync("terrain.setProvider", new { type, url, ionToken }, timeoutMs: 30000);
+            => SendRequestAsync("terrain.setProvider", new { type, url, ionToken }, timeoutMs: 45000);
 
         public Task<bool> SetBasemapAsync(string basemapId) => SendRequestAsync("layers.setBasemap", new { mode = basemapId });
         public Task<bool> ToggleHybridLabelsAsync(bool show) => SendRequestAsync("layers.toggleHybridLabels", new { show });

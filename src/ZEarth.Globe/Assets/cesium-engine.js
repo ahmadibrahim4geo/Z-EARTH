@@ -801,7 +801,7 @@
       const promise = (async () => {
         const url = `https://terrain.local/terrarium/${sourceLevel}/${sourceX}/${sourceY}.png`;
         const abortController = new AbortController();
-        const timeoutId = window.setTimeout(() => abortController.abort(), 20000);
+        const timeoutId = window.setTimeout(() => abortController.abort(), 25000);
         let response;
         try {
           response = await fetch(url, {
@@ -857,9 +857,11 @@
         try {
           // Do not report Terrain as active until a real elevation tile has passed through
           // the host proxy and decoded successfully.
-          // Root tile is needed for mesh startup; viewport tile proves regional DEM data.
-          await this.loadTerrariumTile(0, 0, 0);
-          const probe = await this.verifyViewportTerrainTile();
+          // Fetch independently in parallel; both real numeric tiles must pass.
+          const [, probe] = await Promise.all([
+            this.loadTerrariumTile(0, 0, 0),
+            this.verifyViewportTerrainTile()
+          ]);
           const demProvider = new Cesium.CustomHeightmapTerrainProvider({
             width: this.gridSize,
             height: this.gridSize,
@@ -2206,13 +2208,19 @@
 
     init() {
       this.dataSource = new Cesium.CustomDataSource('geographic-graticules');
+      this.dataSource.show = false;
       viewer.dataSources.add(this.dataSource);
       this.buildGraticules();
     },
 
     buildGraticules() {
       this.dataSource.entities.removeAll();
-      if (!this.config.visible) return;
+      // An explicit data-source visibility gate also hides pending primitives.
+      this.dataSource.show = this.config.visible;
+      if (!this.config.visible) {
+        viewer.scene.requestRender();
+        return;
+      }
 
       const viewRect = viewer.camera.computeViewRectangle(viewer.scene.globe.ellipsoid);
       const full = { west: -180, east: 180, south: -85, north: 85 };
@@ -2335,7 +2343,7 @@
               outlineWidth: 3,
               style: Cesium.LabelStyle.FILL_AND_OUTLINE,
               heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
-              disableDepthTestDistance: Number.POSITIVE_INFINITY,
+              disableDepthTestDistance: 0,
               pixelOffset: new Cesium.Cartesian2(0, -10),
               distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 8000000)
             }
@@ -2373,7 +2381,7 @@
               outlineWidth: 2,
               style: Cesium.LabelStyle.FILL_AND_OUTLINE,
               heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
-              disableDepthTestDistance: Number.POSITIVE_INFINITY,
+              disableDepthTestDistance: 0,
               distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 8000000),
               translucencyByDistance: new Cesium.NearFarScalar(1000000, 1.0, 9000000, 0.0)
             }
@@ -2412,7 +2420,7 @@
               outlineWidth: 2,
               style: Cesium.LabelStyle.FILL_AND_OUTLINE,
               heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
-              disableDepthTestDistance: Number.POSITIVE_INFINITY,
+              disableDepthTestDistance: 0,
               distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 8000000),
               translucencyByDistance: new Cesium.NearFarScalar(1000000, 1.0, 9000000, 0.0)
             }
@@ -2422,17 +2430,24 @@
     },
 
     addKeyPoint(lon, lat, label, color) {
+      const anchor = Cesium.Cartesian3.fromDegrees(lon, lat);
+      const normal = Cesium.Ellipsoid.WGS84.geodeticSurfaceNormal(anchor, new Cesium.Cartesian3());
+      const visibleFromCamera = new Cesium.CallbackProperty(() =>
+        window.ZEarthGraticuleGeometry.isSurfaceAnchorVisible(
+          anchor, normal, viewer.camera.positionWC), false);
       this.dataSource.entities.add({
-        position: Cesium.Cartesian3.fromDegrees(lon, lat),
+        position: anchor,
         point: {
+          show: visibleFromCamera,
           pixelSize: 9,
           color: color,
           outlineColor: Cesium.Color.BLACK,
           outlineWidth: 2,
           heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
-          disableDepthTestDistance: Number.POSITIVE_INFINITY
+          disableDepthTestDistance: 0
         },
         label: {
+          show: visibleFromCamera,
           text: this.config.showLabels ? label : '',
           font: 'bold 11px Segoe UI, sans-serif',
           fillColor: Cesium.Color.WHITE,
@@ -2441,7 +2456,7 @@
           style: Cesium.LabelStyle.FILL_AND_OUTLINE,
               heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
           pixelOffset: new Cesium.Cartesian2(0, -18),
-          disableDepthTestDistance: Number.POSITIVE_INFINITY,
+          disableDepthTestDistance: 0,
           distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 12000000)
         }
       });
@@ -2860,7 +2875,7 @@
     atmosphereEnabled: true,
     animationTimer: null,
     dateUtc: new Date().toISOString().slice(0, 10),
-    setTimeOfDay(timeHours, dateUtc) {
+    setTimeOfDay(timeHours, dateUtc, isRealTime = false) {
       const hours = Math.max(0, Math.min(24, Number(timeHours) || 0));
       // Date/time is UTC; geographic sun angle automatically follows the
       // globe's actual Earth location in Cesium's lighting calculation.
@@ -2875,11 +2890,13 @@
       const minutes = Math.round((hours - Math.floor(hours)) * 60);
       now.setUTCHours(whole, minutes, 0, 0);
       viewer.clock.currentTime = Cesium.JulianDate.fromDate(now);
+      viewer.clock.shouldAnimate = false; // Hold manual solar time between changes.
       const slider = document.getElementById('sunlight-slider');
       const label = document.getElementById('sunlight-time-label');
       if (slider) slider.value = String(hours);
       if (label) label.textContent = `${String(whole).padStart(2, '0')}:${String(minutes).padStart(2, '0')} UTC`;
-      sendHostMessage({ event: 'environment.timeChanged', timeHours: hours });
+      sendHostMessage({ event: 'environment.timeChanged', timeHours: hours,
+        dateUtc: this.dateUtc, isRealTime });
       viewer.scene.requestRender();
       return hours;
     },
@@ -2893,7 +2910,8 @@
       if (typeof config?.timeHours === 'number') this.setTimeOfDay(config.timeHours, config.dateUtc);
       else if (enabled) {
         const now = new Date();
-        this.setTimeOfDay(now.getUTCHours() + now.getUTCMinutes() / 60);
+        this.setTimeOfDay(now.getUTCHours() + now.getUTCMinutes() / 60,
+          now.toISOString().slice(0, 10), true);
       }
       viewer.scene.requestRender();
       sendHostMessage({ event: 'environment.sunlightChanged', enabled });
@@ -3001,7 +3019,8 @@
     button.addEventListener('click', () => EnvironmentManager.setTimeOfDay(Number(button.dataset.time))));
   document.getElementById('btn-sunlight-now')?.addEventListener('click', () => {
     const now = new Date();
-    EnvironmentManager.setTimeOfDay(now.getUTCHours() + now.getUTCMinutes() / 60);
+    EnvironmentManager.setTimeOfDay(now.getUTCHours() + now.getUTCMinutes() / 60,
+      now.toISOString().slice(0, 10), true);
   });
   document.getElementById('btn-sunlight-play')?.addEventListener('click', () => EnvironmentManager.toggleAnimation());
   document.getElementById('btn-sunlight-close')?.addEventListener('click', () => EnvironmentManager.setSunlight({ enabled: false }));

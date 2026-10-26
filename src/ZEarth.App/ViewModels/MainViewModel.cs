@@ -1123,6 +1123,33 @@ namespace ZEarth.App.ViewModels
                     UpdateTimeOfDayDisplay();
                 });
             };
+            // The in-globe Now button can cross UTC midnight. Synchronize the WPF
+            // calendar too; otherwise toggling Sunlight on again restores yesterday.
+            _globeBridge.TimeContextChanged += (sender, contextJson) =>
+            {
+                try
+                {
+                    using var doc = JsonDocument.Parse(contextJson);
+                    var root = doc.RootElement;
+                    if (!root.TryGetProperty("dateUtc", out var dateProperty) ||
+                        dateProperty.ValueKind != JsonValueKind.String ||
+                        !DateTime.TryParseExact(dateProperty.GetString(), "yyyy-MM-dd",
+                            CultureInfo.InvariantCulture, DateTimeStyles.None, out var selectedDate))
+                        return;
+                    bool isRealTime = root.TryGetProperty("isRealTime", out var liveProperty) &&
+                                      liveProperty.ValueKind == JsonValueKind.True;
+                    Application.Current?.Dispatcher?.Invoke(() =>
+                    {
+                        if (_sunlightDateUtc != selectedDate.Date)
+                        {
+                            _sunlightDateUtc = selectedDate.Date;
+                            OnPropertyChanged(nameof(SunlightDateUtc));
+                        }
+                        if (isRealTime) _sunlightTimeCustomized = false;
+                    });
+                }
+                catch (JsonException) { /* Ignore malformed untrusted environment telemetry. */ }
+            };
             _globeBridge.SunlightChanged += (s, enabled) =>
             {
                 Application.Current?.Dispatcher?.Invoke(() =>
