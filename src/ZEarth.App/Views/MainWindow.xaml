@@ -449,6 +449,12 @@
                                             <TextBlock Text="2D Map" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
                                         </StackPanel>
                                     </Button>
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding ToggleFlightModeCommand}" ToolTip="{Binding FlightModeTooltip}" AutomationProperties.AutomationId="ZE.Main.034a.ToggleFlightModeCommand" AutomationProperties.Name="{Binding FlightModeLabel}">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <TextBlock Text="✈" FontSize="24" Foreground="{DynamicResource Brush.Accent}" HorizontalAlignment="Center"/>
+                                            <TextBlock Text="{Binding FlightModeLabel}" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Button>
                                 </StackPanel>
                                 <TextBlock Grid.Row="1" Text="Projection Mode" Style="{StaticResource RibbonGroupHeaderStyle}"/>
                             </Grid>
