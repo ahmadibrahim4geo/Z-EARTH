@@ -763,8 +763,8 @@ namespace ZEarth.Globe
         public Task<bool> SetBordersVisibleAsync(bool visible) => SendRequestAsync("layers.setBorders", new { visible });
         public Task<bool> SetGraticulesVisibleAsync(bool visible) => SendRequestAsync("layers.setGraticules", new { visible });
         public Task<bool> SetGraticulesConfigAsync(bool visible, bool showLabels = true, bool showKeyParallels = true, bool showUtmZones = false,
-            bool showLongitudeLines = true, bool showLatitudeLines = true, double longitudeIntervalDegrees = 0.0, double latitudeIntervalDegrees = 0.0, string gridLabelFormat = "DMS") =>
-            SendRequestAsync("layers.setGraticulesConfig", new { visible, showLabels, showKeyParallels, showUtmZones, showLongitudeLines, showLatitudeLines, longitudeIntervalDegrees, latitudeIntervalDegrees, gridLabelFormat });
+            bool showLongitudeLines = true, bool showLatitudeLines = true, double longitudeIntervalDegrees = 0.0, double latitudeIntervalDegrees = 0.0, string gridLabelFormat = "DMS", string utmLabelMode = "Both") =>
+            SendRequestAsync("layers.setGraticulesConfig", new { visible, showLabels, showKeyParallels, showUtmZones, showLongitudeLines, showLatitudeLines, longitudeIntervalDegrees, latitudeIntervalDegrees, gridLabelFormat, utmLabelMode });
         public Task<bool> SetCreditsConfigAsync(string mode, bool showOptionalLogos) =>
             SendRequestAsync("credits.setConfig", new { mode, showOptionalLogos });
         public Task<bool> SetZoomSensitivityAsync(double factor) =>
