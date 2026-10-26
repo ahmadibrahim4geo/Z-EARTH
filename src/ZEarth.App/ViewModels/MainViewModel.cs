@@ -426,6 +426,11 @@ namespace ZEarth.App.ViewModels
             }
         }
 
+        public string CloudsLabel => LocalizationService.Instance.IsArabic ? "السحب" : "Clouds";
+        public string CloudsTooltip => LocalizationService.Instance.IsArabic
+            ? "إظهار أو إخفاء سحب ثلاثية الأبعاد توضيحية دون اتصال بالإنترنت، وليست بيانات طقس حية."
+            : "Toggle offline illustrative 3D clouds (not live weather). Hidden in 2D.";
+
         public Brush CloudsIconBrush => AreCloudsEnabled
             ? new SolidColorBrush(Color.FromRgb(226, 232, 240))
             : (Application.Current?.TryFindResource("Brush.Text.Secondary") as Brush ?? Brushes.Gray);
@@ -1216,6 +1221,8 @@ namespace ZEarth.App.ViewModels
                 {
                     OnPropertyChanged(nameof(CurrentLanguageCode));
                     OnPropertyChanged(nameof(CurrentLanguageText));
+                    OnPropertyChanged(nameof(CloudsLabel));
+                    OnPropertyChanged(nameof(CloudsTooltip));
                     UpdateWindowTitle();
                 });
             };
