@@ -2966,6 +2966,13 @@
     onChange: state => sendHostMessage({ event: 'flight.changed', enabled: state.enabled })
   });
 
+  // User-selected NASA daily MODIS overlay; not Google Earth historical imagery.
+  // A successful command configures WMS, it does not prove all tiles are available.
+  const NasaGibsManager = window.ZEarthNasaGibs.create({
+    Cesium, viewer,
+    onStatus: details => sendHostMessage(details)
+  });
+
   const SwipeManager = {
     active: false,
     leftId: null,
@@ -3759,6 +3766,16 @@
         case 'historical.error': {
           HistoricalTimeline?.error(String(data.payload?.message || 'Wayback catalog unavailable.'));
           respondSuccess({ errorShown: true });
+          break;
+        }
+        case 'historical.nasaSet': {
+          const result = NasaGibsManager.set(data.payload?.layer, data.payload?.date);
+          if (result.success) respondSuccess(result);
+          else respond('failed', result, result.error || 'NASA overlay was not configured');
+          break;
+        }
+        case 'historical.nasaClear': {
+          respondSuccess(NasaGibsManager.clear());
           break;
         }
         case 'layers.registerBasemap': {
