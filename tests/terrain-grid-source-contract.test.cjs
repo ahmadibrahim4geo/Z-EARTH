@@ -61,3 +61,13 @@ test('Sunlight Now uses both the live UTC date and hour and holds manual clock',
   assert.match(env, /now\.toISOString\(\)\.slice\(0, 10\)/);
   assert.match(env, /viewer\.clock\.shouldAnimate = false/);
 });
+
+test('Sunlight Now synchronizes UTC date and real-time intent all the way to WPF', () => {
+  const js = read('src/ZEarth.Globe/Assets/cesium-engine.js');
+  const bridge = read('src/ZEarth.Globe/GlobeBridge.cs');
+  const viewModel = read('src/ZEarth.App/ViewModels/MainViewModel.cs');
+  assert.match(js, /dateUtc: this\.dateUtc, isRealTime/);
+  assert.match(bridge, /TimeContextChanged\?\.Invoke\(this, json\)/);
+  assert.match(viewModel, /_globeBridge\.TimeContextChanged \+=/);
+  assert.match(viewModel, /if \(isRealTime\) _sunlightTimeCustomized = false/);
+});
