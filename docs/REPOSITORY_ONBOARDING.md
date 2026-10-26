@@ -12,7 +12,7 @@
 | Contribute changes | [Contributing guide](../CONTRIBUTING.md) |
 | Report a bug | [GitHub Issues](https://github.com/ahmadibrahim4geo/Z-EARTH/issues/new/choose) |
 | Report a private security vulnerability | [Security guide](../SECURITY.md) |
-| Understand source-code license status | [License status](LICENSE_STATUS.md); [third-party notices](../THIRD_PARTY_LICENSES.md) |
+| Understand source-code license status | [GNU GPLv3 source license](../LICENSE); [component inventory](../THIRD_PARTY_LICENSES.md); [release obligations](LICENSE_STATUS.md) |
 
 ## Evidence tiers
 
