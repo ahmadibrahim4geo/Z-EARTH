@@ -95,6 +95,7 @@ namespace ZEarth.Globe
         public event EventHandler<bool>? SunlightChanged;
         public event EventHandler<bool>? AtmosphereChanged;
         public event EventHandler<bool>? CloudsChanged;
+        public event EventHandler<bool>? FlightModeChanged;
         public event EventHandler<string>? DeviceLocationReceived;
 
         /// <summary>Raised when a correlated request fails, is cancelled or times out (RC-3).</summary>
@@ -450,6 +451,13 @@ namespace ZEarth.Globe
                         CloudsChanged?.Invoke(this, cProp.GetBoolean());
                     return;
                 }
+                if (ev == "flight.changed")
+                {
+                    if (root.TryGetProperty("enabled", out var activeProp) &&
+                        activeProp.ValueKind is JsonValueKind.True or JsonValueKind.False)
+                        FlightModeChanged?.Invoke(this, activeProp.GetBoolean());
+                    return;
+                }
             }
 
             // (Correlated responses are handled at the top of this method.)
@@ -791,6 +799,9 @@ namespace ZEarth.Globe
 
         public Task<bool> SetCloudsAsync(bool enabled) =>
             SendRequestAsync("environment.setClouds", new { enabled });
+
+        public Task<bool> SetFlightModeAsync(bool enabled) =>
+            SendRequestAsync("flight.setActive", new { enabled });
 
         public Task<bool> SetTimeOfDayAsync(double timeHours, string? dateUtc = null) =>
             SendRequestAsync("environment.setTimeOfDay", new { timeHours, dateUtc });
