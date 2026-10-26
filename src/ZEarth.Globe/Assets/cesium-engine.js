@@ -3647,6 +3647,14 @@
     }
 
     try {
+      // Programmatic navigation must supersede optional flight navigation.
+      // Otherwise its animation frame immediately overwrites camera.home/north/zoom.
+      if (['camera.flyTo', 'camera.home', 'camera.fullExtent',
+           'camera.resetNorth', 'camera.resetPitch', 'camera.zoomIn',
+           'camera.zoomOut', 'camera.fitSelection', 'scene.setMode']
+          .includes(data.action) && FlightSimulator.getState().enabled) {
+        FlightSimulator.stop(false);
+      }
       switch (data.action) {
         case 'app.setTheme': {
           const theme = data.payload?.theme || 'dark';
