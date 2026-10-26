@@ -48,16 +48,16 @@ test('camera-following graticule labels use Cesium PositionProperty and deduplic
 test('grid OFF gates all source primitives and pole labels respect the camera horizon', () => {
   const js = read('src/ZEarth.Globe/Assets/cesium-engine.js');
   const grid = js.split('const GraticuleManager = {')[1].split('// Compact Compliant Credits')[0];
-  assert.match(grid, /this\\.dataSource\\.show = this\\.config\\.visible/);
-  assert.match(grid, /isSurfaceAnchorVisible\\(/);
+  assert.match(grid, /this\.dataSource\.show = this\.config\.visible/);
+  assert.match(grid, /isSurfaceAnchorVisible\(/);
   assert.match(grid, /show: visibleFromCamera/);
   assert.equal((grid.match(/show: visibleFromCamera/g) || []).length, 2);
-  assert.doesNotMatch(grid, /disableDepthTestDistance: Number\\.POSITIVE_INFINITY/);
+  assert.doesNotMatch(grid, /disableDepthTestDistance: Number\.POSITIVE_INFINITY/);
 });
 
 test('Sunlight Now uses both the live UTC date and hour and holds manual clock', () => {
   const js = read('src/ZEarth.Globe/Assets/cesium-engine.js');
   const env = js.split('const EnvironmentManager = {')[1].split('const SwipeManager = {')[0];
-  assert.match(env, /now\\.toISOString\\(\\)\\.slice\\(0, 10\\)/);
-  assert.match(env, /viewer\\.clock\\.shouldAnimate = false/);
+  assert.match(env, /now\.toISOString\(\)\.slice\(0, 10\)/);
+  assert.match(env, /viewer\.clock\.shouldAnimate = false/);
 });
