@@ -319,6 +319,18 @@
                                             <TextBlock Text="{Binding GpsImportLabel}" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
                                         </StackPanel>
                                     </Button>
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding PlayGpsTrackCommand}" ToolTip="Replay time-tagged selected GPS track using original UTC timestamps (30 second preview)" AutomationProperties.AutomationId="ZE.Main.021b.PlayGpsTrackCommand">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <TextBlock Text="▶" FontSize="21" Foreground="#34d399" HorizontalAlignment="Center"/>
+                                            <TextBlock Text="Play GPS" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding StopGpsTrackCommand}" ToolTip="Stop the current GPS track replay" AutomationProperties.AutomationId="ZE.Main.021c.StopGpsTrackCommand">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <TextBlock Text="■" FontSize="18" Foreground="#f87171" HorizontalAlignment="Center"/>
+                                            <TextBlock Text="Stop GPS" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Button>
                                     <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding ExportKmlCommand}" ToolTip="Export current Places hierarchy to KML 2.2" AutomationProperties.AutomationId="ZE.Main.022.ExportKmlCommand" AutomationProperties.Name="Export current Places hierarchy to KML 2.2">
                                         <StackPanel HorizontalAlignment="Center">
                                             <Path Data="{StaticResource Icon.KmlExport}" Style="{StaticResource RibbonLargeIconStyle}" Fill="#f472b6"/>
@@ -1468,6 +1480,8 @@
                                                     <MenuItem Header="🎬 Add Saved Scene" Command="{Binding AddSavedSceneCommand}"/>
                                                     <MenuItem Header="📥 Import KML/KMZ..." Command="{Binding ImportKmlCommand}"/>
                                                     <MenuItem Header="GPS / GPX Import..." Command="{Binding ImportGpxCommand}"/>
+                                                    <MenuItem Header="▶ Replay selected GPS track" Command="{Binding PlayGpsTrackCommand}"/>
+                                                    <MenuItem Header="■ Stop GPS replay" Command="{Binding StopGpsTrackCommand}"/>
                                                     <Separator/>
                                                     <MenuItem Header="💾 Save Active Project" Command="{Binding SaveProjectCommand}"/>
                                                     <MenuItem Header="📤 Export Selected Item..." Command="{Binding ExportSelectedItemCommand}"/>
