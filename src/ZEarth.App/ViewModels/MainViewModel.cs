@@ -948,6 +948,8 @@ namespace ZEarth.App.ViewModels
         public ICommand SelectBasemapCommand { get; }
         public ICommand OpenBasemapGalleryCommand { get; }
         public ICommand HistoricalImageryCommand { get; }
+        public ICommand NasaHistoricalImageryCommand { get; }
+        public ICommand ClearNasaHistoricalImageryCommand { get; }
         public ICommand AddImageryLayerCommand { get; }
         public ICommand RemoveImageryLayerCommand { get; }
         public ICommand MoveLayerUpCommand { get; }
@@ -1549,6 +1551,8 @@ namespace ZEarth.App.ViewModels
                 if (p is string id) ExecuteSelectBasemap(id);
             });
             HistoricalImageryCommand = AsyncCommand(ExecuteShowHistoricalImageryAsync, "Open historical timeline");
+            NasaHistoricalImageryCommand = AsyncCommand(ExecuteShowNasaHistoricalImageryAsync, "Choose NASA GIBS observation date");
+            ClearNasaHistoricalImageryCommand = AsyncCommand(ExecuteClearNasaHistoricalImageryAsync, "Hide NASA GIBS imagery");
             AddImageryLayerCommand = new RelayCommand(ExecuteAddImageryLayer);
             RemoveImageryLayerCommand = new RelayCommand(p =>
             {
@@ -3979,6 +3983,27 @@ namespace ZEarth.App.ViewModels
                 : $"Terrain unavailable: {_terrainConfig.Name}. Check the provider connection, URL or Cesium ion token.";
             }
             finally { _terrainRequestInProgress = false; }
+        }
+
+        private async Task ExecuteShowNasaHistoricalImageryAsync()
+        {
+            var dialog = new NasaGibsDialog { Owner = Application.Current?.MainWindow };
+            if (dialog.ShowDialog() != true) return;
+            if (await _globeBridge.SetNasaGibsImageryAsync(dialog.LayerId, dialog.DateIso))
+            {
+                StatusMessage = $"NASA GIBS {dialog.LayerId}: {dialog.DateIso} configured. Tile coverage is not guaranteed; imagery is not a Google Earth archive.";
+            }
+            else
+            {
+                StatusMessage = "NASA GIBS layer could not be configured. Verify the date, network and provider status.";
+            }
+        }
+
+        private async Task ExecuteClearNasaHistoricalImageryAsync()
+        {
+            StatusMessage = await _globeBridge.ClearNasaGibsImageryAsync()
+                ? "NASA GIBS observation overlay hidden."
+                : "NASA GIBS overlay removal was not acknowledged by the globe.";
         }
 
         private async Task ExecuteShowHistoricalImageryAsync()
