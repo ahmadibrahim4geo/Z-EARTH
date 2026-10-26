@@ -3346,27 +3346,31 @@
     });
   }
 
-  function resetNorth() {
+  function resetNorth(onComplete = null, onCancel = null) {
     viewer.camera.flyTo({
-      destination: viewer.camera.position,
+      destination: Cesium.Cartesian3.clone(viewer.camera.position),
       orientation: {
         heading: 0.0,
         pitch: viewer.camera.pitch,
         roll: 0.0
       },
-      duration: 0.5
+      duration: 0.5,
+      complete: () => onComplete?.(),
+      cancel: () => onCancel?.()
     });
   }
 
-  function resetPitch() {
+  function resetPitch(onComplete = null, onCancel = null) {
     viewer.camera.flyTo({
-      destination: viewer.camera.position,
+      destination: Cesium.Cartesian3.clone(viewer.camera.position),
       orientation: {
         heading: viewer.camera.heading,
         pitch: -Cesium.Math.PI_OVER_TWO + 0.0001,
         roll: 0.0
       },
-      duration: 0.5
+      duration: 0.5,
+      complete: () => onComplete?.(),
+      cancel: () => onCancel?.()
     });
   }
 
@@ -3717,13 +3721,17 @@
           break;
         }
         case 'camera.resetNorth': {
-          resetNorth();
-          respondSuccess({ heading: 0 });
+          respondAccepted({ started: true });
+          resetNorth(
+            () => respondSuccess({ heading: 0 }),
+            () => respond('cancelled', { headingChanged: false, reason: 'navigation interrupted' }));
           break;
         }
         case 'camera.resetPitch': {
-          resetPitch();
-          respondSuccess({ pitch: -90 });
+          respondAccepted({ started: true });
+          resetPitch(
+            () => respondSuccess({ pitch: -90 }),
+            () => respond('cancelled', { pitchChanged: false, reason: 'navigation interrupted' }));
           break;
         }
         case 'camera.zoomIn': {
