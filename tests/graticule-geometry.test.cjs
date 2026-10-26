@@ -50,3 +50,19 @@ test('camera-facing horizon culls north/south poles and 0/0 when they are behind
   assert.equal(visible(north, north, { x: 2, y: 0, z: 1 }), false);
   assert.equal(visible(north, north, { x: NaN, y: 0, z: 4 }), false);
 });
+
+test('UTM grid-zone latitude bands reflect real geographic grid zone designation', () => {
+  const { latitudeBand, gridZoneDesignation, formatUtmZoneLabel } =
+    require('../src/ZEarth.Globe/Assets/graticule-geometry.js');
+  assert.equal(latitudeBand(-80), 'C');
+  assert.equal(latitudeBand(-72), 'D');
+  assert.equal(latitudeBand(30), 'R');
+  assert.equal(latitudeBand(75), 'X');
+  assert.equal(latitudeBand(84), null);
+  assert.equal(gridZoneDesignation(31.1, 30), '36R');
+  assert.equal(gridZoneDesignation(31.1, -30), '36J');
+  assert.equal(formatUtmZoneLabel(36, 30, 'Both'), 'UTM 36N · GZD 36R');
+  assert.equal(formatUtmZoneLabel(36, 30, 'Hemisphere'), 'UTM 36N');
+  assert.equal(formatUtmZoneLabel(36, 30, 'GridZone'), '36R');
+  assert.equal(formatUtmZoneLabel(36, 84), '');
+});
