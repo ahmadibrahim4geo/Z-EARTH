@@ -58,6 +58,7 @@ namespace ZEarth.App.Views
             LongitudeIntervalInput.Text = settings.LongitudeIntervalDegrees.ToString(CultureInfo.InvariantCulture);
             LatitudeIntervalInput.Text = settings.LatitudeIntervalDegrees.ToString(CultureInfo.InvariantCulture);
             UtmZonesCheck.IsChecked = settings.ShowUtmZones;
+            SelectComboByTag(UtmLabelModeCombo, settings.UtmLabelMode);
             SceneMarkersCheck.IsChecked = settings.ShowSceneLocationsOnMap;
             SelectComboByTag(CreditsModeCombo, settings.CreditsDisplayMode);
             ProviderLogosCheck.IsChecked = settings.ShowOptionalProviderLogos;
@@ -142,6 +143,7 @@ namespace ZEarth.App.Views
             settings.LongitudeIntervalDegrees = longitudeInterval;
             settings.LatitudeIntervalDegrees = latitudeInterval;
             settings.ShowUtmZones = UtmZonesCheck.IsChecked == true;
+            settings.UtmLabelMode = GetSelectedTag(UtmLabelModeCombo, "Both");
             settings.ShowSceneLocationsOnMap = SceneMarkersCheck.IsChecked == true;
             settings.CreditsDisplayMode = GetSelectedTag(CreditsModeCombo, "Compact");
             settings.ShowOptionalProviderLogos = ProviderLogosCheck.IsChecked == true;
@@ -176,7 +178,8 @@ namespace ZEarth.App.Views
                     settings.ShowLatitudeLines,
                     settings.LongitudeIntervalDegrees,
                     settings.LatitudeIntervalDegrees,
-                    settings.GridLabelFormat);
+                    settings.GridLabelFormat,
+                    settings.UtmLabelMode);
                 if (!gridAcknowledged)
                 {
                     MessageBox.Show("Your settings were saved. The globe did not confirm the coordinate-grid update; it will be reapplied on the next engine startup.",
