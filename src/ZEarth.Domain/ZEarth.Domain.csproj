@@ -8,6 +8,9 @@
     <AssemblyName>ZEarth.Domain</AssemblyName>
     <Version>0.1.0</Version>
     <Authors>Ahmad Ibrahim</Authors>
+    <!-- License of this project's original code only; dependencies and embedded assets have separate terms. -->
+    <PackageLicenseExpression>GPL-3.0-only</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/ahmadibrahim4geo/Z-EARTH</RepositoryUrl>
     <Company>Z EARTH Desktop</Company>
     <Product>Z EARTH Desktop GIS</Product>
   </PropertyGroup>
