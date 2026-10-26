@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 using System.Xml;
 using System.Xml.Linq;
 
@@ -183,6 +184,9 @@ namespace ZEarth.Domain.Kml
                 "ExtendedData", "Point", "LineString", "Polygon"
             };
 
+            if (placemark.ExtendedData.ContainsKey("GpsKmlTrack"))
+                knownNames.Add("Track"); // parsed into model and safely rebuilt on export.
+
             foreach (var elem in placemarkElem.Elements())
             {
                 if (!knownNames.Contains(elem.Name.LocalName))
@@ -213,7 +217,62 @@ namespace ZEarth.Domain.Kml
                 return;
             }
 
-            // 2. LineString
+            // 2. gx:Track: time-tagged KML geometry used by Google Earth.
+            // The XML remains preserved unchanged if dates/coords are invalid.
+            var gxTrack = placemarkElem.Descendants()
+                .FirstOrDefault(e => e.Name == GxNs + "Track");
+            if (gxTrack != null)
+            {
+                var whenElements = gxTrack.Elements()
+                    .Where(e => e.Name.LocalName == "when").ToList();
+                var coordElements = gxTrack.Elements(GxNs + "coord").ToList();
+                if (whenElements.Count == coordElements.Count &&
+                    whenElements.Count >= 2 && whenElements.Count <= 200000)
+                {
+                    var fixes = new List<CoordinatePoint>(coordElements.Count);
+                    var times = new List<string>(whenElements.Count);
+                    DateTimeOffset? previous = null;
+                    bool valid = true;
+                    for (int i = 0; i < coordElements.Count; i++)
+                    {
+                        var values = coordElements[i].Value.Split(
+                            new[] { ' ', '\t', '\r', '\n' },
+                            StringSplitOptions.RemoveEmptyEntries);
+                        if (values.Length < 3 ||
+                            !double.TryParse(values[0], NumberStyles.Float, CultureInfo.InvariantCulture, out var lon) ||
+                            !double.TryParse(values[1], NumberStyles.Float, CultureInfo.InvariantCulture, out var lat) ||
+                            !double.TryParse(values[2], NumberStyles.Float, CultureInfo.InvariantCulture, out var alt) ||
+                            !double.IsFinite(lon) || !double.IsFinite(lat) || !double.IsFinite(alt) ||
+                            lon < -180 || lon > 180 || lat < -90 || lat > 90 ||
+                            !DateTimeOffset.TryParse(whenElements[i].Value, CultureInfo.InvariantCulture,
+                                DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var time) ||
+                            (previous.HasValue && time <= previous.Value))
+                        {
+                            valid = false;
+                            break;
+                        }
+                        fixes.Add(new CoordinatePoint(lon, lat, alt));
+                        times.Add(time.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture));
+                        previous = time;
+                    }
+                    if (valid)
+                    {
+                        placemark.ItemType = PlaceItemType.Path;
+                        placemark.Coordinates = fixes;
+                        placemark.Longitude = fixes[0].Longitude;
+                        placemark.Latitude = fixes[0].Latitude;
+                        placemark.Altitude = fixes[0].Altitude;
+                        placemark.TimeSpanBegin = times[0];
+                        placemark.TimeSpanEnd = times[^1];
+                        placemark.ExtendedData["GpsSourceKind"] = "KML gx:Track";
+                        placemark.ExtendedData["GpsKmlTrack"] = "true";
+                        placemark.ExtendedData["GpsPointTimesUtcJson"] = JsonSerializer.Serialize(times);
+                        return;
+                    }
+                }
+            }
+
+            // 3. LineString
             var lineElem = FindDescendant(placemarkElem, "LineString");
             if (lineElem != null)
             {
