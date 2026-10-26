@@ -79,6 +79,28 @@ public static class ZEarthUIWin32 {
     $main = [System.Windows.Automation.AutomationElement]::FromHandle($hwnd)
     if ($null -eq $main) { throw "Windows UIA could not access the WPF main window." }
     $script:summary.WindowTitle = $main.Current.Name
+    # Verify that the actual launched window fits the physical Windows work area.
+    # A few pixels of DWM invisible resize border are tolerated.
+    Add-Type -AssemblyName System.Windows.Forms
+    $monitor = [System.Windows.Forms.Screen]::FromHandle($hwnd)
+    $windowRect = New-Object ZEarthUIWin32+RECT
+    if ([ZEarthUIWin32]::GetWindowRect($hwnd, [ref]$windowRect)) {
+        $area = $monitor.WorkingArea
+        $script:summary.WindowBoundsPx = [ordered]@{
+            Left = $windowRect.Left; Top = $windowRect.Top
+            Right = $windowRect.Right; Bottom = $windowRect.Bottom
+        }
+        $script:summary.WorkAreaPx = [ordered]@{
+            Left = $area.Left; Top = $area.Top
+            Right = $area.Right; Bottom = $area.Bottom
+        }
+        $tolerance = 10
+        $script:summary.WindowFullyVisible =
+            ($windowRect.Left -ge ($area.Left - $tolerance)) -and
+            ($windowRect.Top -ge ($area.Top - $tolerance)) -and
+            ($windowRect.Right -le ($area.Right + $tolerance)) -and
+            ($windowRect.Bottom -le ($area.Bottom + $tolerance))
+    }
     $buttonCondition = [System.Windows.Automation.PropertyCondition]::new(
         [System.Windows.Automation.AutomationElement]::ControlTypeProperty,
         [System.Windows.Automation.ControlType]::Button)
