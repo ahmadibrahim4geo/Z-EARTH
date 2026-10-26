@@ -15,7 +15,10 @@
       ],
       "report": "reports/R01.md",
       "status": "OBSERVED_METADATA_ONLY",
-      "acceptance": "Generate dependency manifest, verify runtime assets and run clean Windows startup without internet."
+      "acceptance": "Generate dependency manifest, verify runtime assets and run clean Windows startup without internet.",
+      "agent_prompt": "Independently review authorized Google Earth installation directory inventory, versions, licenses and dependencies; do not inspect proprietary binaries internally. Identify permitted public architecture clues; report uncertain inferences.",
+      "evidence_output": "docs/google-earth-reference/reports/R01.md",
+      "agent_enabled_in_current_runtime": false
     },
     {
       "id": "R02",
@@ -27,7 +30,10 @@
       ],
       "report": "reports/R02.md",
       "status": "SOURCE_INSPECTED_RUNTIME_NOT_VERIFIED",
-      "acceptance": "Record approved manual menu inventory and automate UI-command => ViewModel => GlobeBridge => readback."
+      "acceptance": "Record approved manual menu inventory and automate UI-command => ViewModel => GlobeBridge => readback.",
+      "agent_prompt": "Observe Google Earth public menus, dialogs, hotkeys and state transitions on an authorized Windows installation. Capture steps/screenshots and interface contracts without copying proprietary resources.",
+      "evidence_output": "docs/google-earth-reference/reports/R02.md",
+      "agent_enabled_in_current_runtime": false
     },
     {
       "id": "R03",
@@ -39,7 +45,10 @@
       ],
       "report": "reports/R03.md",
       "status": "SOURCE_INSPECTED_RUNTIME_NOT_VERIFIED",
-      "acceptance": "Automate 2D/3D transitions, heading/pitch, home/full extent, recovery after invalid camera."
+      "acceptance": "Automate 2D/3D transitions, heading/pitch, home/full extent, recovery after invalid camera.",
+      "agent_prompt": "Use authorized UI interactions to characterize navigation, compass, camera and 2D/3D-related expectations. Record reproducible mouse/keyboard actions, edge cases at poles/dateline and observable results.",
+      "evidence_output": "docs/google-earth-reference/reports/R03.md",
+      "agent_enabled_in_current_runtime": false
     },
     {
       "id": "R04",
@@ -51,7 +60,10 @@
       ],
       "report": "reports/R04.md",
       "status": "NEW_SOURCE_IMPL_RUNTIME_NOT_VERIFIED",
-      "acceptance": "Run cloud-layer mock test, Windows screenshot test, GPU profiling and reproducible lighting scenarios."
+      "acceptance": "Run cloud-layer mock test, Windows screenshot test, GPU profiling and reproducible lighting scenarios.",
+      "agent_prompt": "Use authorized runtime screenshots to describe atmosphere, sunlight, stars, water and cloud behavior; separate visual observations from resource names. Propose legally clean, free Cesium algorithms and benchmark requirements.",
+      "evidence_output": "docs/google-earth-reference/reports/R04.md",
+      "agent_enabled_in_current_runtime": false
     },
     {
       "id": "R05",
@@ -63,7 +75,10 @@
       ],
       "report": "reports/R05.md",
       "status": "SOURCE_INSPECTED_RUNTIME_NOT_VERIFIED",
-      "acceptance": "Export/import fixtures with Unicode, styles, hierarchy, referenced embedded assets and negative KMZ cases."
+      "acceptance": "Export/import fixtures with Unicode, styles, hierarchy, referenced embedded assets and negative KMZ cases.",
+      "agent_prompt": "Use official OGC/KML documentation and user-owned KML/KMZ fixtures to document Placemark/Folder/StyleMap/NetworkLink/gx:Tour/Overlay semantics, round-trip fidelity, and unsupported cases.",
+      "evidence_output": "docs/google-earth-reference/reports/R05.md",
+      "agent_enabled_in_current_runtime": false
     },
     {
       "id": "R06",
@@ -75,7 +90,10 @@
       ],
       "report": "reports/R06.md",
       "status": "SOURCE_INSPECTED_RUNTIME_NOT_VERIFIED",
-      "acceptance": "Test all Show Grid combinations at poles/dateline and after mode switching; add readback for actual dataSource entity count."
+      "acceptance": "Test all Show Grid combinations at poles/dateline and after mode switching; add readback for actual dataSource entity count.",
+      "agent_prompt": "Document reference grid and coordinate system observable states, including UTM and labels; do not infer behavior from files alone. Preserve ZEarth's additional grid options in handoff.",
+      "evidence_output": "docs/google-earth-reference/reports/R06.md",
+      "agent_enabled_in_current_runtime": false
     },
     {
       "id": "R07",
@@ -87,7 +105,10 @@
       ],
       "report": "reports/R07.md",
       "status": "SOURCE_INSPECTED_RUNTIME_NOT_VERIFIED",
-      "acceptance": "Benchmark offline search, remote timeout and Arabic/English place-name quality; respect provider terms."
+      "acceptance": "Benchmark offline search, remote timeout and Arabic/English place-name quality; respect provider terms.",
+      "agent_prompt": "Observe reference search behavior only through permitted UI and public docs; identify service-dependence without extracting endpoints or credentials. Recommend legal offline/free search paths.",
+      "evidence_output": "docs/google-earth-reference/reports/R07.md",
+      "agent_enabled_in_current_runtime": false
     },
     {
       "id": "R08",
@@ -99,7 +120,10 @@
       ],
       "report": "reports/R08.md",
       "status": "SOURCE_INSPECTED_RUNTIME_NOT_VERIFIED",
-      "acceptance": "Prioritize reliability first; defer optional flight simulator until user value and independent implementation are reviewed."
+      "acceptance": "Prioritize reliability first; defer optional flight simulator until user value and independent implementation are reviewed.",
+      "agent_prompt": "Assess observable startup, failure/restart recovery, settings, localization and public flight-simulator UX where accessible; do not reverse engineer binaries. Rank stability versus optional features.",
+      "evidence_output": "docs/google-earth-reference/reports/R08.md",
+      "agent_enabled_in_current_runtime": false
     },
     {
       "id": "Z01",
@@ -111,7 +135,10 @@
       ],
       "report": "reports/Z01.md",
       "status": "SOURCE_INSPECTED_RUNTIME_NOT_VERIFIED",
-      "acceptance": "Run GIS UI command audit and enumerate all AutomationId mappings to command implementation, add UI automation evidence."
+      "acceptance": "Run GIS UI command audit and enumerate all AutomationId mappings to command implementation, add UI automation evidence.",
+      "agent_prompt": "Inspect every relevant WPF Ribbon/Menu AutomationId, ICommand and handler; classify missing/bound/engine-acknowledged with source lines and UIA verification requirements.",
+      "evidence_output": "docs/google-earth-reference/reports/Z01.md",
+      "agent_enabled_in_current_runtime": false
     },
     {
       "id": "Z02",
@@ -123,7 +150,10 @@
       ],
       "report": "reports/Z02.md",
       "status": "SOURCE_IMPLEMENTED_MOCK_TESTED",
-      "acceptance": "Run node cloud-layer.test.cjs; verify WPF bridge environment.setClouds and environment.cloudsChanged on Windows."
+      "acceptance": "Run node cloud-layer.test.cjs; verify WPF bridge environment.setClouds and environment.cloudsChanged on Windows.",
+      "agent_prompt": "Inspect CesiumJS/WebView2 command protocol, camera transitions, asynchronous acknowledgements, rendering/effects/cloud toggles and startup synchronization. Recommend fixes and native WebGL acceptance tests.",
+      "evidence_output": "docs/google-earth-reference/reports/Z02.md",
+      "agent_enabled_in_current_runtime": false
     },
     {
       "id": "Z03",
@@ -135,7 +165,10 @@
       ],
       "report": "reports/Z03.md",
       "status": "SOURCE_INSPECTED_RUNTIME_NOT_VERIFIED",
-      "acceptance": "Build fixture catalog, run export/import and XML semantic diff on Windows/.NET, capture unsupported properties."
+      "acceptance": "Build fixture catalog, run export/import and XML semantic diff on Windows/.NET, capture unsupported properties.",
+      "agent_prompt": "Inspect ZEarth KML/KMZ parsing, style preservation, project save/reopen and Temporary/My Places; build safe round-trip cases for Unicode, nested folders, embedded assets and zip-slip/zip-bomb negatives.",
+      "evidence_output": "docs/google-earth-reference/reports/Z03.md",
+      "agent_enabled_in_current_runtime": false
     },
     {
       "id": "Z04",
@@ -147,7 +180,37 @@
       ],
       "report": "reports/Z04.md",
       "status": "SOURCE_INSPECTED_RUNTIME_NOT_VERIFIED",
-      "acceptance": "Instrument visible datasource state; add 2D/3D/pole/grid regression cases; stress 50 toggle cycles and inspect FPS/memory."
+      "acceptance": "Instrument visible datasource state; add 2D/3D/pole/grid regression cases; stress 50 toggle cycles and inspect FPS/memory.",
+      "agent_prompt": "Inspect grids/UTM visibility, polar culling, sunlight/date handling, bilingual/offline search, frame timing and performance. Preserve unique ZEarth interval and north options; prioritize reproducible defects.",
+      "evidence_output": "docs/google-earth-reference/reports/Z04.md",
+      "agent_enabled_in_current_runtime": false
     }
-  ]
+  ],
+  "execution_contract": {
+    "dispatch_model": "external authorized agent host only; the GitHub Actions matrix is a deterministic evidence probe, NOT an AI-agent launcher",
+    "scope": "read-only Google Drive reference metadata and allowed public behavior observation for R-roles; GitHub ZEarth source read and separately authorized development branch changes for Z-roles",
+    "prohibited": [
+      "copy Google Earth DLL/exe/RCC/shader source into ZEarth",
+      "decompile or bypass protected program components",
+      "reproduce Google's branded imagery or paid services without license",
+      "mark mock source checks as native Windows runtime parity"
+    ],
+    "handoff": "Create role-specific evidence appendix with source links, uncertainty and concrete independent implementation requirements; security/licensing review before source write; perform test-to-code readback with feature IDs.",
+    "required_report_fields": [
+      "role_id",
+      "inputs",
+      "method",
+      "source_version",
+      "observed_evidence",
+      "assumptions",
+      "ZEarth_file_paths",
+      "matched_features",
+      "extra_ZEarth_features",
+      "missing_features",
+      "free_replacement_options",
+      "priority",
+      "runtime_verification",
+      "test_cases"
+    ]
+  }
 }
