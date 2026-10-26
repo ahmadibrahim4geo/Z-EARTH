@@ -17,5 +17,16 @@ Z1 WPF ribbon/UI command dispatch; Z2 Cesium/WebView2 GlobeBridge and camera; Z3
 ## Implementation rules
 Use [clean-room skill](https://github.com/ahmadibrahim4geo/GIS-Development-Skills/blob/main/skills/clean-room-reference-implementation/SKILL.md), existing [parity contracts](../GOOGLE_EARTH_PRO_PARITY.md) and [pilot](../CLEAN_ROOM_PARITY_PILOT.md). Keep ZEarth-specific enhancements (2D/3D modes, north controls, grid options); never replace them merely to resemble the reference. Distinguish reference observations from assumptions. Each workstream must produce findings, evidence source, ZEarth code paths, reproducible test, risk, priority, owner, and verification status.
 
+## Delivered research assets
+
+- [Twelve role-specific reports](reports/) — R01–R08 reference investigation and Z01–Z04 ZEarth source audit.
+- [Feature comparison matrix](FEATURE_PARITY_MATRIX.md) — 30 distinct functions, shared vs ZEarth extras vs missing/review/paid exclusions.
+- [Agent manifest](AGENT_MANIFEST.json) — deterministic, auditable role definitions and skill ownership.
+- [Read-only audit runner](../../scripts/reference_lab_audit.py) — `python scripts/reference_lab_audit.py --all` or `--role R05`.
+- [Automated evidence jobs](../../.github/workflows/build-and-test.yml) — 12 isolated GitHub Actions checks, each with evidence artifact.
+- [Cloud implementation](../../src/ZEarth.Globe/Assets/cloud-layer.js) and [cloud mock tests](../../tests/cloud-layer.test.cjs).
+
+**Do not equate automated role evidence checks with 12 separately running LLM researchers.** The checks verify repository contracts; Google Earth runtime behavior and Windows 3D visual parity remain unverified.
+
 ## Acceptance
 Native Windows/WebView2 tests required for claims about runtime parity, responsiveness and graphical fidelity. FakeGlobeEngine or source review alone is not enough. Do not redistribute Google binaries, shaders, RCC assets, imagery or service credentials.
