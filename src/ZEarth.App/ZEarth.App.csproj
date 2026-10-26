@@ -14,6 +14,9 @@
     <InformationalVersion>2.2.4-z-earth-brand-standardization</InformationalVersion>
     <NoWarn>$(NoWarn);NU1510</NoWarn>
     <Authors>Ahmad Ibrahim</Authors>
+    <!-- License of this project's original code only; dependencies and embedded assets have separate terms. -->
+    <PackageLicenseExpression>GPL-3.0-only</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/ahmadibrahim4geo/Z-EARTH</RepositoryUrl>
     <Company>Z EARTH Desktop</Company>
     <Product>Z EARTH Desktop GIS</Product>
     <Description>Z EARTH Desktop GIS - Open-source Desktop 3D Globe and GIS Application</Description>
