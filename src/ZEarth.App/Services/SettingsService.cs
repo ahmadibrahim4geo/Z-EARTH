@@ -29,6 +29,7 @@ public class AppSettingsModel
     public double LongitudeIntervalDegrees { get; set; } = 0.0;
     public double LatitudeIntervalDegrees { get; set; } = 0.0;
     public bool ShowUtmZones { get; set; } = false;
+    public string UtmLabelMode { get; set; } = "Both";
     // Offline-first: enabling Esri hosted borders is an explicit user choice.
     public bool ShowBorders { get; set; } = false;
 
