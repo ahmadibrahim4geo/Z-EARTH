@@ -2203,7 +2203,8 @@
       showLatitudeLines: true,
       longitudeIntervalDegrees: 0,
       latitudeIntervalDegrees: 0,
-      gridLabelFormat: "DMS"
+      gridLabelFormat: "DMS",
+      utmLabelMode: "Both"
     },
 
     init() {
@@ -2336,7 +2337,7 @@
               );
             }, false),
             label: {
-              text: 'UTM ' + segment.zone + (labelLat >= 0 ? 'N' : 'S'),
+              text: window.ZEarthGraticuleGeometry.formatUtmZoneLabel(segment.zone, labelLat, this.config.utmLabelMode),
               font: 'bold 11px Segoe UI, sans-serif',
               fillColor: Cesium.Color.fromCssColorString('#D8B4FE'),
               outlineColor: labelOutline,
@@ -2467,6 +2468,7 @@
       if (typeof cfg.visible === 'boolean') this.config.visible = cfg.visible;
       if (typeof cfg.showLabels === 'boolean') this.config.showLabels = cfg.showLabels;
       if (['DD', 'DM', 'DMS', 'Degrees'].includes(cfg.gridLabelFormat)) this.config.gridLabelFormat = cfg.gridLabelFormat;
+      if (['Both', 'Hemisphere', 'GridZone'].includes(cfg.utmLabelMode)) this.config.utmLabelMode = cfg.utmLabelMode;
       if (typeof cfg.showKeyParallels === 'boolean') this.config.showKeyParallels = cfg.showKeyParallels;
       if (typeof cfg.showUtmZones === 'boolean') this.config.showUtmZones = cfg.showUtmZones;
       if (typeof cfg.showLongitudeLines === 'boolean') this.config.showLongitudeLines = cfg.showLongitudeLines;
