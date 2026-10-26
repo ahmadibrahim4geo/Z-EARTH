@@ -63,5 +63,16 @@
     }
     return result;
   }
-  return { longitudeWindows, zoneBounds, zoneAt, visibleUtmSegments };
+  // A surface reference point is visible only on the camera-facing hemisphere.
+  // Use the WGS84 geodetic normal supplied by Cesium (not a spherical shortcut);
+  // a nonpositive dot product is behind the local horizon/tangent plane.
+  function isSurfaceAnchorVisible(anchor, normal, camera) {
+    if (![anchor, normal, camera].every(v => v &&
+        Number.isFinite(v.x) && Number.isFinite(v.y) && Number.isFinite(v.z))) return false;
+    return normal.x * (camera.x - anchor.x) +
+           normal.y * (camera.y - anchor.y) +
+           normal.z * (camera.z - anchor.z) > 0;
+  }
+
+  return { longitudeWindows, zoneBounds, zoneAt, visibleUtmSegments, isSurfaceAnchorVisible };
 });
