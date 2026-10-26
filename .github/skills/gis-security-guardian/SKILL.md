@@ -45,3 +45,7 @@ license: MIT
 ## Evidence and limitations
 
 The offline guard detects a narrow class of risky patterns and malicious archives; it does **not** replace Gitleaks, full SAST, malware detection, runtime isolation, real network blocking or manual review. Never describe an unexecuted scanner as having passed. Preserve user datasets unchanged and report tested vs untested protection separately.
+
+## System permissions handoff
+
+When [System Capabilities & Permissions](../system-capabilities-and-permissions/SKILL.md) is selected, evaluate each host OS, application, browser, sensor and MCP scope separately. A repository, Agent Skill manifest, user-approved implementation plan or adapter registry is NOT an OS permission grant. Deny surprise GPS, camera/microphone, serial/BLE, data upload, admin escalation and unrestricted native bridges. Test denial/revocation with sanitized evidence.

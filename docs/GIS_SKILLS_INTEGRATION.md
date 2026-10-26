@@ -1,35 +1,26 @@
-# GIS Development Skills — pinned and vendored into Z EARTH
+# GIS Development Skills — reviewed upstream main snapshot for Z EARTH
 
-Upstream source: https://github.com/ahmadibrahim4geo/GIS-Development-Skills
-
-**Pin date:** 2026-10-25. **Upstream source commit:** `ef26b76a134b89e950b616e30326df91bd226b43`.
+**Updated:** 2026-10-26. **Canonical source:** https://github.com/ahmadibrahim4geo/GIS-Development-Skills/tree/222699fb04a8d6ea2583f13e5e37dbfc6a0f55cd
+**Source branch:** `main`. **Pinned commit:** `222699fb04a8d6ea2583f13e5e37dbfc6a0f55cd`.
 **Verification manifest:** [GIS_SKILLS_SNAPSHOT.json](GIS_SKILLS_SNAPSHOT.json).
 
-### What is actually vendored
+## Vendored content and unchanged project boundaries
 
-- **21** generic `.github/skills/<specialist>/SKILL.md` documents, including `gis-cartography-symbology`, `gis-device-context`, `gis-security-guardian`, `kml-kmz-engineering`, `gis-desktop-application-development`, plus **`prompt-intent-orchestrator` and `agent-development-journal`**.
-- **54** source-matched engineering references and catalogs in `.github/references`: Google Earth Pro, dated imagery, Google/OGC KML/KMZ, World Gazetteer, icon library, imagery/APIs, security references, CRS and desktop engineering.
-- Selected accompanying offline example fixtures, **executable intent/journal helpers** and Python unit tests under `.github/examples`, `.github/scripts` and `.github/tests` for agent use. Not every upstream command or example is a native Z EARTH executable. The GIS Development Skills source-generated `repository-manifest.json` is deliberately **not** copied because its metrics do not describe Z EARTH.
-- **All existing `zearth-*` and `cesiumjs-*` skills are retained**, plus the new project-specific `zearth-google-earth-pro-workflows` adapter.
+- **30** source-matched `.github/skills/<specialist>/SKILL.md` files and **76** source-matched `.github/references/` files. Every mirrored source file has the upstream Git blob SHA listed in the manifest. The archived `gis-development/LEGACY_FULL_SKILL.md` is a companion, not another routed specialist.
+- Imported compatible helpers, fixtures, tests and the upstream planning wizard live in `.github/scripts/`, `.github/examples/`, `.github/tests/`, `.github/templates/`, `.github/docs/`, `.github/native_tests/` and `.github/project-wizard.html`.
+- The source repo's generated `references/repository-manifest.json` is **not** copied: instead, `.github/references/repository-manifest.json` is a separately generated **ZEarth-local** inventory including all local `zearth-*` and `cesiumjs-*` skills. It does not claim the external source site's catalog counts.
+- All Z EARTH/CesiumJS project specialists and code under `src/` are preserved. Installing a development skill does not automatically add a WPF Ribbon command, GIS renderer, device permission or new app feature.
 
-### How agents must load the skills
+## Routing and new scope
 
-1. Always start with [AGENTS.md](../AGENTS.md), [Google Earth Pro parity](GOOGLE_EARTH_PRO_PARITY.md), [Z EARTH agent workflow](ZEARTH_AGENT_WORKFLOW.md) and the pinned source manifest. Verify locally: `python scripts/validate-agent-skills.py`.
-2. For complex user requests, first use `.github/skills/prompt-intent-orchestrator/SKILL.md` with a reviewable plan and real host approval, then route via `.github/skills/gis-development/SKILL.md`. For Earth/Wayback work, load `.github/skills/zearth-google-earth-pro-workflows/SKILL.md` and [the implemented Historical Imagery contract](HISTORICAL_IMAGERY_TIMELINE.md). Then load 1–3 specialized skills only.
-3. **Project-specific requirements take precedence** about current WPF/Cesium wiring. The general Earth history design is source-independent; the existing Wayback timeline uses Esri **release dates**, not actual per-pixel acquisition dates.
-4. For untrusted KMZ, network resources, credentials and release workflows, apply both local `zearth-security` and the imported `gis-security-guardian`.
-5. After authorized meaningful execution batches, record numbered, **private, gitignored** local project history using `.github/scripts/development_journal.py`; a helper does not automatically listen for every application process or execute code. Record T0–T4 evidence honestly. Source copied successfully does not mean app runtime uses a feature; app behavior must be wired and tested separately.
+1. Start with [root Z EARTH AGENTS.md](../AGENTS.md), [Earth workflow adapter](../.github/skills/zearth-google-earth-pro-workflows/SKILL.md), and [project workflow](ZEARTH_AGENT_WORKFLOW.md).
+2. For multi-step development, use [Prompt Intent Orchestrator](../.github/skills/prompt-intent-orchestrator/SKILL.md) → [GIS Development Router](../.github/skills/gis-development/SKILL.md) → project-specific domain owner → [GIS Security Guardian](../.github/skills/gis-security-guardian/SKILL.md) → [DoneProof](../.github/skills/completion-evidence/SKILL.md). An agent's Markdown cannot itself grant user/OS permissions.
+3. GIS command audits: `gis-ui-command-audit`; native WPF/WebView2/Windows interaction tests: `gis-desktop-e2e-testing`; import/CRS/renderer/save/export lineage: `gis-data-flow-diagnostics`; interface design, accessibility and Arabic: `gis-ui-ux-design-testing` + `gis-internationalization-arabic`.
+4. Conditional related expertise: `system-capabilities-and-permissions` and `gis-device-context` for device/time/location; `qgis-engine-integration` for reviewed optional engine integration; `gis-mobile-application-development` only for actual mobile projects, **not** a mandate to convert this desktop app.
+5. The upstream [Project Wizard](../.github/project-wizard.html) is a separate developer planning aid. Nothing is automatically installed or invoked from external repositories. Keep the local JavaScript globe, provider licenses, data and project formats under Z EARTH's existing contracts.
 
-### Source review status and integration details
+## Integrity and tests
 
-The source pin is from upstream [GIS Development Skills PR #20](https://github.com/ahmadibrahim4geo/GIS-Development-Skills/pull/20) at commit `ef26b76a134b89e950b616e30326df91bd226b43`, **not from an upstream merged `main` update** at sync time. It adds exactly two cross-cutting specialist skills and three reference documents relative to the previous Z EARTH snapshot. The upstream-generated `repository-manifest.json` is intentionally excluded from the 54 vendored references; it describes the source repository, not this project.
+Run `python scripts/validate-agent-skills.py` in the Z EARTH root for checksum/frontmatter/link/XAML checks. Run relevant offline Python helper tests from the `.github` working directory; they validate contracts and synthetic fixtures only. Run actual app `dotnet build`, `dotnet test`, `node --check`, relevant Node tests, and a **real Windows WebView2/Cesium acceptance session** before claiming end-to-end function. A GitHub CI success is **not** a native GUI test.
 
-The original Z EARTH/CesiumJS specialists stay unchanged. New local glue lives in `.github/skills/zearth-agent-workflow/SKILL.md`, and the onboarding, privacy, review/approval, offline tests, and limitations are detailed in [Z EARTH Agent Workflow](ZEARTH_AGENT_WORKFLOW.md). Both skills are **development-agent guidance**, not an application feature or direct WPF/Cesium runtime integration.
-
-### Provenance, boundaries, and updates
-
-The original upstream skills and guidance are MIT licensed; source packages, icons, imagery, hosted APIs, Cesium assets, Google/Esri services and individual external projects have independent licenses. Google Earth Blog is an independently maintained historical reference; do not scrape Google imagery or copy Google Earth binaries.
-
-The snapshot is reproducible and **not dynamically updated in the deployed app**. Its manifest records the original Git blob SHA of every pinned general skill and reference. The offline validator verifies each SHA, frontmatter, local links, XML/XAML and the Z EARTH adapter; mismatches fail CI. To update again, review a new upstream commit, copy only permitted files under `.github/skills` and `.github/references`, regenerate checksums and pin, update this document and [AGENTS.md](../AGENTS.md), and test a PR. Never overwrite the project-local or Cesium specialists automatically.
-
-**Native runtime tests still required:** WPF controls, WebView2/Cesium, zoom/camera persistence, network/provider restrictions, historical imagery release switching, project save/open and one canonical Preview deployment.
+This snapshot is intentionally pinned, not live-syncing with upstream `main`. Refresh through reviewed changes, regenerate the manifest and record actual evidence. Upstream original content is MIT; third-party code, icon packs, satellite maps, online services and data remain subject to their independent terms. Preserve user data, one canonical Preview, and existing local project skills.

@@ -38,7 +38,8 @@
           "tool_id": "host.source-inspection",
           "side_effect": "read"
         }
-      ]
+      ],
+      "owner_skill": "gis-desktop-application-development"
     },
     {
       "id": "T2",
@@ -63,7 +64,8 @@
           "tool_id": "host.runtime-smoke-test",
           "side_effect": "read"
         }
-      ]
+      ],
+      "owner_skill": "gis-desktop-application-development"
     },
     {
       "id": "T3",
@@ -84,7 +86,28 @@
         "Regression suite recorded with passed/failed/blocked statuses",
         "T0–T4 acceptance evidence and rollback notes produced"
       ],
-      "tools": []
+      "tools": [],
+      "owner_skill": "gis-desktop-application-development"
     }
+  ],
+  "goal": "Implement a working, independently verified coordinate grid and terrain exaggeration workflow in an existing GIS desktop app.",
+  "target": "Existing GIS desktop application; preserve current engine, project files and source elevation data",
+  "desired_outcomes": [
+    "Independent coordinate grid and label controls with correct LOD and saved state",
+    "Live terrain vertical exaggeration with 2D/3D save-and-reopen persistence",
+    "Evidence-based regression report distinguishing offline checks from native GUI tests"
+  ],
+  "success_criteria": [
+    "Coordinate grid and labels respond correctly in a running desktop app",
+    "Vertical exaggeration visibly updates real terrain and never changes source DEM values",
+    "Existing project opens after the change and the observed acceptance report includes limitations"
+  ],
+  "constraints": [
+    "Do not replace the existing GIS renderer without reviewed approval",
+    "Retain KML/KMZ styles and source GIS datasets where relevant",
+    "Do not claim native tests when only offline structural checks have been performed"
+  ],
+  "non_goals": [
+    "Redesign entire application or switch mapping engine"
   ]
 }

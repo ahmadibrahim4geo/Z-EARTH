@@ -12,8 +12,8 @@ SKILLS = ROOT / ".github" / "skills"
 SNAPSHOT = ROOT / "docs" / "GIS_SKILLS_SNAPSHOT.json"
 ADAPTER = SKILLS / "zearth-google-earth-pro-workflows" / "SKILL.md"
 WORKFLOW_ADAPTER = SKILLS / "zearth-agent-workflow" / "SKILL.md"
-PINNED_SKILL_COUNT = 21
-PINNED_REFERENCE_COUNT = 54
+PINNED_SKILL_COUNT = 30
+PINNED_REFERENCE_COUNT = 76
 
 
 def git_blob_sha(path: Path) -> str:
@@ -55,6 +55,8 @@ def main():
         errors.append("Unexpected pinned snapshot inventory size")
     if not re.fullmatch(r"[a-f0-9]{40}", manifest.get("source_commit", "")):
         errors.append("Invalid upstream source commit in manifest")
+    if manifest.get("source_ref") != "main":
+        errors.append("Pinned GIS skills must come from reviewed upstream main")
     if manifest.get("source_repository") != "ahmadibrahim4geo/GIS-Development-Skills":
         errors.append("Unexpected skill snapshot origin")
 
@@ -104,6 +106,17 @@ def main():
         ".github/examples/intent-orchestrator/README.md",
         ".github/examples/development-journal/README.md",
         ".github/skills/zearth-agent-workflow/SKILL.md",
+        ".github/skills/completion-evidence/SKILL.md",
+        ".github/skills/gis-ui-command-audit/SKILL.md",
+        ".github/skills/gis-desktop-e2e-testing/SKILL.md",
+        ".github/skills/gis-data-flow-diagnostics/SKILL.md",
+        ".github/skills/gis-ui-ux-design-testing/SKILL.md",
+        ".github/scripts/verify_completion.py",
+        ".github/scripts/gis_ui_command_audit.py",
+        ".github/scripts/gis_data_flow_diagnostics.py",
+        ".github/scripts/system_capability_check.py",
+        ".github/project-wizard.html",
+        ".github/references/repository-manifest.json",
         "docs/ZEARTH_AGENT_WORKFLOW.md",
     ):
         if not (ROOT / rel).is_file():

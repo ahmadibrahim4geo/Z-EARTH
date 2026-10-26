@@ -31,6 +31,14 @@ jobs:
             echo "ERROR: Unapproved example bypassed review gate"
             exit 1
           fi
+      - name: Validate imported GIS specialist tools with offline fixtures (T0/T1 only)
+        run: |
+          python -m unittest discover -s .github/tests -p "test_gis_ui_quality_four_skills.py" -v
+          python -m unittest discover -s .github/tests -p "test_doneproof.py" -v
+          python -m unittest discover -s .github/tests -p "test_system_capabilities_permissions.py" -v
+          python -m unittest discover -s .github/tests -p "test_gis_mobile_application.py" -v
+          python -m unittest discover -s .github/tests -p "test_goal_first_workflow_cli.py" -v
+          python -m unittest discover -s .github/tests -p "test_repository_orchestration_contract.py" -v
       - name: Parse Cesium command JavaScript and test drawn rectangle geometry
         run: |
           node --check src/ZEarth.Globe/Assets/cesium-engine.js
