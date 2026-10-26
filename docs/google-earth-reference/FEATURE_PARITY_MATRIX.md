@@ -35,6 +35,12 @@
 | Arabic localization | ar.qm and 41 other language files | Arabic/English UI | SHARED | Native bilingual string checks |
 | Offline startup and data | Local native libraries | Cesium offline ellipsoid/vector mode | ZE-EXTRA | Start fully offline and reopen |
 
+## Free-first candidate for observed cloud cover (not procedural 3D clouds)
+
+The new ZEarth **Clouds** feature is offline visual cumulus, not an observation layer. A *separate*, optional weather overlay could use [NASA GIBS public WMS/WMTS](https://nasa-gibs.github.io/gibs-api-docs/) and specific cloud-fraction/cloud imagery datasets documented by NASA. GIBS supports time-varying WMS, but the selected layer name, availability, timestamps, attribution, rights, cloud mask interpretation, geographic projection and tile requests must be confirmed from provider capabilities before integration. Do **not** label imagery as real-time or as volumetric 3D meteorology.
+
+Acceptance for optional GIBS provider: choose a documented valid layer/date → fetch authoritative capabilities and tile → display timestamp, coverage and attribution → support offline/timeouts transparently → remove layer and clear cache per terms → avoid API keys or paid Google services. This is **candidate research**, not implemented or verified.
+
 ## Action order
 **P0:** cloud native render/build, grid visibility and poles, KML/KMZ data round-trip; **P1:** sunlight, camera and offline search; **P2:** weather cloud providers, models, tours; **P3:** flight simulator and vegetation. Preserve ZEarth-only features. Exclude Google-owned imagery, Street View and other restricted content, unless legitimately licensed alternatives exist.
 
