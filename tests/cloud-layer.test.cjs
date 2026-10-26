@@ -16,7 +16,7 @@ class CloudCollection {
 const Cesium = {
   CloudCollection, SceneMode: { SCENE3D: 3 },
   Cartesian2: class { constructor(x,y) { this.x=x;this.y=y; } },
-  Cartesian3: { fromDegrees: (lon,lat,h)=>({lon,lat,h}) },
+  Cartesian3: Object.assign(class { constructor(x,y,z) { this.x=x;this.y=y;this.z=z; } }, { fromDegrees: (lon,lat,h)=>({lon,lat,h}) }),
   Math: { toDegrees: x=>x }
 };
 const scene = {
