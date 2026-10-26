@@ -2945,6 +2945,18 @@
     }
   };
 
+  // Offline 3D cumulus overlay: visual only, not live weather observations.
+  // Kept independent of atmosphere and sunlight to preserve their existing modes.
+  const CloudManager = window.ZEarthCloudLayer.create({
+    Cesium, viewer,
+    onChange: state => sendHostMessage({
+      event: 'environment.cloudsChanged',
+      enabled: state.enabled,
+      rendered: state.rendered,
+      count: state.count
+    })
+  });
+
   const SwipeManager = {
     active: false,
     leftId: null,
@@ -3928,6 +3940,11 @@
           respondSuccess({ enabled });
           break;
         }
+        case 'environment.setClouds': {
+          const state = CloudManager.setEnabled(data.payload?.enabled === true);
+          respondSuccess(state);
+          break;
+        }
         case 'environment.setTimeOfDay': {
           const timeHours = EnvironmentManager.setTimeOfDay(data.payload?.timeHours, data.payload?.dateUtc);
           respondSuccess({ timeHours });
@@ -4083,6 +4100,7 @@
     DrawingManager,
     SnapManager,
     MeasurementManager,
+    CloudManager,
     runModeToggleStressTest,
     flyToHome,
     flyToFullExtent,
