@@ -59,6 +59,16 @@
     return zone && band ? `${zone}${band}` : null;
   }
 
+  function formatUtmZoneLabel(zone, latitude, mode = 'Both') {
+    if (!Number.isInteger(zone) || zone < 1 || zone > 60) return '';
+    const band = latitudeBand(latitude);
+    if (!band) return '';
+    const hemisphere = latitude >= 0 ? 'N' : 'S';
+    if (mode === 'Hemisphere') return `UTM ${zone}${hemisphere}`;
+    if (mode === 'GridZone') return `${zone}${band}`;
+    return `UTM ${zone}${hemisphere} · GZD ${zone}${band}`;
+  }
+
   function visibleUtmSegments(bounds) {
     if (!bounds || !Number.isFinite(bounds.south) || !Number.isFinite(bounds.north)) return [];
     const windows = longitudeWindows(bounds);
@@ -88,5 +98,5 @@
            normal.z * (camera.z - anchor.z) > 0;
   }
 
-  return { longitudeWindows, zoneBounds, zoneAt, latitudeBand, gridZoneDesignation, visibleUtmSegments, isSurfaceAnchorVisible };
+  return { longitudeWindows, zoneBounds, zoneAt, latitudeBand, gridZoneDesignation, formatUtmZoneLabel, visibleUtmSegments, isSurfaceAnchorVisible };
 });
