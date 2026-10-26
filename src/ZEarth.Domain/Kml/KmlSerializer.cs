@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using System.Xml.Linq;
 
 namespace ZEarth.Domain.Kml
@@ -193,12 +194,17 @@ namespace ZEarth.Domain.Kml
             // Imported MultiGeometry is preserved as the full source XML.
             // Never append a second simplified Point/Path/Polygon to it:
             // doing so would duplicate geometry and alter Google Earth semantics.
-            bool preservesMultiGeometry = placemark.PreservedXmlFragments.Any(fragment =>
+            bool preservesOriginalGeometry = placemark.PreservedXmlFragments.Any(fragment =>
             {
-                try { return XElement.Parse(fragment).Name.LocalName == "MultiGeometry"; }
+                try
+                {
+                    var name = XElement.Parse(fragment).Name;
+                    return name.LocalName == "MultiGeometry" ||
+                        name == GxNs + "Track" || name == GxNs + "MultiTrack";
+                }
                 catch (System.Xml.XmlException) { return false; }
             });
-            if (!preservesMultiGeometry) SerializeGeometry(placemark, pElem);
+            if (!preservesOriginalGeometry) SerializeGeometry(placemark, pElem);
 
             return pElem;
         }
@@ -219,6 +225,9 @@ namespace ZEarth.Domain.Kml
             }
             else if (placemark.ItemType == PlaceItemType.Path && placemark.Coordinates.Count > 0)
             {
+                // GPX timed segments become standard gx:Track; untimed paths
+                // retain their ordinary KML LineString geometry.
+                if (TrySerializeTimedTrack(placemark, pElem)) return;
                 string coordsStr = FormatCoordinatesList(placemark.Coordinates);
                 pElem.Add(new XElement(KmlNs + "LineString",
                     new XElement(KmlNs + "tessellate", "1"),
@@ -245,6 +254,47 @@ namespace ZEarth.Domain.Kml
 
                 pElem.Add(polyElem);
             }
+        }
+
+        private static bool TrySerializeTimedTrack(PlaceItem path, XElement parent)
+        {
+            if (!path.ExtendedData.TryGetValue("GpsPointTimesUtcJson", out var json) ||
+                string.IsNullOrWhiteSpace(json))
+                return false;
+            List<string?>? rawTimes;
+            try { rawTimes = JsonSerializer.Deserialize<List<string?>>(json); }
+            catch (JsonException) { return false; }
+            if (rawTimes == null || rawTimes.Count != path.Coordinates.Count ||
+                rawTimes.Count < 2 || rawTimes.Count > 200000)
+                return false;
+            var times = new List<string>(rawTimes.Count);
+            DateTimeOffset? previous = null;
+            foreach (var raw in rawTimes)
+            {
+                if (string.IsNullOrWhiteSpace(raw) ||
+                    !DateTimeOffset.TryParse(raw, CultureInfo.InvariantCulture,
+                        DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var stamp) ||
+                    (previous.HasValue && stamp <= previous.Value))
+                    return false;
+                times.Add(stamp.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture));
+                previous = stamp;
+            }
+            if (path.Coordinates.Any(p =>
+                !double.IsFinite(p.Longitude) || !double.IsFinite(p.Latitude) ||
+                !double.IsFinite(p.Altitude) ||
+                p.Latitude < -90 || p.Latitude > 90 ||
+                p.Longitude < -180 || p.Longitude > 180))
+                return false;
+            var track = new XElement(GxNs + "Track");
+            foreach (var t in times) track.Add(new XElement(KmlNs + "when", t));
+            foreach (var coord in path.Coordinates)
+            {
+                var point = string.Format(CultureInfo.InvariantCulture,
+                    "{0:R} {1:R} {2:R}", coord.Longitude, coord.Latitude, coord.Altitude);
+                track.Add(new XElement(GxNs + "coord", point));
+            }
+            parent.Add(track);
+            return true;
         }
 
         private static string FormatCoordinatesList(IEnumerable<CoordinatePoint> points)
