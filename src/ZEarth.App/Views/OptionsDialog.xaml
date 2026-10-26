@@ -222,7 +222,13 @@
                                  MaxLength="6" ToolTip="Enter 0 (auto) or a numeric interval from 0.05° to 60°"
                                  Background="{DynamicResource Brush.Control.Background}" Foreground="{DynamicResource Brush.Text.Primary}" Margin="0,0,0,12"/>
 
-                        <CheckBox x:Name="UtmZonesCheck" Content="Show UTM zone boundaries &amp; zone numbers" Margin="0,4" Foreground="{DynamicResource Brush.Text.Primary}"/>
+                        <CheckBox x:Name="UtmZonesCheck" Content="Show UTM zone boundaries &amp; zone labels" Margin="0,4" Foreground="{DynamicResource Brush.Text.Primary}"/>
+                        <TextBlock Text="UTM label type" Margin="16,8,0,4" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text.Primary}"/>
+                        <ComboBox x:Name="UtmLabelModeCombo" Height="30" Margin="16,0,0,8" Background="{DynamicResource Brush.Control.Background}" Foreground="{DynamicResource Brush.Text.Primary}">
+                            <ComboBoxItem Content="UTM hemisphere + grid zone designation (e.g. UTM 36N · GZD 36R)" Tag="Both"/>
+                            <ComboBoxItem Content="UTM hemisphere only (e.g. 36N)" Tag="Hemisphere"/>
+                            <ComboBoxItem Content="Grid zone designation only (e.g. 36R)" Tag="GridZone"/>
+                        </ComboBox>
                     </StackPanel>
                 </ScrollViewer>
             </TabItem>
