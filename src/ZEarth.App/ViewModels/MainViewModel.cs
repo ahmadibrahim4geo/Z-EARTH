@@ -1526,7 +1526,7 @@ namespace ZEarth.App.ViewModels
                 IsSnapEnabled = !IsSnapEnabled;
             });
 
-            ElevationProfileCommand = new RelayCommand(ExecuteElevationProfile);
+            ElevationProfileCommand = AsyncCommand(ExecuteElevationProfileAsync, "Sample terrain elevation profile");
 
             // Layer & Terrain Commands (Sprint 7)
             ToggleBordersCommand = new RelayCommand(() => IsBordersVisible = !IsBordersVisible);
@@ -3736,7 +3736,7 @@ namespace ZEarth.App.ViewModels
             }
         }
 
-        public void ExecuteElevationProfile()
+        public async Task ExecuteElevationProfileAsync()
         {
             IEnumerable<CoordinatePoint>? points = null;
 
@@ -3766,12 +3766,37 @@ namespace ZEarth.App.ViewModels
                 return;
             }
 
-            // Stored vertex altitudes are not equivalent to elevations sampled from
-            // the active DEM; the dialog labels their provenance explicitly.
-            var dlg = new Views.ElevationProfileDialog(points)
+            var vertices = points.ToList();
+            var queries = TerrainProfilePathBuilder.Build(vertices, sampleLimit: 160);
+            Views.ElevationProfileDialog dlg;
+            if (queries.Count >= 2)
             {
-                Owner = Application.Current?.MainWindow
-            };
+                StatusMessage = "Sampling elevations from the active terrain DEM along the selected path…";
+                var elevations = await _globeBridge.SampleTerrainHeightsAsync(
+                    queries.Select(q => q.Location).ToList());
+                if (elevations != null && elevations.Count == queries.Count)
+                {
+                    var samples = queries.Select((q, i) => new Views.ProfileSample(
+                        q.DistanceMeters,
+                        elevations[i].ElevationMeters,
+                        elevations[i].Longitude,
+                        elevations[i].Latitude)).ToArray();
+                    dlg = new Views.ElevationProfileDialog(samples,
+                        "Active terrain provider, sampled along path (source datum; metres)");
+                    StatusMessage = $"Real terrain profile loaded: {samples.Length} DEM elevation samples.";
+                }
+                else
+                {
+                    StatusMessage = "DEM samples unavailable/incomplete. Displaying stored vertex Z only, NOT terrain elevations.";
+                    dlg = new Views.ElevationProfileDialog(vertices);
+                }
+            }
+            else
+            {
+                StatusMessage = "Selected path geometry cannot produce a valid terrain profile.";
+                dlg = new Views.ElevationProfileDialog(vertices);
+            }
+            dlg.Owner = Application.Current?.MainWindow;
             dlg.ShowDialog();
         }
 
