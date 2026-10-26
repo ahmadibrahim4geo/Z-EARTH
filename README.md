@@ -10,6 +10,18 @@ Open-source-oriented **Windows desktop GIS development project** using **.NET 10
 
 **Developer:** Ahmed Ibrahim. [الدليل بالعربية](README.ar.md) · [Agent guide](AGENTS.md) · [User manual EN](docs/USER_MANUAL_EN.md) · [User manual AR](docs/USER_MANUAL_AR.md) · [Licensing and privacy](LEGAL_AND_PRIVACY_NOTICES.md).
 
+## Reference software evidence lab and optional clouds (2026-10-26)
+
+The [Google Earth reference framework](docs/google-earth-reference/README.md) now has **eight reference analysis reports**, **four ZEarth source audit reports**, a [30-feature coverage matrix](docs/google-earth-reference/FEATURE_PARITY_MATRIX.md), and a 12-role [audit manifest](docs/google-earth-reference/AGENT_MANIFEST.json). The [read-only evidence runner](scripts/reference_lab_audit.py) runs one scoped role or all twelve; GitHub Actions runs 12 isolated source-evidence jobs. These are **deterministic inspections, not independently launched LLM agents, and not native Windows parity tests**. No Google application binary, resource bundle or shader is committed.
+
+Z EARTH now includes a **Clouds** button in View → Lighting & Atmosphere: optional *offline illustrative* 3D cumulus using Cesium `CloudCollection`, disabled by default and hidden in 2D. It does **not** show actual cloud-cover observations. The option is persistent and localized (EN/AR). [Source](src/ZEarth.Globe/Assets/cloud-layer.js) · [Mock tests](tests/cloud-layer.test.cjs). CI build/unit pass does not yet establish true GPU/WebView2 visual success.
+
+Local evidence checks from a cloned repository:
+```bash
+python scripts/reference_lab_audit.py --all --out-dir reference-evidence
+node --test tests/cloud-layer.test.cjs
+```
+
 ## Download the Windows EXE (Portable Preview)
 
 The GitHub source repository previously **did not publish its compiled .exe**; green Actions builds only uploaded unit-test logs. The [Windows portable preview guide](docs/PORTABLE_PREVIEW.md) now explains how to download the **latest successful main-branch Actions artifact** named `Z-EARTH-v2.2.4-win-x64-portable-preview`, extract it, and launch `Z EARTH.exe` with bundled Cesium assets.
