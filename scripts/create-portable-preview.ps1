@@ -51,8 +51,18 @@ try {
     }
 } finally { $stream.Dispose() }
 
-foreach ($doc in @('THIRD_PARTY_LICENSES.md', 'LEGAL_AND_PRIVACY_NOTICES.md')) {
-    Copy-Item -LiteralPath (Join-Path $root $doc) -Destination $staging -Force
+# The legally operative GPL text must be present in EVERY portable preview.
+# This does not imply that independently licensed transitive DLL/asset notices
+# are complete; see the separate redistribution-compliance backlog.
+foreach ($doc in @('LICENSE', 'THIRD_PARTY_LICENSES.md', 'LEGAL_AND_PRIVACY_NOTICES.md')) {
+    $sourceNotice = Join-Path $root $doc
+    if (-not (Test-Path -LiteralPath $sourceNotice -PathType Leaf)) {
+        throw "Cannot publish portable preview; missing mandatory legal notice: $doc"
+    }
+    Copy-Item -LiteralPath $sourceNotice -Destination $staging -Force
+    if (-not (Test-Path -LiteralPath (Join-Path $staging $doc) -PathType Leaf)) {
+        throw "Missing bundled legal notice after copy: $doc"
+    }
 }
 $sourceSha = [string]$env:GITHUB_SHA
 if ([string]::IsNullOrWhiteSpace($sourceSha)) {
@@ -70,7 +80,11 @@ Z EARTH v$version | Windows x64 PORTABLE PREVIEW | Source commit $sourceSha
    your computer's security warnings or bypass organizational security rules.
 5. Wayback imagery dates reflect Esri basemap RELEASES, not satellite capture dates.
 6. Native live WebView2/GPU and third-party tile service acceptance remain pending.
-7. Extracting this archive changes no Windows file associations or registry entries.
+7. License: independently authored Z EARTH source is GPL-3.0-only; the full
+   text is in LICENSE. Other DLLs, Cesium assets, GIS datasets and services have
+   separate upstream rights; THIRD_PARTY_LICENSES.md is a partial audit, not
+   complete redistribution clearance.
+8. Extracting this archive changes no Windows file associations or registry entries.
 
 Source: https://github.com/ahmadibrahim4geo/Z-EARTH
 Issues: https://github.com/ahmadibrahim4geo/Z-EARTH/issues

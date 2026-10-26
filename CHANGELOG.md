@@ -5,6 +5,16 @@ This project adheres to Semantic Versioning and the **Single Canonical Project P
 
 ---
 
+## [Unreleased] — licensing and repository transparency — 2026-10-26
+
+### Documentation / legal
+- Added the verbatim GNU GPL version 3 legal text in the root `LICENSE` for independently authored project code (SPDX `GPL-3.0-only`).
+- Distinguished project GPL source from bundled MIT GIS skills, CesiumJS, third-party WebAssembly/assets, NuGet packages, hosted imagery and runtime terms.
+- Corrected legacy v1.0.0 legal-notice labeling and removed unverified absolute security/privacy and release-compliance claims.
+- Added an actionable third-party release-audit checklist; **no claim that redistributed Windows binaries are fully cleared**.
+
+---
+
 ## [2.2.4] - Z EARTH Brand Name Standardization - 2026-10-25
 
 ### Changed

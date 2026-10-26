@@ -9,7 +9,9 @@ The source version in `src/ZEarth.App/ZEarth.App.csproj` is **2.2.4**. The old v
 3. Scroll to **Artifacts** and download **Z-EARTH-v2.2.4-win-x64-portable-preview**.
 4. Extract the downloaded ZIP fully to a folder you trust, then run `Z EARTH.exe` from that extracted folder. Do not move the EXE away from its accompanying DLLs, Assets, JSON and other files.
 
-The CI build uploads this *preview artifact only after* Python/XAML, Node/Cesium and .NET Windows test gates succeed, and after a Windows x64 self-contained publish, asset checks and ZIP creation. GitHub artifact availability requires permitted access to Actions, and **artifacts expire after 30 days**. This is not yet a permanent GitHub Release. The app and preview remain **unsigned**.
+The CI build uploads this *preview artifact only after* Python/XAML, Node/Cesium and .NET Windows test gates succeed, and after a Windows x64 self-contained publish, asset checks and ZIP creation.
+
+**Licensing inside the ZIP:** the portable packaging script now requires and includes the full root `LICENSE` (GNU GPL-3.0-only), `LEGAL_AND_PRIVACY_NOTICES.md` and `THIRD_PARTY_LICENSES.md`; packaging fails when a required notice file is absent. **This is not full third-party redistribution clearance:** verify licenses/notices for actual shipped DLLs, CesiumJS, WASM, images and runtime files before treating a preview as a production release. Refer to [license-compliance status](LICENSE_STATUS.md). GitHub artifact availability requires permitted access to Actions, and **artifacts expire after 30 days**. This is not yet a permanent GitHub Release. The app and preview remain **unsigned**.
 
 ## Requirements / limitations
 
