@@ -940,7 +940,31 @@
                                         <TextBlock Text="Open the inline timeline: previous/next, drag date slider, choose year or day. Move the globe while it stays open." FontSize="10" TextWrapping="Wrap" Foreground="{DynamicResource Brush.Text.Secondary}"/>
                                     </StackPanel>
                                 </StackPanel>
-                                <TextBlock Grid.Row="1" Text="Historical Satellite Imagery" Style="{StaticResource RibbonGroupHeaderStyle}"/>
+                                <TextBlock Grid.Row="1" Text="Esri Wayback Release Timeline" Style="{StaticResource RibbonGroupHeaderStyle}"/>
+                            </Grid>
+                        </Border>
+                        <Border Style="{StaticResource RibbonGroupBorderStyle}">
+                            <Grid>
+                                <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                <StackPanel Grid.Row="0" Orientation="Horizontal">
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding NasaHistoricalImageryCommand}" ToolTip="Choose NASA MODIS Terra/Aqua dated observation imagery, not Google high-resolution historical images" AutomationProperties.AutomationId="ZE.Main.065a.NasaHistoricalImageryCommand">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <TextBlock Text="NASA" FontSize="18" FontWeight="SemiBold" Foreground="#a3e635" HorizontalAlignment="Center"/>
+                                            <TextBlock Text="Dated MODIS" FontSize="11" Margin="0,3,0,0" HorizontalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding ClearNasaHistoricalImageryCommand}" ToolTip="Remove the NASA daily imagery overlay and restore underlying layers" AutomationProperties.AutomationId="ZE.Main.065b.ClearNasaHistoricalImageryCommand">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <TextBlock Text="×" FontSize="22" Foreground="#ef4444" HorizontalAlignment="Center"/>
+                                            <TextBlock Text="Hide NASA" FontSize="11" Margin="0,3,0,0" HorizontalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <StackPanel VerticalAlignment="Center" Margin="10,0" MaxWidth="280">
+                                        <TextBlock Text="NASA GIBS — daily satellite observations" FontWeight="Bold"/>
+                                        <TextBlock Text="Lower-resolution dated true-color imagery; cloud cover and missing dates may affect availability." FontSize="10" TextWrapping="Wrap" Foreground="{DynamicResource Brush.Text.Secondary}"/>
+                                    </StackPanel>
+                                </StackPanel>
+                                <TextBlock Grid.Row="1" Text="Satellite Observation Dates (NASA)" Style="{StaticResource RibbonGroupHeaderStyle}"/>
                             </Grid>
                         </Border>
                     </StackPanel>
