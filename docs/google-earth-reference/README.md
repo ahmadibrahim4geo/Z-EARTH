@@ -1,7 +1,7 @@
 # Google Earth Reference Framework — controlled research
 
 ## Scope and evidence (2026-10-26)
-User-authorized Google Drive folder: https://drive.google.com/drive/folders/1_G-2MOuE2qd53WMrC7zYhY_sVgi-Rrs0?usp=drive_link . Read-only directory inventory was performed through the connected Drive account. **No Google binaries executed, decompiled, or copied into this repository.** Filenames imply component categories but do not prove runtime behavior.
+User-authorized Google Drive folder: [private connected Google Drive reference — URL withheld]?usp=drive_link . Read-only directory inventory was performed through the connected Drive account. **No Google binaries executed, decompiled, or copied into this repository.** Filenames imply component categories but do not prove runtime behavior.
 
 Observed `client/`: Qt5Widgets.dll, Qt5Gui.dll, Qt5OpenGL.dll, Qt5Network.dll, Qt5WebKit.dll, Qt5Positioning.dll, qt.conf, drivers.ini; subfolders `shaders/`, `plugins/`, `res/`, `lang/`, `alchemy/`.
 Observed `client/shaders/`: atmosphere.glslesf/v, lighting.h, stars.glslesf/v, watersurface.glslesf/v, hammer_aitoff.glslesf/v, viewshed.h and vegetation shader variants. These are names only, not validated feature contracts.
