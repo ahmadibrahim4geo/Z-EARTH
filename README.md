@@ -17,9 +17,9 @@ Open-source-oriented **Windows desktop GIS development project** using **.NET 10
 | Try the Windows x64 portable preview | [Download instructions](docs/PORTABLE_PREVIEW.md) · [Actions builds](https://github.com/ahmadibrahim4geo/Z-EARTH/actions/workflows/build-and-test.yml) |
 | Understand current capabilities and test tiers | [Repository onboarding](docs/REPOSITORY_ONBOARDING.md) · [Parity matrix](docs/GOOGLE_EARTH_PRO_PARITY.md) |
 | Report Windows / KML / globe bugs | [New issue](https://github.com/ahmadibrahim4geo/Z-EARTH/issues/new/choose) · [Contribute](CONTRIBUTING.md) |
-| Review code licensing and privacy | [Source license status — review required](docs/LICENSE_STATUS.md) · [Security](SECURITY.md) |
+| Review code licensing and privacy | [GNU GPLv3 source license](LICENSE) · [Third-party/release audit](docs/LICENSE_STATUS.md) · [Security](SECURITY.md) |
 
-**Project status:** source and portable preview are under active development; CI build success does not confirm native GPU/WebView2 behavior. **A root project-wide source-code license still needs explicit owner approval and upstream compatibility review**; third-party license notices alone do not provide one.
+**Project status:** source and portable preview are under active development; CI build success does not confirm native GPU/WebView2 behavior. **Original project code is licensed under GPL-3.0-only**; bundled libraries, GIS skill materials, binary assets, geospatial datasets and external services retain their own licenses/terms. Full redistribution review remains open.
 
 ## Download the Windows EXE (Portable Preview)
 
@@ -95,4 +95,4 @@ This source review is not a promise that all basemap providers work or every fea
 
 ## Licensing
 
-See [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md) and [LEGAL_AND_PRIVACY_NOTICES.md](LEGAL_AND_PRIVACY_NOTICES.md). The copied GIS skill texts are MIT-licensed **separately from source projects they reference**. Never bundle proprietary GIS SDKs, cache prohibited tiles or publish personal credentials.
+**The independently authored Z EARTH application source is provided under [GNU GPL version 3 only (GPL-3.0-only)](LICENSE)**, to the extent the author has rights to license it. See the [full legal/privacy notice](LEGAL_AND_PRIVACY_NOTICES.md), [component license inventory](THIRD_PARTY_LICENSES.md) and [release compliance checklist](docs/LICENSE_STATUS.md). Bundled GIS skills have **separate MIT terms** where applicable under [.github/LICENSE](.github/LICENSE); CesiumJS, WebView2, DLLs, fonts, map data and providers are not relicensed by Z EARTH. No blanket claim of compiled redistributable readiness is made: full third-party notices and rights must be checked before an official Release. Never bundle proprietary GIS SDKs, cache prohibited tiles or publish personal credentials.
