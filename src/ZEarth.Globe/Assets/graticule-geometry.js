@@ -45,6 +45,20 @@
     return longitude === 180 ? 60 : Math.floor((longitude + 180) / 6) + 1;
   }
 
+  // UTM grid-zone designation latitude bands, C..X (I and O omitted, X spans 12°).
+  function latitudeBand(latitude) {
+    if (!Number.isFinite(latitude) || latitude < -80 || latitude >= 84) return null;
+    const bands = 'CDEFGHJKLMNPQRSTUVWX';
+    const index = Math.min(19, Math.floor((latitude + 80) / 8));
+    return bands[index];
+  }
+
+  function gridZoneDesignation(longitude, latitude) {
+    const zone = zoneAt(longitude, latitude);
+    const band = latitudeBand(latitude);
+    return zone && band ? `${zone}${band}` : null;
+  }
+
   function visibleUtmSegments(bounds) {
     if (!bounds || !Number.isFinite(bounds.south) || !Number.isFinite(bounds.north)) return [];
     const windows = longitudeWindows(bounds);
@@ -74,5 +88,5 @@
            normal.z * (camera.z - anchor.z) > 0;
   }
 
-  return { longitudeWindows, zoneBounds, zoneAt, visibleUtmSegments, isSurfaceAnchorVisible };
+  return { longitudeWindows, zoneBounds, zoneAt, latitudeBand, gridZoneDesignation, visibleUtmSegments, isSurfaceAnchorVisible };
 });
