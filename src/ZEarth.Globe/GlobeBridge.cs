@@ -99,6 +99,7 @@ namespace ZEarth.Globe
         public event EventHandler<bool>? AtmosphereChanged;
         public event EventHandler<bool>? CloudsChanged;
         public event EventHandler<bool>? FlightModeChanged;
+        public event EventHandler<bool>? GpsPlaybackChanged;
         public event EventHandler<string>? DeviceLocationReceived;
 
         /// <summary>Raised when a correlated request fails, is cancelled or times out (RC-3).</summary>
@@ -459,6 +460,13 @@ namespace ZEarth.Globe
                     if (root.TryGetProperty("enabled", out var activeProp) &&
                         activeProp.ValueKind is JsonValueKind.True or JsonValueKind.False)
                         FlightModeChanged?.Invoke(this, activeProp.GetBoolean());
+                    return;
+                }
+                if (ev == "gps.playbackChanged")
+                {
+                    if (root.TryGetProperty("enabled", out var playbackProp) &&
+                        playbackProp.ValueKind is JsonValueKind.True or JsonValueKind.False)
+                        GpsPlaybackChanged?.Invoke(this, playbackProp.GetBoolean());
                     return;
                 }
             }
@@ -865,6 +873,15 @@ namespace ZEarth.Globe
 
         public Task<bool> ClearNasaGibsImageryAsync() =>
             SendRequestAsync("historical.nasaClear");
+
+        public Task<bool> PlayGpsTrackAsync(object points, double durationSeconds = 30) =>
+            SendRequestAsync("gps.playTrack", new { points, durationSeconds });
+
+        public Task<bool> StopGpsTrackAsync() =>
+            SendRequestAsync("gps.stopTrack");
+
+        public Task<bool> PauseGpsTrackAsync(bool paused) =>
+            SendRequestAsync("gps.pauseTrack", new { paused });
 
         public Task<bool> SetTimeOfDayAsync(double timeHours, string? dateUtc = null) =>
             SendRequestAsync("environment.setTimeOfDay", new { timeHours, dateUtc });
