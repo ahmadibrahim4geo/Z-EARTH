@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Text.Json;
 using System.Threading;
@@ -10,6 +11,8 @@ using ZEarth.Domain;
 
 namespace ZEarth.Globe
 {
+    public sealed record TerrainHeightSample(double Longitude, double Latitude, double ElevationMeters);
+
     public sealed class GlobeBridge : IMapViewport
     {
         /// <summary>
@@ -501,7 +504,18 @@ namespace ZEarth.Globe
             string? supersedeGroup = null,
             CancellationToken cancellationToken = default)
         {
-            if (SendJsonToWebView == null) return false;
+            var response = await SendRequestWithResponseAsync(action, payload, timeoutMs, supersedeGroup, cancellationToken);
+            return response?.Success == true;
+        }
+
+        private async Task<BridgeResponse?> SendRequestWithResponseAsync(
+            string action,
+            object? payload = null,
+            int timeoutMs = DefaultTimeoutMs,
+            string? supersedeGroup = null,
+            CancellationToken cancellationToken = default)
+        {
+            if (SendJsonToWebView == null) return null;
 
             if (!string.IsNullOrEmpty(supersedeGroup))
             {
@@ -533,7 +547,7 @@ namespace ZEarth.Globe
                 _pendingRequests.TryRemove(request.RequestId, out _);
                 pending.TryCancel("Failed to send request to the globe engine.");
                 RaiseFailure(request.RequestId, action, ex.Message, timedOut: false);
-                return false;
+                return null;
             }
 
             CancellationTokenRegistration registration = default;
@@ -585,12 +599,12 @@ namespace ZEarth.Globe
                 // Abort the orphaned work in the engine so an abandoned command (e.g. an interrupted
                 // camera flight) cannot keep animating/streaming on the host's behalf (RC-3).
                 _ = NotifyAsync("request.cancel", new { action, requestId = request.RequestId });
-                return false;
+                return null;
             }
 
             if (!pending.Completion.Task.IsCompleted)
             {
-                return false;
+                return null;
             }
 
             var response = await pending.Completion.Task;
@@ -603,8 +617,51 @@ namespace ZEarth.Globe
                     RaiseFailure(request.RequestId, action, response.Error ?? "Request failed.", timedOut: false);
                 }
             }
-            return response.Success;
+            return response;
         }
+
+        /// <summary>
+        /// Samples the currently activated terrain provider, not stored path vertex Z.
+        /// Missing/ellipsoid/failed coverage yields null, never fabricated altitudes.
+        /// Limited to 256 geographic points; JS does the actual sampling.
+        /// </summary>
+        public async Task<IReadOnlyList<TerrainHeightSample>?> SampleTerrainHeightsAsync(
+            IReadOnlyList<CoordinatePoint> coordinates,
+            CancellationToken cancellationToken = default)
+        {
+            if (coordinates == null || coordinates.Count < 2 || coordinates.Count > 256)
+                return null;
+            if (coordinates.Any(p => !double.IsFinite(p.Latitude) || !double.IsFinite(p.Longitude)
+                || p.Latitude < -90 || p.Latitude > 90 || p.Longitude < -180 || p.Longitude > 180))
+                return null;
+
+            var response = await SendRequestWithResponseAsync("terrain.samplePath",
+                new { points = coordinates.Select(p => new { longitude = p.Longitude, latitude = p.Latitude }).ToArray() },
+                timeoutMs: 45000, cancellationToken: cancellationToken);
+            if (response?.Success != true || response.Payload is not JsonElement json ||
+                !json.TryGetProperty("samples", out var values) || values.ValueKind != JsonValueKind.Array ||
+                values.GetArrayLength() != coordinates.Count)
+                return null;
+            var result = new List<TerrainHeightSample>(coordinates.Count);
+            foreach (var value in values.EnumerateArray())
+            {
+                if (!value.TryGetProperty("longitude", out var longitude) ||
+                    !value.TryGetProperty("latitude", out var latitude) ||
+                    !value.TryGetProperty("height", out var height) ||
+                    longitude.ValueKind != JsonValueKind.Number ||
+                    latitude.ValueKind != JsonValueKind.Number ||
+                    height.ValueKind != JsonValueKind.Number)
+                    return null;
+                var lon = longitude.GetDouble();
+                var lat = latitude.GetDouble();
+                var elev = height.GetDouble();
+                if (!double.IsFinite(lon) || !double.IsFinite(lat) || !double.IsFinite(elev))
+                    return null;
+                result.Add(new TerrainHeightSample(lon, lat, elev));
+            }
+            return result;
+        }
+
 
         private void SupersedeGroup(string group)
         {
