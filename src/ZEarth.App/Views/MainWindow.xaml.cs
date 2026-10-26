@@ -36,6 +36,7 @@ namespace ZEarth.App.Views
         public MainWindow(MainViewModel viewModel)
         {
             InitializeComponent();
+            FitInitialWindowToWorkArea();
             DataContext = viewModel;
 
             viewModel.PropertyChanged += (s, e) =>
@@ -55,6 +56,30 @@ namespace ZEarth.App.Views
             SourceInitialized += MainWindow_SourceInitialized;
             Loaded += MainWindow_Loaded;
             Closing += MainWindow_Closing;
+        }
+
+
+        /// <summary>
+        /// Keeps the first launch fully visible on smaller monitors, remote desktops,
+        /// and Windows CI sessions. The design size remains unchanged on larger screens.
+        /// SystemParameters.WorkArea is expressed in WPF device-independent units.
+        /// </summary>
+        private void FitInitialWindowToWorkArea()
+        {
+            var workArea = SystemParameters.WorkArea;
+            if (workArea.Width < 640 || workArea.Height < 480)
+                return;
+
+            MinWidth = Math.Min(MinWidth, workArea.Width);
+            MinHeight = Math.Min(MinHeight, workArea.Height);
+            Width = Math.Min(Width, workArea.Width);
+            Height = Math.Min(Height, workArea.Height);
+
+            // Explicit coordinates are required: CenterScreen may otherwise position
+            // a window wider than the work area partly beyond the visible desktop.
+            Left = workArea.Left + Math.Max(0, (workArea.Width - Width) / 2);
+            Top = workArea.Top + Math.Max(0, (workArea.Height - Height) / 2);
+            WindowStartupLocation = WindowStartupLocation.Manual;
         }
 
         private async void MainWindow_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
