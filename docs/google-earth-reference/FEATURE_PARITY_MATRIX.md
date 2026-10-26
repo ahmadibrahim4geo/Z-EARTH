@@ -17,8 +17,8 @@
 | Live cloud observations | Not verified from reference files | No live weather provider wired | GAP/OPTIONAL | Only licensed free meteorological imagery with timestamps |
 | Stars and night sky | stars shader file | Cesium sky background needs review | UNVERIFIED | Visual tests only |
 | 3D trees/vegetation | SpeedTree shader resources | No tree pipeline established | GAP/OPTIONAL | Use licensed open 3D assets only |
-| Flight simulator | flightsim resource tree | No confirmed feature | GAP/OPTIONAL | Defer pending stable core and acceptance specs |
-| KML 2.2 import/export | KML extension/icons/resources | Parser/serializer present | SHARED | Semantic round-trip fixtures |
+| Flight simulator | flightsim.ini config lists F16 and SR22; runtime unverified | No flight mode found in inspected ZEarth code | GAP/OPTIONAL | Independently scope free flight mode after core GIS testing; no copied aircraft assets |
+| KML 2.1 / 2.2 import-export | Shipped userpalette.kml uses namespace 2.1 and 167 StyleMap definitions | Parser patched for legacy Document namespace; serializer already exists | SHARED + BUG FIX | Run synthetic namespace/style tests and semantic round-trip; do not commit reference palette |
 | KMZ archive resources | KMZ icon/Places resources | KmzService includes safe extractor | SHARED | Round-trip embedded images/icons/models |
 | gx:Tour | tourcontrols.rcc | Preservation support uncertain; playback not proven | GAP/REVIEW | Study OGC/public gx semantics, prototype independently |
 | NetworkLink refresh | Not confirmed by filenames | Preserved XML fragments in parser | GAP/REVIEW | Security-aware URL refresh and update semantics |
