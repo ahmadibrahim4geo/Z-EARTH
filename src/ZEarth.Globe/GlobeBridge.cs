@@ -90,6 +90,8 @@ namespace ZEarth.Globe
         public event EventHandler<string>? TerrainFallbackOccurred;
         public event EventHandler<string>? TerrainChanged;
         public event EventHandler<double>? TimeOfDayChanged;
+        // Carries UTC date and whether the globe's Now button was pressed.
+        public event EventHandler<string>? TimeContextChanged;
         public event EventHandler<bool>? SunlightChanged;
         public event EventHandler<bool>? AtmosphereChanged;
         public event EventHandler<string>? DeviceLocationReceived;
@@ -420,6 +422,7 @@ namespace ZEarth.Globe
                     if (root.TryGetProperty("timeHours", out var tProp) && tProp.TryGetDouble(out var th))
                     {
                         TimeOfDayChanged?.Invoke(this, th);
+                        TimeContextChanged?.Invoke(this, json);
                     }
                     return;
                 }
