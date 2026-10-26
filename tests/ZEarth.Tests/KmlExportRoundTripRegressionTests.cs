@@ -269,4 +269,36 @@ public sealed class KmlExportRoundTripRegressionTests
         }
         finally { Directory.Delete(folder, true); }
     }
+
+    [TestMethod]
+    public void KmzExtractionRejectsCaseVariantSiblingTraversalOnLinux()
+    {
+        // Linux file paths are case-sensitive. An OrdinalIgnoreCase prefix check
+        // previously accepted ../archive/ when the extraction root was Archive/.
+        if (!OperatingSystem.IsLinux()) return;
+
+        var folder = Path.Combine(Path.GetTempPath(), "zearth-kmz-case-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+        try
+        {
+            var archivePath = Path.Combine(folder, "malicious.kmz");
+            using (var archive = ZipFile.Open(archivePath, ZipArchiveMode.Create))
+            {
+                var doc = archive.CreateEntry("doc.kml");
+                using (var writer = new StreamWriter(doc.Open(), Encoding.UTF8))
+                    writer.Write("<kml xmlns=\"http://www.opengis.net/kml/2.2\"><Document/></kml>");
+                var malicious = archive.CreateEntry("../archive/escape.txt");
+                using (var writer = new StreamWriter(malicious.Open(), Encoding.UTF8))
+                    writer.Write("this must not escape");
+            }
+
+            var destination = Path.Combine(folder, "Archive");
+            var escapedFile = Path.Combine(folder, "archive", "escape.txt");
+            Assert.ThrowsException<UnauthorizedAccessException>(
+                () => KmzService.ExtractAndParse(archivePath, destination));
+            Assert.IsFalse(File.Exists(escapedFile), "KMZ entry must never escape destination.");
+        }
+        finally { Directory.Delete(folder, true); }
+    }
+
 }
