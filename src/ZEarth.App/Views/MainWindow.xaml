@@ -620,6 +620,12 @@
                                                     Height="25" FontSize="10" Margin="0,2,0,0"
                                                     ToolTip="Choose UTC calendar date. Sun angle follows the map location; UTC is not the country's civil time."/>
                                     </StackPanel>
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding ToggleCloudsCommand}" ToolTip="Toggle optional offline illustrative 3D clouds (not live weather). Hidden in 2D." AutomationProperties.AutomationId="ZE.Main.046a.ToggleCloudsCommand" AutomationProperties.Name="Toggle illustrative clouds">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <TextBlock Text="☁" FontSize="25" Foreground="{Binding CloudsIconBrush}" HorizontalAlignment="Center"/>
+                                            <TextBlock Text="Clouds" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Button>
                                     <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding ToggleAtmosphereCommand}" ToolTip="Show or hide the atmospheric glow and ground haze." AutomationProperties.AutomationId="ZE.Main.046.ToggleAtmosphereCommand" AutomationProperties.Name="Show or hide the atmospheric glow and ground haze.">
                                         <StackPanel HorizontalAlignment="Center">
                                             <Path Data="{StaticResource Icon.Atmosphere}" Style="{StaticResource RibbonLargeIconStyle}" Fill="{Binding AtmosphereIconBrush}"/>
