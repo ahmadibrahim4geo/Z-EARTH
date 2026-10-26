@@ -40,6 +40,15 @@ def validate() -> list[str]:
             if token not in text:
                 errors.append(f"GPL license missing section: {token}")
 
+    preview_packaging = ROOT / "scripts/create-portable-preview.ps1"
+    try:
+        packaging = preview_packaging.read_text(encoding="utf-8")
+        for required in ("'LICENSE'", "'THIRD_PARTY_LICENSES.md'", "'LEGAL_AND_PRIVACY_NOTICES.md'"):
+            if required not in packaging:
+                errors.append(f"Portable build does not explicitly package {required}")
+    except OSError as exc:
+        errors.append(f"Portable package script unreadable: {exc}")
+
     for project in PROJECTS:
         try:
             root = ET.parse(ROOT / project).getroot()
