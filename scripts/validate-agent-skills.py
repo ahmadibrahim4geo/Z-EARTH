@@ -16,6 +16,11 @@ PINNED_REFERENCE_COUNT = 76
 
 def git_blob_sha(path: Path) -> str:
     raw = path.read_bytes()
+    # The pinned upstream snapshot is canonical LF text. A normal Windows clone
+    # may materialize these Markdown/JSON files as CRLF when core.autocrlf=true;
+    # normalize checkout line endings before reconstructing the Git blob hash.
+    # Content changes remain detectable while clean clones validate consistently.
+    raw = raw.replace(b"\r\n", b"\n").replace(b"\r", b"\n")
     head = ("blob " + str(len(raw)) + "\0").encode("ascii")
     return hashlib.sha1(head + raw).hexdigest()
 

@@ -38,6 +38,7 @@ namespace ZEarth.App.Views
             InitializeComponent();
             FitInitialWindowToWorkArea();
             DataContext = viewModel;
+            LocalizationService.Instance.ApplyWindow(this);
 
             viewModel.PropertyChanged += (s, e) =>
             {
@@ -114,12 +115,22 @@ namespace ZEarth.App.Views
                     _isClosing = true;
                     try
                     {
-                        await ViewModel.SaveProjectCommandDirectAsync();
+                        if (!await ViewModel.SaveProjectCommandDirectAsync())
+                        {
+                            ViewModel.RestoreDiscardedPendingOnClose();
+                            _isClosing = false;
+                            return;
+                        }
                         ViewModel.ClearActiveSession();
                     }
                     catch (Exception ex)
                     {
                         LoggerService.Instance.LogError("Failed to save project during shutdown", ex);
+                        ViewModel.RestoreDiscardedPendingOnClose();
+                        _isClosing = false;
+                        MessageBox.Show("The project could not be saved. Z EARTH remains open.",
+                            "Save failed", MessageBoxButton.OK, MessageBoxImage.Error);
+                        return;
                     }
                     CleanupOnClose();
                     Application.Current.Shutdown();
@@ -127,6 +138,7 @@ namespace ZEarth.App.Views
                 }
                 else if (res == MessageBoxResult.Cancel)
                 {
+                    ViewModel.RestoreDiscardedPendingOnClose();
                     e.Cancel = true;
                     return;
                 }
@@ -277,6 +289,9 @@ namespace ZEarth.App.Views
 
         private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
+            // Re-run after templates/data templates are materialized so static ribbon,
+            // sidebar and context-menu literals follow the selected language too.
+            LocalizationService.Instance.ApplyWindow(this);
             WorkspaceSplitter.DragCompleted += (s, e) =>
             {
                 if (ViewModel.IsSidebarDockedLeft)
@@ -309,7 +324,11 @@ namespace ZEarth.App.Views
                     return;
                 }
 
-                var userDataDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ZEarth", "WebView2UserData");
+                var profileOverride = Environment.GetEnvironmentVariable("ZEARTH_PROFILE_DIRECTORY");
+                var profileRoot = string.IsNullOrWhiteSpace(profileOverride)
+                    ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ZEarth")
+                    : profileOverride;
+                var userDataDir = Path.Combine(profileRoot, "WebView2UserData");
                 Directory.CreateDirectory(userDataDir);
 
                 var env = await CoreWebView2Environment.CreateAsync(null, userDataDir);
@@ -382,11 +401,18 @@ namespace ZEarth.App.Views
                             appSettings.LongitudeIntervalDegrees,
                             appSettings.LatitudeIntervalDegrees,
                             appSettings.GridLabelFormat,
-                            appSettings.UtmLabelMode);
+                            appSettings.UtmLabelMode,
+                            appSettings.GridMajorColor,
+                            appSettings.GridLongitudeColor,
+                            appSettings.GridLatitudeColor,
+                            appSettings.GridLabelColor,
+                            appSettings.GridUtmColor,
+                            appSettings.GridLabelSize,
+                            appSettings.UtmLabelPlacement);
 
                         if (!string.IsNullOrEmpty(ViewModel.SelectedBasemapId))
                         {
-                            await ViewModel.GlobeBridge.SetBasemapAsync(ViewModel.SelectedBasemapId);
+                            await ViewModel.ApplyBasemapAsync(ViewModel.SelectedBasemapId);
                         }
 
                         // Update the WPF ribbon only after Cesium acknowledges activation;
@@ -481,6 +507,15 @@ namespace ZEarth.App.Views
                 GlobeWebView.CoreWebView2.AddWebResourceRequestedFilter(
                     "https://terrain.local/terrarium/*",
                     CoreWebView2WebResourceContext.All);
+                GlobeWebView.CoreWebView2.AddWebResourceRequestedFilter(
+                    "https://terrain.local/local-dem/*",
+                    CoreWebView2WebResourceContext.All);
+                GlobeWebView.CoreWebView2.AddWebResourceRequestedFilter(
+                    "https://terrain.local/copernicus-glo30/*",
+                    CoreWebView2WebResourceContext.All);
+                GlobeWebView.CoreWebView2.AddWebResourceRequestedFilter(
+                    "https://terrain.local/gebco2026/*",
+                    CoreWebView2WebResourceContext.All);
                 GlobeWebView.CoreWebView2.WebResourceRequested += TerrainWebResourceRequested;
 
                 // Map local assets folder to virtual host https://cesium.local/ for secure origin and Web Workers
@@ -515,13 +550,53 @@ namespace ZEarth.App.Views
                 }
 
                 var parts = requestUri.AbsolutePath.Trim('/').Split('/', StringSplitOptions.RemoveEmptyEntries);
+                if (parts.Length == 2 &&
+                    string.Equals(parts[0], "local-dem", StringComparison.OrdinalIgnoreCase) &&
+                    string.Equals(parts[1], "metadata", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (!string.Equals(e.Request.Method, "GET", StringComparison.OrdinalIgnoreCase))
+                    {
+                        e.Response = CreateTerrainProxyResponse(Array.Empty<byte>(), 405, "Method Not Allowed", "text/plain");
+                        return;
+                    }
+                    var metadata = LocalTerrainRasterService.Instance.Metadata;
+                    if (metadata is null)
+                    {
+                        e.Response = CreateTerrainProxyResponse(Array.Empty<byte>(), 404, "No Local Raster", "text/plain");
+                        return;
+                    }
+                    var json = System.Text.Json.JsonSerializer.Serialize(new
+                    {
+                        probeLevel = metadata.ProbeLevel,
+                        probeX = metadata.ProbeX,
+                        probeY = metadata.ProbeY
+                    });
+                    e.Response = CreateTerrainProxyResponse(System.Text.Encoding.UTF8.GetBytes(json), 200, "OK", "application/json");
+                    return;
+                }
                 if (parts.Length != 4 ||
-                    !string.Equals(parts[0], "terrarium", StringComparison.OrdinalIgnoreCase) ||
                     !int.TryParse(parts[1], out var level) ||
                     !int.TryParse(parts[2], out var x) ||
-                    !parts[3].EndsWith(".png", StringComparison.OrdinalIgnoreCase) ||
-                    !int.TryParse(parts[3][..^4], out var y) ||
-                    level < 0 || level > 15)
+                    level < 0 || level > 18)
+                {
+                    e.Response = CreateTerrainProxyResponse(Array.Empty<byte>(), 400, "Bad Request", "text/plain");
+                    return;
+                }
+
+                var isTerrarium = string.Equals(parts[0], "terrarium", StringComparison.OrdinalIgnoreCase);
+                var isLocalDem = string.Equals(parts[0], "local-dem", StringComparison.OrdinalIgnoreCase);
+                var isCopernicus = string.Equals(parts[0], "copernicus-glo30", StringComparison.OrdinalIgnoreCase);
+                var isGebco = string.Equals(parts[0], "gebco2026", StringComparison.OrdinalIgnoreCase);
+                if (level > 15 && !isLocalDem)
+                {
+                    e.Response = CreateTerrainProxyResponse(Array.Empty<byte>(), 400, "Bad Request", "text/plain");
+                    return;
+                }
+                var expectedExtension = isTerrarium ? ".png" :
+                    isLocalDem || isCopernicus || isGebco ? ".bin" : string.Empty;
+                if (expectedExtension.Length == 0 ||
+                    !parts[3].EndsWith(expectedExtension, StringComparison.OrdinalIgnoreCase) ||
+                    !int.TryParse(parts[3][..^expectedExtension.Length], out var y))
                 {
                     e.Response = CreateTerrainProxyResponse(Array.Empty<byte>(), 400, "Bad Request", "text/plain");
                     return;
@@ -534,12 +609,55 @@ namespace ZEarth.App.Views
                     return;
                 }
 
+                // Requests carrying the Copernicus token cross from cesium.local to
+                // terrain.local and therefore require a CORS preflight. Never forward
+                // the OPTIONS request or demand a token before the browser sends GET.
+                if (string.Equals(e.Request.Method, "OPTIONS", StringComparison.OrdinalIgnoreCase))
+                {
+                    e.Response = CreateTerrainProxyResponse(Array.Empty<byte>(), 204, "No Content", "text/plain");
+                    return;
+                }
+                if (!string.Equals(e.Request.Method, "GET", StringComparison.OrdinalIgnoreCase))
+                {
+                    e.Response = CreateTerrainProxyResponse(Array.Empty<byte>(), 405, "Method Not Allowed", "text/plain");
+                    return;
+                }
+
+                if (isLocalDem)
+                {
+                    var content = await LocalTerrainRasterService.Instance.GetTileAsync(level, x, y);
+                    e.Response = content is null
+                        ? CreateTerrainProxyResponse(Array.Empty<byte>(), 404, "No Elevation Data", "text/plain")
+                        : CreateTerrainProxyResponse(content, 200, "OK", "application/octet-stream");
+                    return;
+                }
+
+                if (isCopernicus)
+                {
+                    var accessToken = e.Request.Headers.GetHeader("X-ZEarth-Provider-Token");
+                    var content = await OnlineTerrainTileService.Instance.GetCopernicusGlo30TileAsync(
+                        level, x, y, accessToken);
+                    e.Response = content is null
+                        ? CreateTerrainProxyResponse(Array.Empty<byte>(), 404, "No Elevation Data", "text/plain")
+                        : CreateTerrainProxyResponse(content, 200, "OK", "application/octet-stream");
+                    return;
+                }
+
+                if (isGebco)
+                {
+                    var content = await OnlineTerrainTileService.Instance.GetGebco2026TileAsync(level, x, y);
+                    e.Response = content is null
+                        ? CreateTerrainProxyResponse(Array.Empty<byte>(), 404, "No Elevation Data", "text/plain")
+                        : CreateTerrainProxyResponse(content, 200, "OK", "application/octet-stream");
+                    return;
+                }
+
                 var upstream = new Uri(
                     $"https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{level}/{x}/{y}.png");
                 using var upstreamResponse = await TerrainHttpClient.GetAsync(upstream);
-                var content = await upstreamResponse.Content.ReadAsByteArrayAsync();
+                var upstreamContent = await upstreamResponse.Content.ReadAsByteArrayAsync();
                 e.Response = CreateTerrainProxyResponse(
-                    content,
+                    upstreamContent,
                     (int)upstreamResponse.StatusCode,
                     upstreamResponse.ReasonPhrase ?? "Terrain Response",
                     upstreamResponse.Content.Headers.ContentType?.ToString() ?? "image/png");
@@ -564,8 +682,13 @@ namespace ZEarth.App.Views
             var stream = new MemoryStream(content, writable: false);
             var headers =
                 $"Content-Type: {contentType}\r\n" +
-                "Access-Control-Allow-Origin: *\r\n" +
-                "Cache-Control: public, max-age=86400\r\n";
+                "Access-Control-Allow-Origin: https://cesium.local\r\n" +
+                "Access-Control-Allow-Methods: GET, OPTIONS\r\n" +
+                "Access-Control-Allow-Headers: X-ZEarth-Provider-Token\r\n" +
+                // The same local URL can represent a different raster after the
+                // user changes source or token. A browser cache would otherwise
+                // silently return elevations from the previous source.
+                "Cache-Control: no-store\r\n";
             return GlobeWebView.CoreWebView2.Environment.CreateWebResourceResponse(
                 stream,
                 statusCode,
@@ -612,6 +735,20 @@ namespace ZEarth.App.Views
             if (e.NewValue is PlaceItem item)
             {
                 ViewModel.SelectedPlace = item;
+            }
+        }
+
+        private void MovePlaceToFolder_Click(object sender, RoutedEventArgs e)
+        {
+            var item = ViewModel.SelectedPlace;
+            if (item == null || item.IsProtected) return;
+            var dialog = new MovePlaceDialog(ViewModel.MyPlaces, item) { Owner = this };
+            if (dialog.ShowDialog() == true && !ViewModel.MovePlaceToFolder(item, dialog.Destination))
+            {
+                var arabic = LocalizationService.Instance.IsArabic;
+                MessageBox.Show(arabic ? "لم يُنقل العنصر. تحقق من الوجهة وحفظ الأماكن المؤقتة." :
+                    "The item was not moved. Check the destination and Temporary Places storage.",
+                    arabic ? "نقل العنصر" : "Move item", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
 

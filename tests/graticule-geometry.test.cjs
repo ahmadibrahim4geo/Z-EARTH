@@ -3,6 +3,27 @@ const assert = require('node:assert/strict');
 const { longitudeWindows, zoneBounds, zoneAt, visibleUtmSegments } =
   require('../src/ZEarth.Globe/Assets/graticule-geometry.js');
 
+test('camera-following labels slide only along their own geographic line', () => {
+  const { movingLabelCoordinates: move } = require('../src/ZEarth.Globe/Assets/graticule-geometry.js');
+  assert.deepEqual(move('parallel', 10, 20, {lon: 20, lat: 30}, {lon: 30, lat: 40}), {longitude: 30, latitude: 10});
+  assert.deepEqual(move('meridian', 25, 40, {lon: 20, lat: 30}, {lon: 30, lat: 40}), {longitude: 25, latitude: 50});
+  assert.deepEqual(move('parallel', 10, 175, {lon: 175, lat: 30}, {lon: -175, lat: 30}), {longitude: -175, latitude: 10});
+  assert.deepEqual(move('meridian', 25, 80, {lon: 20, lat: 30}, {lon: 20, lat: 60}), {longitude: 25, latitude: 89.999});
+});
+
+test('buffered visible bounds cover movement across the date line and up to the poles', () => {
+  const {expandViewBounds, boundsContain} = require('../src/ZEarth.Globe/Assets/graticule-geometry.js');
+  const original = {west: 170, east: -170, south: 78, north: 89};
+  const expanded = expandViewBounds(original);
+  assert.equal(expanded.south, 74.7);
+  assert.equal(expanded.north, 90);
+  assert.equal(boundsContain(expanded, original), true);
+  assert.equal(boundsContain(expanded, {west: 173, east: -167, south: 79, north: 90}), true);
+  assert.equal(boundsContain(expanded, {west: 145, east: 165, south: 79, north: 89}), false);
+  assert.deepEqual(expandViewBounds({west:-180,east:180,south:-90,north:90}),
+    {west:-180,east:180,south:-90,north:90});
+});
+
 test('UTM longitude zones including exact zone 1/60 edges and hemisphere', () => {
   assert.equal(zoneAt(-180, 25), 1);
   assert.equal(zoneAt(180, 25), 60);
@@ -65,4 +86,75 @@ test('UTM grid-zone latitude bands reflect real geographic grid zone designation
   assert.equal(formatUtmZoneLabel(36, 30, 'Hemisphere'), 'UTM 36N');
   assert.equal(formatUtmZoneLabel(36, 30, 'GridZone'), '36R');
   assert.equal(formatUtmZoneLabel(36, 84), '');
+});
+
+test('UTM zone labels sit inside their zone and never on a boundary meridian', () => {
+  const { utmLabelAnchor, visibleUtmZoneLabels, zoneBounds } =
+    require('../src/ZEarth.Globe/Assets/graticule-geometry.js');
+  const anchor = utmLabelAnchor(36, 30);
+  assert.ok(anchor);
+  assert.equal(anchor.zone, 36);
+  assert.equal(anchor.west, 30);
+  assert.equal(anchor.east, 36);
+  // The centre is strictly inside the zone, not on either boundary.
+  assert.ok(anchor.longitude > anchor.west && anchor.longitude < anchor.east);
+  assert.equal(anchor.longitude, 33);
+  assert.equal(anchor.band, 'R');
+  assert.ok(anchor.latitude > 24 && anchor.latitude < 32);
+
+  const labels = visibleUtmZoneLabels({ west: 24, east: 37, south: 21, north: 33 });
+  assert.deepEqual(labels.map(l => l.zone), [34, 35, 36, 37]);
+  for (const label of labels) {
+    const limits = zoneBounds(label.zone, label.latitude);
+    assert.ok(label.longitude > limits.west && label.longitude < limits.east,
+      `zone ${label.zone} label must be inside its boundaries`);
+  }
+});
+
+test('UTM label placement respects Norway and Svalbard exception widths', () => {
+  const { utmLabelAnchor, visibleUtmZoneLabels, zoneBounds } =
+    require('../src/ZEarth.Globe/Assets/graticule-geometry.js');
+  // Norway 32V spans 3°E..12°E; its label must be centred near 7.5°E.
+  const norway = utmLabelAnchor(32, 60);
+  assert.ok(norway.longitude > 3 && norway.longitude < 12);
+  // Svalbard 33X spans 9°E..21°E.
+  const svalbard = utmLabelAnchor(33, 78);
+  assert.equal(svalbard.west, 9);
+  assert.equal(svalbard.east, 21);
+  assert.ok(svalbard.longitude > 9 && svalbard.longitude < 21);
+  // Zones that do not exist in the Svalbard X band produce no label.
+  assert.equal(utmLabelAnchor(32, 78), null);
+  const labels = visibleUtmZoneLabels({ west: 0.5, east: 41.5, south: 72, north: 84 });
+  assert.deepEqual(labels.map(l => l.zone), [31, 33, 35, 37]);
+  for (const label of labels) {
+    const limits = zoneBounds(label.zone, label.latitude);
+    assert.ok(label.longitude > limits.west && label.longitude < limits.east);
+  }
+});
+
+test('UTM labels crossing the antimeridian stay inside their own zone window', () => {
+  const { visibleUtmZoneLabels } = require('../src/ZEarth.Globe/Assets/graticule-geometry.js');
+  const labels = visibleUtmZoneLabels({ west: 175, east: -175, south: 22, north: 32 });
+  assert.deepEqual(labels.map(l => l.zone), [1, 60]);
+  const zone1 = labels.find(l => l.zone === 1);
+  const zone60 = labels.find(l => l.zone === 60);
+  assert.ok(zone1.longitude > -180 && zone1.longitude < -174);
+  assert.ok(zone60.longitude > 174 && zone60.longitude < 180);
+});
+
+test('UTM label latitude stays clear of the band centre used by major parallels', () => {
+  const { utmLabelAnchor, latitudeBandBounds } =
+    require('../src/ZEarth.Globe/Assets/graticule-geometry.js');
+  // Band R spans 24..32; the Tropic of Cancer (23.44) sits just below it and
+  // an equator-centred label used to be drawn on top of the Tropic label.
+  const band = latitudeBandBounds(30);
+  const anchor = utmLabelAnchor(36, 30);
+  assert.ok(anchor.latitude > band.south && anchor.latitude < band.north,
+    'The label must stay inside its own latitude band.');
+  assert.ok(anchor.latitude < (band.south + band.north) / 2,
+    'The label must sit below the band centre, not on it.');
+  for (const major of [0, 23.4365, -23.4365, 66.5635, -66.5635]) {
+    assert.ok(Math.abs(anchor.latitude - major) > 1.5,
+      `UTM label must not coincide with the major parallel at ${major}`);
+  }
 });

@@ -325,9 +325,9 @@
         attribution: 'Source: Esri, Maxar, Earthstar Geographics, CNES/Airbus DS, USDA, USGS, AeroGRID, IGN, and GIS User Community'
       };
 
-      // Free-first offline default: never initiate online Esri imagery requests
-      // until the desktop user explicitly opts into an online basemap.
-      this.setBasemap('offline-vector');
+      // The local provisional layer is not a user selection. Do not publish it as
+      // a basemap change before engine.ready: WPF still needs its persisted choice.
+      this.setBasemap('offline-vector', false);
     },
 
     addFallbackGridLayer() {
@@ -370,16 +370,16 @@
       }
     },
 
-    setBasemap(id) {
+    setBasemap(id, notifyHost = true) {
       if (!id) id = 'offline-vector';
       id = String(id).trim().toLowerCase();
       if (id === 'offline' || id === 'naturalearth') id = 'offline-vector';
       if (id === 'osm' || id === 'openstreetmap') id = 'osm-standard';
       if (id === 'esri' || id === 'satellite' || id === 'hybrid') id = 'esri-hybrid';
 
-      if (!this.baseLayers[id]) {
+      if (!this.baseLayers[id] && id !== 'offline-vector') {
         console.warn('[ImageryManager] Unknown basemap requested:', id);
-        id = 'offline-vector';
+        return false;
       }
       this.activeBasemap = id;
 
@@ -412,7 +412,8 @@
 
       this.updateAttribution();
       CreditsManager.updateActiveBadges(id);
-      sendHostMessage({ event: 'imagery.basemapChanged', basemap: id });
+      if (notifyHost) sendHostMessage({ event: 'imagery.basemapChanged', basemap: id });
+      return true;
     },
 
     toggleHybridLabels(show) {
@@ -756,6 +757,7 @@
   // 2b. Terrain Provider Manager (ZE-050, ZE-051, AC-019)
   const TerrainManager = {
     currentType: 'ellipsoid',
+    providerRequestGeneration: 0,
     currentExaggeration: 1.0,
     gridSize: 65,
     tileCache: new Map(),
@@ -840,7 +842,7 @@
       })();
 
       this.tileCache.set(key, promise);
-      promise.catch(() => this.tileCache.delete(key));
+      promise.catch(() => { if (this.tileCache.get(key) === promise) this.tileCache.delete(key); });
       if (this.tileCache.size > 160) {
         const oldestKey = this.tileCache.keys().next().value;
         this.tileCache.delete(oldestKey);
@@ -848,12 +850,314 @@
       return promise;
     },
 
+    async loadLocalRasterTile(x, y, level) {
+      const key = `local/${level}/${x}/${y}`;
+      if (this.tileCache.has(key)) return this.tileCache.get(key);
+      const promise = (async () => {
+        const abortController = new AbortController();
+        const timeoutId = window.setTimeout(() => abortController.abort(), 25000);
+        let response;
+        try {
+          response = await fetch(`https://terrain.local/local-dem/${level}/${x}/${y}.bin`, {
+            mode: 'cors', cache: 'no-store', signal: abortController.signal
+          });
+        } finally {
+          window.clearTimeout(timeoutId);
+        }
+        if (!response.ok) throw new Error(`Local terrain tile HTTP ${response.status}`);
+        const buffer = await response.arrayBuffer();
+        const expectedBytes = this.gridSize * this.gridSize * 4;
+        if (buffer.byteLength !== expectedBytes) {
+          throw new Error(`Local terrain tile has ${buffer.byteLength} bytes; expected ${expectedBytes}`);
+        }
+        // Preserve NaN as the coverage mask; zero can be a real elevation.
+        return new Float32Array(buffer);
+      })();
+      this.tileCache.set(key, promise);
+      promise.catch(() => { if (this.tileCache.get(key) === promise) this.tileCache.delete(key); });
+      if (this.tileCache.size > 160) this.tileCache.delete(this.tileCache.keys().next().value);
+      return promise;
+    },
+
+    // Missing cells are ellipsoid for rendering only, never measurements.
+    async loadLocalRasterRenderTile(x, y, level) {
+      const raw = await this.loadLocalRasterTile(x, y, level);
+      const size = this.gridSize;
+      // +180 and -180 are the same meridian. GDAL's half-open eastern
+      // boundary can return NaN there; use the real western-edge samples.
+      let westEdge = null;
+      if (x === 2 ** level - 1 && raw.some((value, i) =>
+          i % size === size - 1 && !Number.isFinite(value))) {
+        westEdge = x === 0 ? raw : await this.loadLocalRasterTile(0, y, level);
+      }
+      return Float32Array.from(raw, (elevation, i) => {
+        if (Number.isFinite(elevation)) return elevation;
+        if (westEdge && i % size === size - 1) {
+          const wrapped = westEdge[i - (size - 1)];
+          if (Number.isFinite(wrapped)) return wrapped;
+        }
+        return 0;
+      });
+    },
+
+    async sampleLocalRasterPoints(points) {
+      const level = 18, n = 2 ** level, size = this.gridSize;
+      return Promise.all(points.map(async point => {
+        if (Math.abs(point.latitude) > 85.05112878) return { ...point, height: NaN };
+        const normalized = ((point.longitude + 180) % 360 + 360) % 360;
+        const globalX = normalized / 360 * n;
+        const lat = point.latitude * Math.PI / 180;
+        const globalY = (1 - Math.log(Math.tan(lat) + 1 / Math.cos(lat)) / Math.PI) / 2 * n;
+        const x = Math.max(0, Math.min(n - 1, Math.floor(globalX)));
+        const y = Math.max(0, Math.min(n - 1, Math.floor(globalY)));
+        const column = Math.max(0, Math.min(size - 1, (globalX - x) * (size - 1)));
+        const row = Math.max(0, Math.min(size - 1, (globalY - y) * (size - 1)));
+        const x0 = Math.floor(column), x1 = Math.min(size - 1, x0 + 1);
+        const y0 = Math.floor(row), y1 = Math.min(size - 1, y0 + 1);
+        const heights = await this.loadLocalRasterTile(x, y, level);
+        const a = heights[y0 * size + x0], b = heights[y0 * size + x1];
+        const c = heights[y1 * size + x0], d = heights[y1 * size + x1];
+        // Conservatively reject boundaries and holes if an input is missing.
+        if (![a, b, c, d].every(Number.isFinite)) return { ...point, height: NaN };
+        const u = column - x0, v = row - y0;
+        const height = (a * (1 - u) + b * u) * (1 - v) + (c * (1 - u) + d * u) * v;
+        return { ...point, height };
+      }));
+    },
+
+    async loadHostFloatTile(source, x, y, level, providerToken) {
+      const key = `${source}/${level}/${x}/${y}`;
+      if (this.tileCache.has(key)) return this.tileCache.get(key);
+      const promise = (async () => {
+        const headers = {};
+        if (providerToken) headers['X-ZEarth-Provider-Token'] = providerToken;
+        const response = await fetch(`https://terrain.local/${source}/${level}/${x}/${y}.bin`, {
+          mode: 'cors', cache: 'no-store', headers
+        });
+        if (!response.ok) throw new Error(`${source} terrain tile HTTP ${response.status}`);
+        const buffer = await response.arrayBuffer();
+        const expectedBytes = this.gridSize * this.gridSize * 4;
+        if (buffer.byteLength !== expectedBytes) {
+          throw new Error(`${source} terrain tile has ${buffer.byteLength} bytes; expected ${expectedBytes}`);
+        }
+        const heights = new Float32Array(buffer);
+        for (const elevation of heights) {
+          if (!Number.isFinite(elevation)) throw new Error(`${source} terrain tile contains unresolved NoData`);
+        }
+        return heights;
+      })();
+      this.tileCache.set(key, promise);
+      promise.catch(() => { if (this.tileCache.get(key) === promise) this.tileCache.delete(key); });
+      return promise;
+    },
+
+    async getJaxaAw3dGenerator() {
+      if (!this.jaxaAw3dGeneratorPromise) {
+        this.jaxaAw3dGeneratorPromise = (async () => {
+          const je = await import('https://data.earth.jaxa.jp/api/javascript/v2.0.1/jaxa.earth.esm.js');
+          const generator = new je.TileGenerator({
+            collectionUrl: 'https://s3.ap-northeast-1.wasabisys.com/je-pds/cog/v1/JAXA.EORC_ALOS.PRISM_AW3D30.v3.2_global/collection.json',
+            band: 'DSM',
+            resampling: je.Resampling.BILINEAR,
+            tileSize: 256,
+            delay: 100
+          });
+          await generator.init();
+          return generator;
+        })();
+        this.jaxaAw3dGeneratorPromise.catch(() => { this.jaxaAw3dGeneratorPromise = null; });
+      }
+      return this.jaxaAw3dGeneratorPromise;
+    },
+
+    async loadJaxaAw3dTile(x, y, level) {
+      const key = `aw3d30/${level}/${x}/${y}`;
+      if (this.tileCache.has(key)) return this.tileCache.get(key);
+      const promise = (async () => {
+        const generator = await this.getJaxaAw3dGenerator();
+        const dataObject = await generator.getDataObject(x, y, level);
+        if (!dataObject || dataObject.width !== 256 || dataObject.height !== 256) {
+          throw new Error('JAXA Earth API returned an unexpected AW3D30 tile');
+        }
+        const heights = new Float32Array(this.gridSize * this.gridSize);
+        for (let row = 0; row < this.gridSize; row++) {
+          const sourceRow = Math.round(row * 255 / (this.gridSize - 1));
+          for (let column = 0; column < this.gridSize; column++) {
+            const sourceColumn = Math.round(column * 255 / (this.gridSize - 1));
+            const elevation = dataObject.data[sourceRow * 256 + sourceColumn];
+            if (!Number.isFinite(elevation)) throw new Error('AW3D30 has no numeric data for this tile');
+            heights[row * this.gridSize + column] = elevation;
+          }
+        }
+        return heights;
+      })();
+      this.tileCache.set(key, promise);
+      promise.catch(() => { if (this.tileCache.get(key) === promise) this.tileCache.delete(key); });
+      return promise;
+    },
+
+    async verifyViewportLoader(loader) {
+      const ground = getScreenCenterGround();
+      const camera = viewer.camera.positionCartographic;
+      const lon = ground.valid ? ground.longitude : Cesium.Math.toDegrees(camera.longitude);
+      const lat = ground.valid ? ground.latitude : Cesium.Math.toDegrees(camera.latitude);
+      const level = 8, n = 2 ** level;
+      const x = Math.min(n - 1, Math.floor((((lon + 180) % 360 + 360) % 360) / 360 * n));
+      const radians = Cesium.Math.toRadians(Math.max(-85.05112878, Math.min(85.05112878, lat)));
+      const y = Math.max(0, Math.min(n - 1,
+        Math.floor((1 - Math.log(Math.tan(radians) + 1 / Math.cos(radians)) / Math.PI) / 2 * n)));
+      const heights = await loader(x, y, level);
+      let minimumElevationM = Infinity, maximumElevationM = -Infinity;
+      for (const elevation of heights) {
+        minimumElevationM = Math.min(minimumElevationM, elevation);
+        maximumElevationM = Math.max(maximumElevationM, elevation);
+      }
+      return { level, x, y, sampleCount: heights.length, minimumElevationM, maximumElevationM };
+    },
+
+    async activateLocalRasterProvider(generation = this.providerRequestGeneration) {
+      this.tileCache.clear();
+      // A regional file need not overlap the camera or even contain a sample on
+      // the coarse world root. Probe an actual in-coverage tile selected by GDAL.
+      const response = await fetch('https://terrain.local/local-dem/metadata', {
+        mode: 'cors', cache: 'no-store'
+      });
+      if (!response.ok) throw new Error(`Local terrain metadata HTTP ${response.status}`);
+      const metadata = await response.json();
+      const level = metadata.probeLevel, x = metadata.probeX, y = metadata.probeY;
+      if (!Number.isInteger(level) || level < 0 || level > 18 ||
+          !Number.isInteger(x) || !Number.isInteger(y) || x < 0 || y < 0 ||
+          x >= 2 ** level || y >= 2 ** level) {
+        throw new Error('Local terrain has no valid coverage probe');
+      }
+      const [root, heights] = await Promise.all([
+        this.loadLocalRasterTile(0, 0, 0), this.loadLocalRasterTile(x, y, level)
+      ]);
+      if (generation !== this.providerRequestGeneration) return this.supersededProviderResult();
+      if (root.length !== this.gridSize * this.gridSize) throw new Error('Invalid local terrain root');
+      const valid = Array.from(heights).filter(Number.isFinite);
+      if (!valid.length) throw new Error('No numeric DEM samples found in local raster coverage');
+      const probe = { level, x, y, sampleCount: valid.length,
+        minimumElevationM: Math.min(...valid), maximumElevationM: Math.max(...valid) };
+      const label = 'Local numeric elevation raster (ellipsoid outside raster coverage)';
+      viewer.terrainProvider = new Cesium.CustomHeightmapTerrainProvider({
+        width: this.gridSize,
+        height: this.gridSize,
+        tilingScheme: new Cesium.WebMercatorTilingScheme(),
+        callback: (tileX, tileY, tileLevel) => tileLevel > 18 ? undefined :
+          this.loadLocalRasterRenderTile(tileX, tileY, tileLevel),
+        credit: 'Local elevation raster; ellipsoid shown where raster has no elevation data'
+      });
+      viewer.scene.globe.depthTestAgainstTerrain = true;
+      viewer.scene.globe.maximumScreenSpaceError = 1.5;
+      if (viewer.scene.mode !== Cesium.SceneMode.SCENE3D) viewer.scene.morphTo3D(0.6);
+      this.currentType = 'localDem';
+      this.setExaggeration(this.currentExaggeration);
+      sendHostMessage({ event: 'terrain.changed', type: 'localDem', label, probe });
+      viewer.scene.requestRender();
+      return { success: true, type: 'localDem', label, probe };
+    },
+
+    async activateHeightmapProvider(type, label, credit, loader, generation = this.providerRequestGeneration) {
+      this.tileCache.clear();
+      // A viewport tile alone cannot establish renderability: Cesium first
+      // requests the root tile. Reject incomplete roots instead of claiming
+      // that a partial/local raster is active while the globe remains flat.
+      const [, probe] = await Promise.all([
+        loader(0, 0, 0),
+        this.verifyViewportLoader(loader)
+      ]);
+      if (generation !== this.providerRequestGeneration) return this.supersededProviderResult();
+      viewer.terrainProvider = new Cesium.CustomHeightmapTerrainProvider({
+        width: this.gridSize,
+        height: this.gridSize,
+        tilingScheme: new Cesium.WebMercatorTilingScheme(),
+        callback: (x, y, level) => level > 14 ? undefined : loader(x, y, level),
+        credit
+      });
+      viewer.scene.globe.depthTestAgainstTerrain = true;
+      viewer.scene.globe.maximumScreenSpaceError = 1.5;
+      if (viewer.scene.mode !== Cesium.SceneMode.SCENE3D) viewer.scene.morphTo3D(0.6);
+      this.currentType = type;
+      this.setExaggeration(this.currentExaggeration);
+      sendHostMessage({ event: 'terrain.changed', type, label, probe });
+      viewer.scene.requestRender();
+      return { success: true, type, label, probe };
+    },
+
+    supersededProviderResult() {
+      return { success: false, superseded: true, error: 'Terrain selection was superseded by a newer request.' };
+    },
+
     async setProvider(type, url, ionToken) {
+      const generation = ++this.providerRequestGeneration;
       type = type || 'ellipsoid';
-      if (ionToken && Cesium.Ion) {
+      if ((type === 'worldTerrain' || type === 'worldBathymetry') && ionToken && Cesium.Ion) {
         Cesium.Ion.defaultAccessToken = String(ionToken).trim();
       }
-      if (type === 'demTerrain' || type === 'globalDem' || (type === 'localDem' && !url)) {
+      if (type === 'localDem') {
+        try {
+          return await this.activateLocalRasterProvider(generation);
+        } catch (err) {
+          if (generation !== this.providerRequestGeneration) return this.supersededProviderResult();
+          console.warn('[TerrainManager] Local raster terrain failed:', err);
+          viewer.terrainProvider = new Cesium.EllipsoidTerrainProvider();
+          this.currentType = 'ellipsoid';
+          sendHostMessage({ event: 'terrain.fallback', reason: err?.message || 'Local raster unavailable' });
+          return { success: false, fallback: 'ellipsoid', error: String(err?.message || err) };
+        }
+      } else if (type === 'aw3d30') {
+        try {
+          return await this.activateHeightmapProvider(type, 'JAXA AW3D30 (JAXA Earth API)',
+            'Elevation data © JAXA; obtained using JAXA Earth API',
+            (x, y, level) => this.loadJaxaAw3dTile(x, y, level), generation);
+        } catch (err) {
+          if (generation !== this.providerRequestGeneration) return this.supersededProviderResult();
+          viewer.terrainProvider = new Cesium.EllipsoidTerrainProvider();
+          this.currentType = 'ellipsoid';
+          sendHostMessage({ event: 'terrain.fallback', reason: err?.message || 'JAXA AW3D30 unavailable' });
+          return { success: false, fallback: 'ellipsoid', error: String(err?.message || err) };
+        }
+      } else if (type === 'copernicusGlo30') {
+        try {
+          const token = String(ionToken || '').trim();
+          if (!token) throw new Error('Copernicus Data Space access token is required for GLO-30');
+          return await this.activateHeightmapProvider(type, 'Copernicus DEM GLO-30 (CDSE Process API)',
+            'Copernicus DEM GLO-30 © European Union, accessed through CDSE',
+            (x, y, level) => this.loadHostFloatTile('copernicus-glo30', x, y, level, token), generation);
+        } catch (err) {
+          if (generation !== this.providerRequestGeneration) return this.supersededProviderResult();
+          viewer.terrainProvider = new Cesium.EllipsoidTerrainProvider();
+          this.currentType = 'ellipsoid';
+          sendHostMessage({ event: 'terrain.fallback', reason: err?.message || 'Copernicus GLO-30 unavailable' });
+          return { success: false, fallback: 'ellipsoid', error: String(err?.message || err) };
+        }
+      } else if (type === 'gebco2026') {
+        try {
+          return await this.activateHeightmapProvider(type, 'GEBCO 2026 Grid (Australian Antarctic Division / Source Cooperative)',
+            'GEBCO Bathymetric Compilation Group 2026; cloud-optimized GeoTIFF by Australian Antarctic Division via Source Cooperative',
+            (x, y, level) => this.loadHostFloatTile('gebco2026', x, y, level), generation);
+        } catch (err) {
+          if (generation !== this.providerRequestGeneration) return this.supersededProviderResult();
+          viewer.terrainProvider = new Cesium.EllipsoidTerrainProvider();
+          this.currentType = 'ellipsoid';
+          sendHostMessage({ event: 'terrain.fallback', reason: err?.message || 'GEBCO 2026 unavailable' });
+          return { success: false, fallback: 'ellipsoid', error: String(err?.message || err) };
+        }
+      } else if (type === 'srtm30') {
+        try {
+          const result = await this.activateHeightmapProvider(type, 'SRTM-backed AWS Terrain Tiles',
+            'Elevation data © Mapzen/Tilezen and data providers, hosted by AWS Open Data; SRTM is used in covered source regions',
+            (x, y, level) => this.loadTerrariumTile(x, y, level), generation);
+          return result;
+        } catch (err) {
+          if (generation !== this.providerRequestGeneration) return this.supersededProviderResult();
+          viewer.terrainProvider = new Cesium.EllipsoidTerrainProvider();
+          this.currentType = 'ellipsoid';
+          sendHostMessage({ event: 'terrain.fallback', reason: err?.message || 'SRTM-backed terrain unavailable' });
+          return { success: false, fallback: 'ellipsoid', error: String(err?.message || err) };
+        }
+      } else if (type === 'demTerrain' || type === 'globalDem') {
         try {
           // Do not report Terrain as active until a real elevation tile has passed through
           // the host proxy and decoded successfully.
@@ -862,6 +1166,7 @@
             this.loadTerrariumTile(0, 0, 0),
             this.verifyViewportTerrainTile()
           ]);
+          if (generation !== this.providerRequestGeneration) return this.supersededProviderResult();
           const demProvider = new Cesium.CustomHeightmapTerrainProvider({
             width: this.gridSize,
             height: this.gridSize,
@@ -884,6 +1189,7 @@
           viewer.scene.requestRender();
           return { success: true, type: 'globalDem', label: 'Global Terrarium Elevation (AWS Open Data)', probe };
         } catch (err) {
+          if (generation !== this.providerRequestGeneration) return this.supersededProviderResult();
           console.warn('[TerrainManager] Global elevation provider failed:', err);
           viewer.terrainProvider = new Cesium.EllipsoidTerrainProvider();
           this.currentType = 'ellipsoid';
@@ -901,6 +1207,7 @@
               requestWaterMask: true,
               requestVertexNormals: true
             });
+            if (generation !== this.providerRequestGeneration) return this.supersededProviderResult();
             viewer.terrainProvider = tp;
             viewer.scene.globe.depthTestAgainstTerrain = true;
             if (viewer.scene.mode !== Cesium.SceneMode.SCENE3D) viewer.scene.morphTo3D(0.6);
@@ -912,6 +1219,7 @@
           }
           throw new Error('Cesium World Terrain is not supported by this Cesium build');
         } catch (err) {
+          if (generation !== this.providerRequestGeneration) return this.supersededProviderResult();
           console.warn('[TerrainManager] World terrain failed, falling back to Ellipsoid:', err);
           viewer.terrainProvider = new Cesium.EllipsoidTerrainProvider();
           this.currentType = 'ellipsoid';
@@ -936,6 +1244,7 @@
               requestVertexNormals: true
             });
           }
+          if (generation !== this.providerRequestGeneration) return this.supersededProviderResult();
           viewer.terrainProvider = tp;
           viewer.scene.globe.depthTestAgainstTerrain = true;
           if (viewer.scene.mode !== Cesium.SceneMode.SCENE3D) viewer.scene.morphTo3D(0.6);
@@ -945,6 +1254,7 @@
           viewer.scene.requestRender();
           return { success: true, type: 'worldBathymetry', label: 'Cesium World Bathymetry / GEBCO 2023' };
         } catch (err) {
+          if (generation !== this.providerRequestGeneration) return this.supersededProviderResult();
           console.warn('[TerrainManager] World bathymetry failed, falling back to Ellipsoid:', err);
           viewer.terrainProvider = new Cesium.EllipsoidTerrainProvider();
           this.currentType = 'ellipsoid';
@@ -957,6 +1267,7 @@
             requestWaterMask: true,
             requestVertexNormals: true
           });
+          if (generation !== this.providerRequestGeneration) return this.supersededProviderResult();
           viewer.terrainProvider = tp;
           viewer.scene.globe.depthTestAgainstTerrain = true;
           if (viewer.scene.mode !== Cesium.SceneMode.SCENE3D) viewer.scene.morphTo3D(0.6);
@@ -966,6 +1277,7 @@
           viewer.scene.requestRender();
           return { success: true, type: 'custom' };
         } catch (err) {
+          if (generation !== this.providerRequestGeneration) return this.supersededProviderResult();
           console.warn('[TerrainManager] Custom terrain failed, falling back to Ellipsoid:', err);
           viewer.terrainProvider = new Cesium.EllipsoidTerrainProvider();
           this.currentType = 'ellipsoid';
@@ -1235,6 +1547,7 @@
     snapVertices: true,
     snapMidpoints: true,
     snapEdges: true,
+    snapIntersections: true,
     activeSnap: null,
 
     glyphEl: document.getElementById('snap-glyph'),
@@ -1250,6 +1563,7 @@
       if (typeof cfg.snapVertices === 'boolean') this.snapVertices = cfg.snapVertices;
       if (typeof cfg.snapMidpoints === 'boolean') this.snapMidpoints = cfg.snapMidpoints;
       if (typeof cfg.snapEdges === 'boolean') this.snapEdges = cfg.snapEdges;
+      if (typeof cfg.snapIntersections === 'boolean') this.snapIntersections = cfg.snapIntersections;
     },
 
     showGlyph: function (screenX, screenY, type, label) {
@@ -1360,6 +1674,30 @@
       let bestTarget = null;
       let minDistance = Infinity;
 
+      const segmentIntersectionNearCursor = (a, b) => {
+        // Project both segments into the cursor's local east/north tangent plane.
+        // This avoids screen-space/perspective false intersections and is accurate
+        // for the local drawing distances governed by groundToleranceMeters.
+        const frame = Cesium.Transforms.eastNorthUpToFixedFrame(cursorCartesian);
+        const inverse = Cesium.Matrix4.inverseTransformation(frame, new Cesium.Matrix4());
+        const a1 = Cesium.Matrix4.multiplyByPoint(inverse, a.p1, new Cesium.Cartesian3());
+        const a2 = Cesium.Matrix4.multiplyByPoint(inverse, a.p2, new Cesium.Cartesian3());
+        const b1 = Cesium.Matrix4.multiplyByPoint(inverse, b.p1, new Cesium.Cartesian3());
+        const b2 = Cesium.Matrix4.multiplyByPoint(inverse, b.p2, new Cesium.Cartesian3());
+        const ax = a2.x - a1.x;
+        const ay = a2.y - a1.y;
+        const bx = b2.x - b1.x;
+        const by = b2.y - b1.y;
+        const denominator = ax * by - ay * bx;
+        if (Math.abs(denominator) < 1e-9) return null;
+        const cx = b1.x - a1.x;
+        const cy = b1.y - a1.y;
+        const ta = (cx * by - cy * bx) / denominator;
+        const tb = (cx * ay - cy * ax) / denominator;
+        if (ta <= 1e-7 || ta >= 1 - 1e-7 || tb <= 1e-7 || tb >= 1 - 1e-7) return null;
+        return Cesium.Cartesian3.lerp(a.p1, a.p2, ta, new Cesium.Cartesian3());
+      };
+
       // 1. Check Vertices (Priority 1)
       if (this.snapVertices) {
         for (const v of geom.vertices) {
@@ -1413,7 +1751,38 @@
         }
       }
 
-      // 3. Check Edge Nearest Projection (Priority 3)
+      // 3. Check true segment intersections in a local tangent plane. Shared
+      // endpoints are excluded above because vertex snapping owns that case.
+      if (this.snapIntersections && geom.segments.length > 1) {
+        for (let i = 0; i < geom.segments.length - 1; i++) {
+          for (let j = i + 1; j < geom.segments.length; j++) {
+            const intersection = segmentIntersectionNearCursor(geom.segments[i], geom.segments[j]);
+            if (!intersection) continue;
+            const dist = groundDistance(cursorCartesian, intersection);
+            if (dist <= tol && dist < minDistance) {
+              const winPos = Cesium.SceneTransforms.worldToWindowCoordinates(viewer.scene, intersection);
+              if (!winPos) continue;
+              minDistance = dist;
+              bestTarget = {
+                type: 'intersection',
+                label: `Intersection • ${dist.toFixed(2)} m`,
+                cartesian: intersection,
+                screenX: winPos.x,
+                screenY: winPos.y,
+                distance: dist
+              };
+            }
+          }
+        }
+
+        if (bestTarget) {
+          this.activeSnap = bestTarget;
+          this.showGlyph(bestTarget.screenX, bestTarget.screenY, bestTarget.type, bestTarget.label);
+          return { snapped: true, ...bestTarget };
+        }
+      }
+
+      // 4. Check Edge Nearest Projection (Priority 4)
       if (this.snapEdges) {
         for (const seg of geom.segments) {
           const segment = Cesium.Cartesian3.subtract(seg.p2, seg.p1, new Cesium.Cartesian3());
@@ -2191,11 +2560,21 @@
   }
 
   // Dedicated Geographic Graticules & Key Parallels (GRID-01, GRID-02, GRID-03)
+  const GRID_DEFAULT_COLORS = {
+    gridMajorColor: '#FF5252',
+    gridLongitudeColor: '#3BA9FF',
+    gridLatitudeColor: '#3AD17B',
+    gridLabelColor: '#E8E8E8',
+    gridUtmColor: '#FFC107'
+  };
+
   const GraticuleManager = {
     dataSource: null,
     lastViewKey: '',
     config: {
       visible: false,
+      // Legacy field kept for bridge compatibility. Labels are now generated
+      // automatically for every enabled component.
       showLabels: true,
       showKeyParallels: true,
       showUtmZones: false,
@@ -2203,8 +2582,11 @@
       showLatitudeLines: true,
       longitudeIntervalDegrees: 0,
       latitudeIntervalDegrees: 0,
-      gridLabelFormat: "DMS",
-      utmLabelMode: "Both"
+      gridLabelFormat: "DD",
+      utmLabelMode: "GridZone",
+      gridLabelSize: "Large",
+      utmLabelPlacement: "Center",
+      ...GRID_DEFAULT_COLORS
     },
 
     init() {
@@ -2212,149 +2594,442 @@
       this.dataSource.show = false;
       viewer.dataSources.add(this.dataSource);
       this.buildGraticules();
+      // Calculate a single geographic view centre per rendered frame. Only label
+      // positions change during motion; line geometry is rebuilt at moveEnd.
+      viewer.scene.preRender.addEventListener(() => {
+        if (this.config.visible) {
+          this.updateLabelViewCenter();
+          this.refreshWhileMoving();
+        }
+      });
+      // A WebView resize changes label collision and edge clipping even when the
+      // camera itself does not move. Rebuild once after layout settles so labels
+      // do not remain partially hidden until the next pan/zoom.
+      if (typeof ResizeObserver !== 'undefined') {
+        this.resizeObserver = new ResizeObserver(() => {
+          if (!this.config.visible || this.resizeRefreshPending) return;
+          this.resizeRefreshPending = true;
+          window.requestAnimationFrame(() => {
+            this.resizeRefreshPending = false;
+            this.lastViewKey = '';
+            this.refreshForCamera();
+          });
+        });
+        this.resizeObserver.observe(viewer.canvas);
+      }
+    },
+
+    labelSizePixels() {
+      switch (this.config.gridLabelSize) {
+        case 'Small': return 11;
+        case 'Medium': return 13;
+        case 'ExtraLarge': return 19;
+        default: return 15;
+      }
+    },
+
+    cssColor(value, fallback) {
+      const fallbackColor = Cesium.Color.fromCssColorString(fallback);
+      if (typeof value !== 'string' || !value.trim()) return fallbackColor;
+      try {
+        return Cesium.Color.fromCssColorString(value.trim()) || fallbackColor;
+      } catch (error) {
+        return fallbackColor;
+      }
+    },
+
+    lineColor(value, fallback, alpha) {
+      return this.cssColor(value, fallback).withAlpha(alpha);
+    },
+
+    addLabel(text, longitude, latitude, options) {
+      if (!text) return;
+      const settings = options || {};
+      const anchor = Cesium.Cartesian3.fromDegrees(longitude, latitude);
+      const originalCenter = this.labelViewCenter ? { ...this.labelViewCenter } : null;
+      const moving = settings.axis && originalCenter;
+      const positionForView = () => {
+        if (!moving || !this.labelViewCenter) return anchor;
+        const coords = window.ZEarthGraticuleGeometry.movingLabelCoordinates(
+          settings.axis,
+          settings.axis === 'parallel' ? latitude : longitude,
+          settings.axis === 'parallel' ? longitude : latitude,
+          originalCenter, this.labelViewCenter);
+        return Cesium.Cartesian3.fromDegrees(coords.longitude, coords.latitude);
+      };
+      const visibleFromCamera = new Cesium.CallbackProperty(() => {
+        const current = positionForView();
+        const normal = Cesium.Ellipsoid.WGS84.geodeticSurfaceNormal(current, new Cesium.Cartesian3());
+        return this.surfaceVisible(current, normal);
+      }, false);
+      const pixels = settings.pixels || this.labelSizePixels();
+
+      // A label is text around a point. Cesium keeps drawing a label whose
+      // anchor sits just outside the canvas, which produced half-words such as
+      // "ZD 28Q" clipped by the viewport edge. Anchors outside the canvas are
+      // skipped, and anchors near an edge grow away from it so the full text
+      // stays readable and attached to the same geographic point.
+      const screen = this.projectToScreen(anchor);
+      const canvas = viewer.canvas;
+      const canvasWidth = canvas ? canvas.clientWidth : 0;
+      const canvasHeight = canvas ? canvas.clientHeight : 0;
+      if (screen && canvasWidth && canvasHeight &&
+          (screen.x < 0 || screen.x > canvasWidth || screen.y < 0 || screen.y > canvasHeight)) {
+        return;
+      }
+      let horizontalOrigin = settings.horizontalOrigin;
+      if (horizontalOrigin === undefined || horizontalOrigin === null) {
+        if (screen && canvasWidth && screen.x < canvasWidth * 0.45) {
+          horizontalOrigin = Cesium.HorizontalOrigin.LEFT;
+        } else if (screen && canvasWidth && screen.x > canvasWidth * 0.88) {
+          horizontalOrigin = Cesium.HorizontalOrigin.RIGHT;
+        } else {
+          horizontalOrigin = Cesium.HorizontalOrigin.CENTER;
+        }
+      }
+      const offsetX = Number.isFinite(settings.offsetX)
+        ? settings.offsetX
+        : (horizontalOrigin === Cesium.HorizontalOrigin.LEFT ? 8
+          : horizontalOrigin === Cesium.HorizontalOrigin.RIGHT ? -8 : 0);
+      const offsetY = Number.isFinite(settings.offsetY) ? settings.offsetY : -14;
+      // In 2D the map is a flat plane: the grid lines and the label anchors are
+      // coplanar at height 0, so the line primitives won the depth test and the
+      // text rendered dim grey on top of its own line. Depth testing is still
+      // required in 3D so a label can never be drawn through the globe.
+      const depthTestDisabled = viewer.scene.mode === Cesium.SceneMode.SCENE3D
+        ? 0
+        : Number.POSITIVE_INFINITY;
+      // Cesium draws every label independently, so two labels can land on the
+      // same pixels (a Tropic of Cancer label on top of a UTM zone label, for
+      // example). Labels are laid out in priority order — major references
+      // first, regular grid labels next, UTM labels last — and any label whose
+      // box overlaps an accepted one is dropped for this frame.
+      if (!this.reserveLabelSpace(text, screen, pixels, horizontalOrigin, offsetX, offsetY)) {
+        return;
+      }
+      this.dataSource.entities.add({
+        position: moving ? new Cesium.CallbackPositionProperty(positionForView, false) : anchor,
+        label: {
+          show: visibleFromCamera,
+          text: text,
+          font: (settings.bold === false ? '' : 'bold ') + pixels + "px 'Segoe UI', sans-serif",
+          fillColor: settings.color || this.cssColor(this.config.gridLabelColor, '#E8E8E8'),
+          outlineColor: Cesium.Color.fromCssColorString('#0B1220'),
+          outlineWidth: Math.max(2, Math.round(pixels / 6)),
+          style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+          showBackground: false,
+          heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+          // Depth testing stays enabled in 3D so a label cannot be drawn
+          // through Earth; in 2D it is disabled because everything is coplanar.
+          disableDepthTestDistance: depthTestDisabled,
+          pixelOffset: new Cesium.Cartesian2(offsetX, offsetY),
+          horizontalOrigin: horizontalOrigin
+        }
+      });
     },
 
     buildGraticules() {
       this.dataSource.entities.removeAll();
+      this.resetLabelLayout();
       // An explicit data-source visibility gate also hides pending primitives.
       this.dataSource.show = this.config.visible;
       if (!this.config.visible) {
+        this.lastViewKey = '';
         viewer.scene.requestRender();
         return;
       }
 
       const viewRect = viewer.camera.computeViewRectangle(viewer.scene.globe.ellipsoid);
-      const full = { west: -180, east: 180, south: -85, north: 85 };
+      const full = { west: -180, east: 180, south: -90, north: 90 };
       let bounds = full;
       if (viewRect) {
         bounds = {
           west: Cesium.Math.toDegrees(viewRect.west),
           east: Cesium.Math.toDegrees(viewRect.east),
-          south: Math.max(-85, Cesium.Math.toDegrees(viewRect.south)),
-          north: Math.min(85, Cesium.Math.toDegrees(viewRect.north))
+          south: Math.max(-90, Cesium.Math.toDegrees(viewRect.south)),
+          north: Math.min(90, Cesium.Math.toDegrees(viewRect.north))
         };
       }
 
       const longitudeWindows = window.ZEarthGraticuleGeometry.longitudeWindows(bounds);
-      const lonSpan = Math.max(0.01, longitudeWindows.reduce((sum, w) => sum + (w.east - w.west), 0));
-      const latSpan = Math.max(0.01, bounds.north - bounds.south);
+      const lineBounds = window.ZEarthGraticuleGeometry.expandViewBounds(bounds);
+      const lineLongitudeWindows = window.ZEarthGraticuleGeometry.longitudeWindows(lineBounds);
+      this.lineCoverage = lineBounds;
+      const lonSpan = Math.max(0.000001, longitudeWindows.reduce((sum, w) => sum + (w.east - w.west), 0));
+      const latSpan = Math.max(0.000001, bounds.north - bounds.south);
       // Previous descending candidates chose 60° almost everywhere.
-      const candidates = [0.05, 0.1, 0.25, 0.5, 1, 2, 5, 10, 15, 30, 60];
+      const candidates = [0.000001, 0.000002, 0.000005, 0.00001, 0.00002, 0.00005,
+        0.0001, 0.0002, 0.0005, 0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.25, 0.5, 1, 2, 5, 10, 15, 30, 60];
       const baseLon = this.config.longitudeIntervalDegrees > 0
         ? Math.max(0.05, this.config.longitudeIntervalDegrees)
         : (candidates.find(v => lonSpan / v <= 10) || 60);
       const baseLat = this.config.latitudeIntervalDegrees > 0
         ? Math.max(0.05, this.config.latitudeIntervalDegrees)
         : (candidates.find(v => latSpan / v <= 10) || 60);
-      // Avoid thousands of line entities at global scale for fine user spacing.
-      const lonInterval = baseLon * Math.max(1, Math.ceil(lonSpan / (baseLon * 120)));
-      const latInterval = baseLat * Math.max(1, Math.ceil(latSpan / (baseLat * 120)));
+      // Thin — never rescale — the user's interval when the viewport cannot
+      // resolve it. Only integer multiples of the requested interval are used,
+      // so a 5° setting still produces 5°/10°/20° lines and never 7.3°.
+      const canvasWidth = Math.max(320, viewer.canvas?.clientWidth || 1200);
+      const canvasHeight = Math.max(240, viewer.canvas?.clientHeight || 800);
+      const thin = (span, base, pixels, minPixels) => {
+        const minDegrees = (span / pixels) * minPixels;
+        return base * Math.max(1, Math.ceil(minDegrees / base));
+      };
+      // A meridian needs more horizontal room than a parallel needs vertically,
+      // because longitude labels are wider than latitude labels.
+      const lonInterval = Math.min(60, thin(lonSpan, baseLon, canvasWidth, 44));
+      const latInterval = Math.min(60, thin(latSpan, baseLat, canvasHeight, 34));
       let centerLon = bounds.west + lonSpan / 2;
       if (centerLon > 180) centerLon -= 360;
       const centerLat = (bounds.south + bounds.north) / 2;
+      const groundCenter = getScreenCenterGround();
+      // Labels stay on their own geographic line while sliding along it as the
+      // camera moves; rebuilds on moveEnd still choose the visible set.
+      const labelLon = Math.max(-179.99, Math.min(179.99,
+        groundCenter.valid ? groundCenter.longitude : centerLon));
+      const labelLat = Math.max(-89.99, Math.min(89.99,
+        groundCenter.valid ? groundCenter.latitude : centerLat));
+      this.labelViewCenter = { lon: labelLon, lat: labelLat };
+      // Parallel labels stay on the centre column while meridian labels use a
+      // band slightly above centre, so the two families cannot stack on the
+      // same pixel at world scale and neither is pushed against a viewport edge.
+      const parallelLabelLon = labelLon;
+      const meridianLabelLat = Math.max(-89, Math.min(89, labelLat + latSpan * 0.18));
+      const is2D = viewer.scene.mode !== Cesium.SceneMode.SCENE3D;
 
-      const labelOutline = Cesium.Color.fromCssColorString('#0F172A');
-      const stdLineColor = Cesium.Color.fromCssColorString('rgba(56, 189, 248, 0.40)');
-      const keyLineColor = Cesium.Color.fromCssColorString('rgba(251, 191, 36, 0.85)');
-      const equatorColor = Cesium.Color.fromCssColorString('rgba(239, 68, 68, 0.90)');
-      const primeColor = Cesium.Color.fromCssColorString('rgba(59, 130, 246, 0.90)');
-      const utmColor = Cesium.Color.fromCssColorString('rgba(168, 85, 247, 0.50)');
+      const majorColor = this.lineColor(this.config.gridMajorColor, '#FF5252', 0.92);
+      const lonColor = this.lineColor(this.config.gridLongitudeColor, '#3BA9FF', 0.78);
+      const latColor = this.lineColor(this.config.gridLatitudeColor, '#3AD17B', 0.78);
+      const utmColor = this.lineColor(this.config.gridUtmColor, '#FFC107', 0.82);
 
-      // Independent key geographic reference lines and points.
+      // Major references are spread across three longitudes and two latitudes
+      // instead of stacking on a single point at the viewport centre.
+      const spreadLon = (index) => {
+        const step = Math.max(15, Math.min(60, lonSpan * 0.3));
+        let lon = labelLon + ((index % 3) - 1) * step;
+        if (lon > 179.99) lon -= 360;
+        if (lon < -179.99) lon += 360;
+        return lon;
+      };
+      const spreadLat = (index) => {
+        const step = Math.max(10, Math.min(30, latSpan * 0.25));
+        const lat = labelLat + (index % 2 === 0 ? step : -step);
+        return Math.max(-89, Math.min(89, lat));
+      };
+
+      // Independent key geographic reference lines and points. Their coordinate
+      // text uses the same formatter as every other grid label, so choosing DM,
+      // DMS or Degrees changes the reference labels too instead of leaving a
+      // hardcoded "23.44°" that contradicts the configured format.
       if (this.config.showKeyParallels) {
-        const names = this.config.showLabels;
-        this.addParallel(0, equatorColor, 2.5, 'Equator 0°', names, centerLon);
-        this.addParallel(23.4365, keyLineColor, 2, 'Tropic of Cancer 23.44° N', names, centerLon);
-        this.addParallel(-23.4365, keyLineColor, 2, 'Tropic of Capricorn 23.44° S', names, centerLon);
-        this.addParallel(66.5635, keyLineColor, 1.8, 'Arctic Circle 66.56° N', names, centerLon);
-        this.addParallel(-66.5635, keyLineColor, 1.8, 'Antarctic Circle 66.56° S', names, centerLon);
-        this.addMeridian(0, primeColor, 2.5, 'Greenwich / Prime Meridian 0°', names, centerLat);
-        this.addMeridian(180, primeColor, 2, 'International Date Line 180°', names, centerLat);
-        this.addKeyPoint(0, 89.999, 'North Pole 90° N', keyLineColor);
-        this.addKeyPoint(0, -89.999, 'South Pole 90° S', keyLineColor);
-        this.addKeyPoint(0, 0, 'Grid Origin 0°, 0°', equatorColor);
+        const format = this.config.gridLabelFormat;
+        const coordinate = (value, axis) =>
+          window.ZEarthGraticuleLabels.formatDegrees(value, axis, format);
+        this.addParallel(0, majorColor, 2.6,
+          'Equator ' + coordinate(0, 'lat'), true, spreadLon(1), -18);
+        this.addParallel(23.4365, majorColor, 2,
+          'Tropic of Cancer ' + coordinate(23.4365, 'lat'), true, spreadLon(0), -16);
+        this.addParallel(-23.4365, majorColor, 2,
+          'Tropic of Capricorn ' + coordinate(-23.4365, 'lat'), true, spreadLon(2), -16);
+        this.addParallel(66.5635, majorColor, 1.8,
+          'Arctic Circle ' + coordinate(66.5635, 'lat'), true, spreadLon(1), -16);
+        this.addParallel(-66.5635, majorColor, 1.8,
+          'Antarctic Circle ' + coordinate(-66.5635, 'lat'), true, spreadLon(0), -16);
+        this.addMeridian(0, majorColor, 2.6,
+          'Greenwich / Prime Meridian ' + coordinate(0, 'lon'), true, spreadLat(0), -90, 90, -18);
+        this.addMeridian(180, majorColor, 2,
+          'International Date Line ' + coordinate(180, 'lon'), true, spreadLat(1), -90, 90, -18);
+        // In 2D the poles sit exactly on the top and bottom frame edges, so the
+        // label offset must point inward or it is clipped outside the map.
+        this.addKeyPoint(0, 89.999, 'North Pole ' + coordinate(90, 'lat'), majorColor,
+          { offsetY: is2D ? 16 : -20 });
+        this.addKeyPoint(0, -89.999, 'South Pole ' + coordinate(-90, 'lat'), majorColor,
+          { offsetY: is2D ? -16 : -20 });
+        // The origin label is offset to the lower-right so it can never sit on
+        // top of the Equator or Prime Meridian label at the same coordinates.
+        this.addKeyPoint(0, 0,
+          'Grid Origin ' + coordinate(0, 'lon') + ', ' + coordinate(0, 'lat'), majorColor,
+          { offsetX: 14, offsetY: 12, horizontalOrigin: Cesium.HorizontalOrigin.LEFT });
       }
 
+      // Labels are spaced in pixels, not in line counts, so the same rule works
+      // at 12,000 km and at 200 m. Anything hugging a viewport edge is skipped
+      // because the floating compass and projection controls would cover it.
+      const edgePadLat = Math.max(latInterval, latSpan * 0.09);
+      const edgePadLon = Math.max(lonInterval, lonSpan * 0.14);
+      const latLabelStep = Math.max(1,
+        Math.ceil(((latSpan / canvasHeight) * 40) / latInterval));
+      const lonLabelStep = Math.max(1,
+        Math.ceil(((lonSpan / canvasWidth) * 90) / lonInterval));
+
       if (this.config.showLatitudeLines) {
-        const startLat = Math.ceil(bounds.south / latInterval) * latInterval;
-        const endLat = Math.floor(bounds.north / latInterval) * latInterval;
-        for (let lat = startLat; lat <= endLat + latInterval * 0.1; lat += latInterval) {
+        const startLat = Math.ceil(lineBounds.south / latInterval) * latInterval;
+        const endLat = Math.floor(lineBounds.north / latInterval) * latInterval;
+        let index = 0;
+        for (let lat = startLat; lat <= endLat + latInterval * 0.1; lat += latInterval, index++) {
           if ((this.config.showKeyParallels &&
               [0, 23.4365, -23.4365, 66.5635, -66.5635].some(v => Math.abs(lat - v) < 1e-6)) ||
               Math.abs(lat) >= 89.9) continue;
-          this.addParallel(lat, stdLineColor, 1,
-            window.ZEarthGraticuleLabels.formatDegrees(lat, 'lat', this.config.gridLabelFormat),
-            this.config.showLabels, centerLon);
+          // Never place a short regular label against a long major-reference
+          // label. The threshold is a small fraction of one interval, not a
+          // whole interval, or a 20° grid would lose most of its labels.
+          const nearMajorLabel = this.config.showKeyParallels &&
+            [0, 23.4365, -23.4365, 66.5635, -66.5635]
+              .some(v => Math.abs(lat - v) < Math.min(1.2, latInterval * 0.25));
+          const nearEdge = lat - bounds.south < edgePadLat || bounds.north - lat < edgePadLat;
+          const showLabel = index % latLabelStep === 0 && !nearMajorLabel && !nearEdge;
+          this.addParallel(lat, latColor, 1,
+            window.ZEarthGraticuleLabels.formatDegrees(lat, 'lat', this.config.gridLabelFormat, latInterval),
+            showLabel, parallelLabelLon, -14);
         }
       }
 
       if (this.config.showLongitudeLines) {
-        for (const windowBounds of longitudeWindows) {
+        for (const windowBounds of lineLongitudeWindows) {
           const startLon = Math.ceil(windowBounds.west / lonInterval) * lonInterval;
           const endLon = Math.floor(windowBounds.east / lonInterval) * lonInterval;
-          for (let lon = startLon; lon <= endLon + lonInterval * 0.1; lon += lonInterval) {
+          let index = 0;
+          for (let lon = startLon; lon <= endLon + lonInterval * 0.1; lon += lonInterval, index++) {
             if (this.config.showKeyParallels &&
                 (Math.abs(lon) < 1e-6 || Math.abs(Math.abs(lon) - 180) < 1e-6)) continue;
-            this.addMeridian(lon, stdLineColor, 1,
-              window.ZEarthGraticuleLabels.formatDegrees(lon, 'lon', this.config.gridLabelFormat),
-              this.config.showLabels, centerLat);
+            const nearMajorLabel = this.config.showKeyParallels &&
+              (Math.abs(lon) < Math.min(1.2, lonInterval * 0.25) ||
+               Math.abs(Math.abs(lon) - 180) < Math.min(1.2, lonInterval * 0.25));
+            const visibleWindow = longitudeWindows.find(w => lon >= w.west && lon <= w.east);
+            const nearEdge = !visibleWindow || lon - visibleWindow.west < edgePadLon ||
+              visibleWindow.east - lon < edgePadLon;
+            const showLabel = index % lonLabelStep === 0 && !nearMajorLabel && !nearEdge;
+            this.addMeridian(lon, lonColor, 1,
+              window.ZEarthGraticuleLabels.formatDegrees(lon, 'lon', this.config.gridLabelFormat, lonInterval),
+              showLabel, meridianLabelLat, -90, 90, -14);
           }
         }
       }
 
       // UTM bands: latitude -80..84, zone 1..60, and Norway/Svalbard exceptions.
-      // Labels are attached to the visible zone, not hardcoded to the Equator.
+      // Boundaries are drawn at zone edges; labels are placed inside the zone.
       if (this.config.showUtmZones) {
-        const segments = window.ZEarthGraticuleGeometry.visibleUtmSegments(bounds);
-        const showZoneLabels = this.config.showLabels && lonSpan <= 45 && latSpan <= 36;
+        const segments = window.ZEarthGraticuleGeometry.visibleUtmSegments(lineBounds);
+        const drawnBoundaries = new Set();
+        // Zone edges sit on the 6° lattice starting at -180, so thinning keeps
+        // them structurally correct instead of producing arbitrary meridians.
+        const utmStep = Math.max(1, Math.ceil(((lonSpan / canvasWidth) * 52) / 6));
         for (const segment of segments) {
-          // Never draw an extra UTM boundary over a major or ordinary meridian.
-          const isMajor = this.config.showKeyParallels &&
-            (Math.abs(segment.west) < 1e-6 || Math.abs(Math.abs(segment.west) - 180) < 1e-6);
-          const regularOverlap = this.config.showLongitudeLines &&
-            Math.abs(segment.west / lonInterval - Math.round(segment.west / lonInterval)) < 1e-7;
-          if (!isMajor && !regularOverlap &&
-              longitudeWindows.some(w => segment.west >= w.west && segment.west <= w.east)) {
-            this.addMeridian(segment.west, utmColor, 1.2, '', false, centerLat,
-              segment.south, segment.north);
-          }
-          if (!showZoneLabels || centerLat < segment.south || centerLat >= segment.north) continue;
-          const visibleWindow = longitudeWindows.find(w =>
-            segment.east >= w.west && segment.west <= w.east);
-          if (!visibleWindow) continue;
-          const labelLon = (Math.max(segment.west, visibleWindow.west) +
-                            Math.min(segment.east, visibleWindow.east)) / 2;
-          const labelLat = Math.max(segment.south + 0.001,
-            Math.min(segment.north - 0.001, centerLat));
-          this.dataSource.entities.add({
-            position: new Cesium.CallbackPositionProperty(() => {
-              const center = getScreenCenterGround();
-              const longitude = center.valid ? center.longitude : labelLon;
-              const latitude = center.valid ? center.latitude : labelLat;
-              return Cesium.Cartesian3.fromDegrees(
-                Math.max(segment.west + 0.001, Math.min(segment.east - 0.001, longitude)),
-                Math.max(segment.south + 0.001, Math.min(segment.north - 0.001, latitude))
-              );
-            }, false),
-            label: {
-              text: window.ZEarthGraticuleGeometry.formatUtmZoneLabel(segment.zone, labelLat, this.config.utmLabelMode),
-              font: 'bold 11px Segoe UI, sans-serif',
-              fillColor: Cesium.Color.fromCssColorString('#D8B4FE'),
-              outlineColor: labelOutline,
-              outlineWidth: 3,
-              style: Cesium.LabelStyle.FILL_AND_OUTLINE,
-              heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
-              disableDepthTestDistance: 0,
-              pixelOffset: new Cesium.Cartesian2(0, -10),
-              distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 8000000)
+          // Both edges of every segment, deduplicated so a shared meridian is
+          // never drawn twice and the last zone is not left open.
+          for (const boundary of [segment.west, segment.east]) {
+            if (utmStep > 1) {
+              const lattice = Math.round((boundary + 180) / 6);
+              if (lattice % utmStep !== 0) continue;
             }
-          });
+            const key = boundary.toFixed(6) + ':' + segment.south.toFixed(3) + ':' + segment.north.toFixed(3);
+            if (drawnBoundaries.has(key)) continue;
+            drawnBoundaries.add(key);
+            // Never draw an extra UTM boundary over a major or ordinary meridian.
+            const isMajor = this.config.showKeyParallels &&
+              (Math.abs(boundary) < 1e-6 || Math.abs(Math.abs(boundary) - 180) < 1e-6);
+            const regularOverlap = this.config.showLongitudeLines &&
+              Math.abs(boundary / lonInterval - Math.round(boundary / lonInterval)) < 1e-7;
+            if (isMajor || regularOverlap) continue;
+            if (!lineLongitudeWindows.some(w => boundary >= w.west && boundary <= w.east)) continue;
+            this.addMeridian(boundary, utmColor, 1.4, '', false, labelLat,
+              segment.south, segment.north, 0);
+          }
+        }
+
+        // One label per zone at the center of its zone/band; hide only when the
+        // whole globe is visible and 60 labels would overlap.
+        if (lonSpan <= 120 && latSpan <= 60) {
+          const labels = window.ZEarthGraticuleGeometry.visibleUtmZoneLabels(bounds);
+          const labelPixels = Math.max(10, this.labelSizePixels() - 1);
+          // Collision handling: convert the approximate rendered text width into
+          // degrees and show only every Nth zone when 6° of longitude is narrower
+          // than the label. This prevents the overlapping label pile that a fixed
+          // "one label per zone" rule produced at regional zoom.
+          const sample = window.ZEarthGraticuleGeometry.formatUtmZoneLabel(
+            36, 30, this.config.utmLabelMode) || '36R';
+          const canvasWidth = Math.max(320, viewer.canvas?.clientWidth || 1200);
+          const degreesPerPixel = lonSpan / canvasWidth;
+          const labelSpanDegrees = sample.length * labelPixels * 0.62 * degreesPerPixel;
+          const zoneStep = Math.max(1, Math.ceil(labelSpanDegrees / 6));
+          for (const zoneLabel of labels) {
+            if (zoneStep > 1 && zoneLabel.zone % zoneStep !== 0) continue;
+            const text = window.ZEarthGraticuleGeometry.formatUtmZoneLabel(
+              zoneLabel.zone, zoneLabel.latitude, this.config.utmLabelMode);
+            this.addLabel(text, zoneLabel.longitude, zoneLabel.latitude, {
+              pixels: labelPixels,
+              maxDistance: 14000000,
+              offsetY: 0
+            });
+          }
         }
       }
       viewer.scene.requestRender();
     },
 
-    addParallel(lat, color, width, label, showLabel, preferredLon) {
+    // Cesium's ground-polyline primitive is a 3D-only feature: in 2D (and
+    // Columbus View) a clamped polyline is silently dropped, so the whole grid
+    // vanished when the user switched to 2D. Height-0 polylines are the correct
+    // representation in 2D because there is no terrain surface to clamp to.
+    groundClamp() {
+      return viewer.scene.mode === Cesium.SceneMode.SCENE3D;
+    },
+
+    // The spherical horizon test only makes sense on a globe. In 2D the whole
+    // map plane is visible at once, so applying it there hid every label that
+    // was not near the centre of the viewport.
+    surfaceVisible(anchor, normal) {
+      if (viewer.scene.mode !== Cesium.SceneMode.SCENE3D) return true;
+      return window.ZEarthGraticuleGeometry.isSurfaceAnchorVisible(
+        anchor, normal, viewer.camera.positionWC);
+    },
+
+    // Bounds arithmetic is not enough to place a label: a tilted 3D view reports
+    // a view rectangle much wider than the pixels on screen. Cesium 1.146 also
+    // renamed wgs84ToWindowCoordinates to worldToWindowCoordinates, so both
+    // names are supported rather than silently losing the projection.
+    projectToScreen(anchor) {
+      try {
+        const transforms = Cesium.SceneTransforms;
+        const project = transforms.worldToWindowCoordinates || transforms.wgs84ToWindowCoordinates;
+        return project ? project.call(transforms, viewer.scene, anchor) : null;
+      } catch (e) {
+        return null;
+      }
+    },
+
+    // Reset per rebuild. Labels are added in priority order, so the first label
+    // to claim an area keeps it.
+    resetLabelLayout() {
+      this.labelBoxes = [];
+    },
+
+    reserveLabelSpace(text, screen, pixels, horizontalOrigin, offsetX, offsetY) {
+      if (!screen) return true;
+      const width = Math.max(24, text.length * pixels * 0.58) + 10;
+      const height = pixels * 1.65 + 6;
+      let left;
+      if (horizontalOrigin === Cesium.HorizontalOrigin.LEFT) {
+        left = screen.x + offsetX;
+      } else if (horizontalOrigin === Cesium.HorizontalOrigin.RIGHT) {
+        left = screen.x + offsetX - width;
+      } else {
+        left = screen.x + offsetX - width / 2;
+      }
+      const top = screen.y + offsetY - height / 2;
+      const box = { left, right: left + width, top, bottom: top + height };
+      const boxes = this.labelBoxes || (this.labelBoxes = []);
+      for (const other of boxes) {
+        if (box.left < other.right && box.right > other.left &&
+            box.top < other.bottom && box.bottom > other.top) {
+          return false;
+        }
+      }
+      boxes.push(box);
+      return true;
+    },
+
+    addParallel(lat, color, width, label, showLabel, preferredLon, offsetY) {
       const coords = [];
       for (let lon = -180; lon <= 180; lon += 2) {
         coords.push(Cesium.Cartesian3.fromDegrees(lon, lat));
@@ -2364,78 +3039,53 @@
           positions: coords,
           width: width,
           material: color,
-          clampToGround: true
+          clampToGround: this.groundClamp()
         }
       });
       if (showLabel && label) {
-        [Number.isFinite(preferredLon) ? preferredLon : 0].forEach(labelLon => {
-          this.dataSource.entities.add({
-            position: new Cesium.CallbackPositionProperty(() => {
-              const center = getScreenCenterGround();
-              return Cesium.Cartesian3.fromDegrees(center.valid ? center.longitude : labelLon, lat);
-            }, false),
-            label: {
-              text: label,
-              font: '11px Segoe UI, sans-serif',
-              fillColor: Cesium.Color.WHITE,
-              outlineColor: Cesium.Color.BLACK,
-              outlineWidth: 2,
-              style: Cesium.LabelStyle.FILL_AND_OUTLINE,
-              heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
-              disableDepthTestDistance: 0,
-              distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 8000000),
-              translucencyByDistance: new Cesium.NearFarScalar(1000000, 1.0, 9000000, 0.0)
-            }
-          });
+        const labelLon = Number.isFinite(preferredLon) ? preferredLon : 0;
+        this.addLabel(label, labelLon, lat, {
+          axis: 'parallel',
+          offsetY: offsetY,
+          maxDistance: 20000000
         });
       }
     },
 
-    addMeridian(lon, color, width, label, showLabel, preferredLat, south = -85, north = 85) {
+    addMeridian(lon, color, width, label, showLabel, preferredLat, south, north, offsetY) {
+      const startSouth = Number.isFinite(south) ? south : -90;
+      const endNorth = Number.isFinite(north) ? north : 90;
       const coords = [];
-      for (let lat = south; lat < north; lat += 2) {
+      for (let lat = startSouth; lat < endNorth; lat += 2) {
         coords.push(Cesium.Cartesian3.fromDegrees(lon, lat));
       }
-      coords.push(Cesium.Cartesian3.fromDegrees(lon, north));
+      coords.push(Cesium.Cartesian3.fromDegrees(lon, endNorth));
       this.dataSource.entities.add({
         polyline: {
           positions: coords,
           width: width,
           material: color,
-          clampToGround: true
+          clampToGround: this.groundClamp()
         }
       });
       if (showLabel && label) {
-        [Number.isFinite(preferredLat) ? preferredLat : 0].forEach(labelLat => {
-          this.dataSource.entities.add({
-            position: new Cesium.CallbackPositionProperty(() => {
-              const center = getScreenCenterGround();
-              return Cesium.Cartesian3.fromDegrees(lon,
-                center.valid ? Math.max(south, Math.min(north, center.latitude)) : labelLat);
-            }, false),
-            label: {
-              text: label,
-              font: '11px Segoe UI, sans-serif',
-              fillColor: Cesium.Color.WHITE,
-              outlineColor: Cesium.Color.BLACK,
-              outlineWidth: 2,
-              style: Cesium.LabelStyle.FILL_AND_OUTLINE,
-              heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
-              disableDepthTestDistance: 0,
-              distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 8000000),
-              translucencyByDistance: new Cesium.NearFarScalar(1000000, 1.0, 9000000, 0.0)
-            }
-          });
+        const labelLat = Number.isFinite(preferredLat)
+          ? Math.max(startSouth, Math.min(endNorth, preferredLat))
+          : 0;
+        this.addLabel(label, lon, labelLat, {
+          axis: 'meridian',
+          offsetY: offsetY,
+          maxDistance: 20000000
         });
       }
     },
 
-    addKeyPoint(lon, lat, label, color) {
+    addKeyPoint(lon, lat, label, color, options) {
+      const settings = options || {};
       const anchor = Cesium.Cartesian3.fromDegrees(lon, lat);
       const normal = Cesium.Ellipsoid.WGS84.geodeticSurfaceNormal(anchor, new Cesium.Cartesian3());
       const visibleFromCamera = new Cesium.CallbackProperty(() =>
-        window.ZEarthGraticuleGeometry.isSurfaceAnchorVisible(
-          anchor, normal, viewer.camera.positionWC), false);
+        this.surfaceVisible(anchor, normal), false);
       this.dataSource.entities.add({
         position: anchor,
         point: {
@@ -2446,20 +3096,13 @@
           outlineWidth: 2,
           heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
           disableDepthTestDistance: 0
-        },
-        label: {
-          show: visibleFromCamera,
-          text: this.config.showLabels ? label : '',
-          font: 'bold 11px Segoe UI, sans-serif',
-          fillColor: Cesium.Color.WHITE,
-          outlineColor: Cesium.Color.BLACK,
-          outlineWidth: 3,
-          style: Cesium.LabelStyle.FILL_AND_OUTLINE,
-              heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
-          pixelOffset: new Cesium.Cartesian2(0, -18),
-          disableDepthTestDistance: 0,
-          distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 12000000)
         }
+      });
+      this.addLabel(label, lon, lat, {
+        offsetX: Number.isFinite(settings.offsetX) ? settings.offsetX : 0,
+        offsetY: Number.isFinite(settings.offsetY) ? settings.offsetY : -20,
+        horizontalOrigin: settings.horizontalOrigin,
+        maxDistance: 22000000
       });
     },
 
@@ -2479,17 +3122,71 @@
         this.config.longitudeIntervalDegrees = cfg.intervalDegrees;
         this.config.latitudeIntervalDegrees = cfg.intervalDegrees;
       }
+      if (['Small', 'Medium', 'Large', 'ExtraLarge'].includes(cfg.gridLabelSize)) {
+        this.config.gridLabelSize = cfg.gridLabelSize;
+      }
+      if (cfg.utmLabelPlacement === 'Center') this.config.utmLabelPlacement = 'Center';
+      for (const key of Object.keys(GRID_DEFAULT_COLORS)) {
+        if (typeof cfg[key] !== 'string' || !cfg[key].trim()) continue;
+        try {
+          if (Cesium.Color.fromCssColorString(cfg[key].trim())) {
+            this.config[key] = cfg[key].trim();
+          }
+        } catch (error) {
+          // Invalid user colour: keep the previous valid value.
+        }
+      }
       this.buildGraticules();
       viewer.scene.requestRender();
     },
 
+    updateLabelViewCenter() {
+      const ground = getScreenCenterGround();
+      if (ground.valid) {
+        this.labelViewCenter = { lon: ground.longitude,
+          lat: Math.max(-89.99, Math.min(89.99, ground.latitude)) };
+        return;
+      }
+      const rectangle = viewer.camera.computeViewRectangle(viewer.scene.globe.ellipsoid);
+      if (!rectangle) return;
+      const west = Cesium.Math.toDegrees(rectangle.west);
+      const east = Cesium.Math.toDegrees(rectangle.east);
+      const span = east >= west ? east - west : 360 - west + east;
+      let lon = west + span / 2;
+      if (lon > 180) lon -= 360;
+      const lat = (Cesium.Math.toDegrees(rectangle.south) + Cesium.Math.toDegrees(rectangle.north)) / 2;
+      this.labelViewCenter = { lon, lat: Math.max(-89.99, Math.min(89.99, lat)) };
+    },
+
+    refreshWhileMoving() {
+      const now = Date.now();
+      if (this.motionRefreshPending || now - (this.lastMotionCheck || 0) < 250) return;
+      this.lastMotionCheck = now;
+      const rectangle = viewer.camera.computeViewRectangle(viewer.scene.globe.ellipsoid);
+      if (!rectangle) return;
+      const current = {
+        west: Cesium.Math.toDegrees(rectangle.west), east: Cesium.Math.toDegrees(rectangle.east),
+        south: Cesium.Math.toDegrees(rectangle.south), north: Cesium.Math.toDegrees(rectangle.north)
+      };
+      if (window.ZEarthGraticuleGeometry.boundsContain(this.lineCoverage, current)) return;
+      this.motionRefreshPending = true;
+      window.requestAnimationFrame(() => {
+        this.motionRefreshPending = false;
+        if (this.config.visible) this.refreshForCamera();
+      });
+    },
+
     refreshForCamera() {
       if (!this.config.visible) return;
-      const center = getScreenCenterGround();
-      const altitude = Math.round((viewer.camera.positionCartographic?.height || 0) / 50000);
-      const key = center.valid
-        ? `${Math.round(center.latitude * 4)}/${Math.round(center.longitude * 4)}/${altitude}`
-        : `space/${altitude}`;
+      const rectangle = viewer.camera.computeViewRectangle(viewer.scene.globe.ellipsoid);
+      const q = value => Cesium.Math.toDegrees(value).toFixed(5);
+      const boundsKey = rectangle
+        ? `${q(rectangle.west)}/${q(rectangle.south)}/${q(rectangle.east)}/${q(rectangle.north)}`
+        : 'space';
+      const altitude = Math.round((viewer.camera.positionCartographic?.height || 0) / 10000);
+      const heading = Math.round(Cesium.Math.toDegrees(viewer.camera.heading || 0));
+      const pitch = Math.round(Cesium.Math.toDegrees(viewer.camera.pitch || 0));
+      const key = `${viewer.scene.mode}/${boundsKey}/${altitude}/${heading}/${pitch}/${viewer.canvas.clientWidth}x${viewer.canvas.clientHeight}`;
       if (key !== this.lastViewKey) {
         this.lastViewKey = key;
         this.buildGraticules();
@@ -2768,9 +3465,49 @@
 
   const CrsManager = {
     current: { epsg: 4326, name: 'WGS 84', isProjected: false, unit: 'degree' },
+    activeProjection: null,
+
+    resolveProjection(config) {
+      const ellipsoid = (viewer && viewer.scene && viewer.scene.globe && viewer.scene.globe.ellipsoid) ||
+        (typeof Cesium !== 'undefined' ? Cesium.Ellipsoid.WGS84 : null);
+      if (typeof window !== 'undefined' && window.ZEarthMapProjections && typeof window.ZEarthMapProjections.create === 'function') {
+        return window.ZEarthMapProjections.create(config, ellipsoid);
+      }
+      if (config && config.isProjected && typeof Cesium !== 'undefined' && Cesium.WebMercatorProjection) {
+        return new Cesium.WebMercatorProjection(ellipsoid);
+      }
+      if (typeof Cesium !== 'undefined' && Cesium.GeographicProjection) {
+        return new Cesium.GeographicProjection(ellipsoid);
+      }
+      return null;
+    },
+
     set(config) {
       this.current = { ...this.current, ...(config || {}) };
-      sendHostMessage({ event: 'crs.changed', crs: this.current });
+      const newProj = this.resolveProjection(this.current);
+      this.activeProjection = newProj;
+
+      if (viewer && viewer.scene) {
+        if (newProj) {
+          viewer.scene._mapProjection = newProj;
+        }
+
+        // If the scene is currently in 2D mode, smoothly re-apply projection to update 2D geometry and view
+        if (viewer.scene.mode === Cesium.SceneMode.SCENE2D) {
+          try {
+            viewer.scene.morphTo3D(0);
+            if (typeof viewer.scene.completeMorph === 'function') {
+              viewer.scene.completeMorph();
+            }
+            viewer.scene.morphTo2D(0.4);
+          } catch (e) {
+            console.warn('[Cesium Engine] 2D projection re-morph warning:', e);
+          }
+        }
+        viewer.scene.requestRender();
+      }
+
+      sendHostMessage({ event: 'crs.changed', crs: this.current, projectionName: newProj?.name || this.current.name });
       return this.current;
     }
   };
@@ -2872,15 +3609,79 @@
     }
   };
 
+  const Model3DManager = {
+    primitives: new Map(),
+    validate(config) {
+      const longitude = Number(config?.longitude);
+      const latitude = Number(config?.latitude);
+      const dataUri = config?.dataUri;
+      if (!config?.id || typeof dataUri !== 'string' ||
+          !/^data:model\/gltf-binary;base64,[A-Za-z0-9+/=]+$/.test(dataUri) ||
+          dataUri.length > 11200000 || !Number.isFinite(longitude) ||
+          !Number.isFinite(latitude) || longitude < -180 || longitude > 180 ||
+          latitude < -90 || latitude > 90) {
+        throw new Error('Invalid self-contained GLB model payload or anchor coordinates.');
+      }
+      return { longitude, latitude, dataUri };
+    },
+    remove(id) {
+      const existing = this.primitives.get(String(id));
+      if (!existing) return false;
+      viewer.scene.primitives.remove(existing);
+      this.primitives.delete(String(id));
+      viewer.scene.requestRender();
+      return true;
+    },
+    clear() {
+      for (const primitive of this.primitives.values()) {
+        viewer.scene.primitives.remove(primitive);
+      }
+      this.primitives.clear();
+      viewer.scene.requestRender();
+    },
+    async add(config) {
+      const checked = this.validate(config);
+      const id = String(config.id);
+      this.remove(id);
+      const position = Cesium.Cartesian3.fromDegrees(
+        checked.longitude, checked.latitude, Number(config.altitude) || 0);
+      let modelMatrix = Cesium.Transforms.eastNorthUpToFixedFrame(position);
+      const scale = Math.max(0.001, Math.min(10000, Number(config.scale) || 1));
+      modelMatrix = Cesium.Matrix4.multiplyByUniformScale(modelMatrix, scale, new Cesium.Matrix4());
+      const primitive = await Cesium.Model.fromGltfAsync({
+        id: `zearth-model-${id}`,
+        url: checked.dataUri,
+        modelMatrix,
+        minimumPixelSize: 64,
+        maximumScale: 5000
+      });
+      viewer.scene.primitives.add(primitive);
+      this.primitives.set(id, primitive);
+      viewer.scene.requestRender();
+      return { id, loaded: true, name: String(config.name || id) };
+    },
+    async set(configs) {
+      if (!Array.isArray(configs)) throw new Error('models.set requires an array payload.');
+      this.clear();
+      try {
+        const loaded = [];
+        for (const config of configs) loaded.push(await this.add(config));
+        return { count: loaded.length, loaded: true };
+      } catch (error) {
+        this.clear();
+        throw error;
+      }
+    }
+  };
+
   const EnvironmentManager = {
     sunlightEnabled: false,
     atmosphereEnabled: true,
     animationTimer: null,
+    animationSpeed: 60,
     dateUtc: new Date().toISOString().slice(0, 10),
     setTimeOfDay(timeHours, dateUtc, isRealTime = false) {
       const hours = Math.max(0, Math.min(24, Number(timeHours) || 0));
-      // Date/time is UTC; geographic sun angle automatically follows the
-      // globe's actual Earth location in Cesium's lighting calculation.
       if (typeof dateUtc === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateUtc)) {
         const candidate = new Date(dateUtc + 'T00:00:00Z');
         if (Number.isFinite(candidate.getTime()) && candidate.toISOString().slice(0, 10) === dateUtc) {
@@ -2892,11 +3693,35 @@
       const minutes = Math.round((hours - Math.floor(hours)) * 60);
       now.setUTCHours(whole, minutes, 0, 0);
       viewer.clock.currentTime = Cesium.JulianDate.fromDate(now);
-      viewer.clock.shouldAnimate = false; // Hold manual solar time between changes.
+      viewer.clock.shouldAnimate = false;
+
       const slider = document.getElementById('sunlight-slider');
       const label = document.getElementById('sunlight-time-label');
+      const datePicker = document.getElementById('sunlight-date-picker');
+      const phaseIcon = document.getElementById('sunlight-phase-icon');
+      const phaseText = document.getElementById('sunlight-phase-text');
+
       if (slider) slider.value = String(hours);
       if (label) label.textContent = `${String(whole).padStart(2, '0')}:${String(minutes).padStart(2, '0')} UTC`;
+      if (datePicker && datePicker.value !== this.dateUtc) datePicker.value = this.dateUtc;
+
+      // Update solar phase indicator
+      if (phaseIcon && phaseText) {
+        if (hours >= 5.0 && hours < 7.0) {
+          phaseIcon.textContent = '🌅';
+          phaseText.textContent = 'Dawn (شروق)';
+        } else if (hours >= 7.0 && hours < 17.5) {
+          phaseIcon.textContent = '☀️';
+          phaseText.textContent = 'Daylight (نهار)';
+        } else if (hours >= 17.5 && hours < 19.5) {
+          phaseIcon.textContent = '🌇';
+          phaseText.textContent = 'Dusk (غروب)';
+        } else {
+          phaseIcon.textContent = '🌙';
+          phaseText.textContent = 'Night (ليل)';
+        }
+      }
+
       sendHostMessage({ event: 'environment.timeChanged', timeHours: hours,
         dateUtc: this.dateUtc, isRealTime });
       viewer.scene.requestRender();
@@ -2908,7 +3733,7 @@
       viewer.scene.globe.enableLighting = enabled;
       viewer.shadows = enabled;
       const hud = document.getElementById('sunlight-hud');
-      if (hud) hud.style.display = enabled ? 'block' : 'none';
+      if (hud) hud.style.display = enabled ? 'flex' : 'none';
       if (typeof config?.timeHours === 'number') this.setTimeOfDay(config.timeHours, config.dateUtc);
       else if (enabled) {
         const now = new Date();
@@ -2922,9 +3747,22 @@
     setAtmosphere(config) {
       const enabled = config?.enabled !== false;
       this.atmosphereEnabled = enabled;
-      if (viewer.scene.skyAtmosphere) viewer.scene.skyAtmosphere.show = enabled;
-      if (viewer.scene.globe) viewer.scene.globe.showGroundAtmosphere = enabled;
-      if (viewer.scene.fog) viewer.scene.fog.enabled = enabled;
+      if (viewer.scene.skyAtmosphere) {
+        viewer.scene.skyAtmosphere.show = enabled;
+        viewer.scene.skyAtmosphere.hueShift = 0.0;
+        viewer.scene.skyAtmosphere.saturationShift = 0.15;
+        viewer.scene.skyAtmosphere.brightnessShift = 0.1;
+      }
+      if (viewer.scene.globe) {
+        viewer.scene.globe.showGroundAtmosphere = enabled;
+        viewer.scene.globe.atmosphereLightIntensity = enabled ? 3.8 : 0.0;
+        viewer.scene.globe.atmosphereHueShift = 0.0;
+        viewer.scene.globe.atmosphereSaturationShift = 0.15;
+      }
+      if (viewer.scene.fog) {
+        viewer.scene.fog.enabled = enabled;
+        viewer.scene.fog.density = enabled ? 0.0002 : 0.0;
+      }
       viewer.scene.requestRender();
       sendHostMessage({ event: 'environment.atmosphereChanged', enabled });
       return enabled;
@@ -2938,17 +3776,75 @@
         return false;
       }
       if (button) button.textContent = '⏸';
+      const stepHours = (this.animationSpeed / 3600);
       this.animationTimer = setInterval(() => {
         const slider = document.getElementById('sunlight-slider');
         const current = Number(slider?.value || 0);
-        this.setTimeOfDay((current + 0.1) % 24);
-      }, 120);
+        this.setTimeOfDay((current + stepHours * 0.1) % 24);
+      }, 100);
       return true;
     }
   };
 
-  // Offline 3D cumulus overlay: visual only, not live weather observations.
-  // Kept independent of atmosphere and sunlight to preserve their existing modes.
+  // Google Earth Pro Style Save Image Manager
+  const SaveImageManager = {
+    visible: false,
+    show() {
+      this.visible = true;
+      const hud = document.getElementById('save-image-hud');
+      if (hud) hud.style.display = 'block';
+      this.syncMetadata();
+      viewer.scene.requestRender();
+      sendHostMessage({ event: 'saveImage.changed', visible: true });
+    },
+    hide() {
+      this.visible = false;
+      const hud = document.getElementById('save-image-hud');
+      if (hud) hud.style.display = 'none';
+      viewer.scene.requestRender();
+      sendHostMessage({ event: 'saveImage.changed', visible: false });
+    },
+    toggle() {
+      if (this.visible) this.hide();
+      else this.show();
+      return this.visible;
+    },
+    syncMetadata() {
+      const carto = viewer.camera.positionCartographic;
+      if (carto) {
+        const lat = Cesium.Math.toDegrees(carto.latitude);
+        const lon = Cesium.Math.toDegrees(carto.longitude);
+        const latStr = Math.abs(lat).toFixed(4) + '° ' + (lat >= 0 ? 'N' : 'S');
+        const lonStr = Math.abs(lon).toFixed(4) + '° ' + (lon >= 0 ? 'E' : 'W');
+        const coordsEl = document.getElementById('save-meta-coords');
+        if (coordsEl) coordsEl.textContent = `${latStr}, ${lonStr}`;
+
+        const altitude = carto.height || 500000;
+        const distKm = Math.max(1, Math.round(altitude / 5000));
+        const midEl = document.getElementById('save-scale-mid');
+        const maxEl = document.getElementById('save-scale-max');
+        if (midEl) midEl.textContent = String(distKm);
+        if (maxEl) maxEl.textContent = `${distKm * 2} km`;
+      }
+      const dateEl = document.getElementById('save-meta-date');
+      if (dateEl) dateEl.textContent = new Date().toISOString().slice(0, 10);
+
+      const satNameEl = document.getElementById('save-legend-sat-name');
+      if (satNameEl) {
+        satNameEl.textContent = ImageryManager.activeBasemapId || 'Satellite Basemap';
+      }
+    },
+    exportImage() {
+      const toolbar = document.querySelector('.save-image-toolbar');
+      if (toolbar) toolbar.style.opacity = '0';
+      viewer.scene.requestRender();
+      setTimeout(() => {
+        sendHostMessage({ event: 'saveImage.triggerExport' });
+        if (toolbar) toolbar.style.opacity = '1';
+      }, 70);
+    }
+  };
+
   const CloudManager = window.ZEarthCloudLayer.create({
     Cesium, viewer,
     onChange: state => sendHostMessage({
@@ -3024,28 +3920,41 @@
     }
   };
 
-  // Draggable sunlight HUD, independent from globe camera gestures.
-  const sunlightHud = document.getElementById('sunlight-hud');
-  const sunlightHeader = sunlightHud?.querySelector('.sunlight-header');
-  if (sunlightHud && sunlightHeader) {
-    let origin = null;
-    sunlightHeader.addEventListener('pointerdown', event => {
-      if (event.button !== 0 || event.target.closest('button,input')) return;
-      const bounds = sunlightHud.getBoundingClientRect();
-      origin = { dx: event.clientX - bounds.left, dy: event.clientY - bounds.top };
-      sunlightHeader.setPointerCapture(event.pointerId);
+  // Draggable movable sunlight HUD (Google Earth Pro style)
+  (function enableMovableSunlightHud() {
+    const hud = document.getElementById('sunlight-hud');
+    const handle = document.getElementById('sunlight-drag-handle');
+    if (!hud || !handle) return;
+    let drag = null;
+    handle.addEventListener('pointerdown', event => {
+      if (event.button !== 0 || event.target.closest('button, input, select')) return;
+      const rect = hud.getBoundingClientRect();
+      hud.style.position = 'fixed';
+      hud.style.left = rect.left + 'px';
+      hud.style.top = rect.top + 'px';
+      hud.style.transform = 'none';
+      drag = { id: event.pointerId, x: event.clientX, y: event.clientY, left: rect.left, top: rect.top };
+      handle.setPointerCapture(event.pointerId);
+      handle.style.cursor = 'grabbing';
+      event.preventDefault();
     });
-    sunlightHeader.addEventListener('pointermove', event => {
-      if (!origin) return;
-      const bounds = (sunlightHud.offsetParent || document.body).getBoundingClientRect();
-      sunlightHud.style.left = Math.max(0, Math.min(Math.max(0, bounds.width - sunlightHud.offsetWidth),
-        event.clientX - bounds.left - origin.dx)) + 'px';
-      sunlightHud.style.top = Math.max(0, Math.min(Math.max(0, bounds.height - sunlightHud.offsetHeight),
-        event.clientY - bounds.top - origin.dy)) + 'px';
+    handle.addEventListener('pointermove', event => {
+      if (!drag || event.pointerId !== drag.id) return;
+      const newLeft = drag.left + event.clientX - drag.x;
+      const newTop = drag.top + event.clientY - drag.y;
+      hud.style.left = Math.max(0, Math.min(window.innerWidth - hud.offsetWidth, newLeft)) + 'px';
+      hud.style.top = Math.max(0, Math.min(window.innerHeight - hud.offsetHeight, newTop)) + 'px';
     });
-    sunlightHeader.addEventListener('pointerup', () => { origin = null; });
-    sunlightHeader.addEventListener('pointercancel', () => { origin = null; });
-  }
+    const release = event => {
+      if (!drag || event.pointerId !== drag.id) return;
+      drag = null;
+      handle.style.cursor = 'grab';
+      if (handle.hasPointerCapture(event.pointerId)) handle.releasePointerCapture(event.pointerId);
+    };
+    handle.addEventListener('pointerup', release);
+    handle.addEventListener('pointercancel', release);
+  })();
+
   document.getElementById('sunlight-slider')?.addEventListener('input', e => EnvironmentManager.setTimeOfDay(Number(e.target.value)));
   document.querySelectorAll('.sunlight-preset-btn').forEach(button =>
     button.addEventListener('click', () => EnvironmentManager.setTimeOfDay(Number(button.dataset.time))));
@@ -3056,6 +3965,60 @@
   });
   document.getElementById('btn-sunlight-play')?.addEventListener('click', () => EnvironmentManager.toggleAnimation());
   document.getElementById('btn-sunlight-close')?.addEventListener('click', () => EnvironmentManager.setSunlight({ enabled: false }));
+
+  // Sunlight date picker and day steppers
+  document.getElementById('sunlight-date-picker')?.addEventListener('change', e => {
+    const slider = document.getElementById('sunlight-slider');
+    EnvironmentManager.setTimeOfDay(Number(slider?.value || 12), e.target.value);
+  });
+  document.getElementById('btn-sunlight-prev-day')?.addEventListener('click', () => {
+    const cur = new Date((EnvironmentManager.dateUtc || new Date().toISOString().slice(0, 10)) + 'T00:00:00Z');
+    cur.setUTCDate(cur.getUTCDate() - 1);
+    const prevDate = cur.toISOString().slice(0, 10);
+    const slider = document.getElementById('sunlight-slider');
+    EnvironmentManager.setTimeOfDay(Number(slider?.value || 12), prevDate);
+  });
+  document.getElementById('btn-sunlight-next-day')?.addEventListener('click', () => {
+    const cur = new Date((EnvironmentManager.dateUtc || new Date().toISOString().slice(0, 10)) + 'T00:00:00Z');
+    cur.setUTCDate(cur.getUTCDate() + 1);
+    const nextDate = cur.toISOString().slice(0, 10);
+    const slider = document.getElementById('sunlight-slider');
+    EnvironmentManager.setTimeOfDay(Number(slider?.value || 12), nextDate);
+  });
+  document.querySelectorAll('.sunlight-speed-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.sunlight-speed-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      EnvironmentManager.animationSpeed = Number(btn.dataset.speed || 60);
+    });
+  });
+
+  // Wire Save Image Manager Controls (Google Earth Pro parity)
+  document.getElementById('chk-save-title')?.addEventListener('change', e => {
+    const el = document.getElementById('save-image-title-card');
+    if (el) el.style.display = e.target.checked ? 'flex' : 'none';
+  });
+  document.getElementById('chk-save-legend')?.addEventListener('change', e => {
+    const el = document.getElementById('save-image-legend-card');
+    if (el) el.style.display = e.target.checked ? 'flex' : 'none';
+  });
+  document.getElementById('chk-save-compass')?.addEventListener('change', e => {
+    const el = document.getElementById('save-image-compass-card');
+    if (el) el.style.display = e.target.checked ? 'flex' : 'none';
+  });
+  document.getElementById('chk-save-scale')?.addEventListener('change', e => {
+    const el = document.getElementById('save-image-scale-card');
+    if (el) el.style.display = e.target.checked ? 'block' : 'none';
+  });
+  document.getElementById('btn-save-image-export')?.addEventListener('click', () => SaveImageManager.exportImage());
+  document.getElementById('btn-save-image-close')?.addEventListener('click', () => SaveImageManager.hide());
+
+  window.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && SaveImageManager.visible) {
+      SaveImageManager.hide();
+    }
+  });
+
   document.getElementById('btn-exit-swipe')?.addEventListener('click', () => SwipeManager.stop());
 
   const swipeDivider = document.getElementById('swipe-divider');
@@ -3252,6 +4215,10 @@
 
     const center = getScreenCenterGround();
     CompassManager.update(center, Cesium.Math.toDegrees(viewer.camera.heading));
+    // Morphing projects the same entities into a different scene mode; rebuild
+    // so no stale 3D primitives survive in 2D and no line is duplicated.
+    GraticuleManager.lastViewKey = '';
+    GraticuleManager.refreshForCamera();
     sendHostMessage({
       event: 'map.centerChanged',
       center: center
@@ -3265,6 +4232,9 @@
   });
 
   // Navigation ScreenSpace Handlers (NAV-05, NAV-06, NAV-07, CRS-02)
+  // Cesium's default double-click handler can start a competing zoom-to-entity
+  // flight. This application's handler below owns the gesture instead.
+  viewer.cesiumWidget.screenSpaceEventHandler.removeInputAction(Cesium.ScreenSpaceEventType.LEFT_DOUBLE_CLICK);
   const navHandler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
   let lastMapPointerPosition = new Cesium.Cartesian2(
     viewer.scene.canvas.clientWidth / 2,
@@ -3280,8 +4250,40 @@
     if (!position) return;
 
     lastMapPointerPosition = Cesium.Cartesian2.clone(position, lastMapPointerPosition);
-    zoomAtScreenPosition(true, position, 0.48);
+    startAnimatedZoom(true, position, 0.48);
   }, Cesium.ScreenSpaceEventType.LEFT_DOUBLE_CLICK);
+
+  // Report local elevations from raw numeric tiles, never from the ellipsoid
+  // used to render gaps. Keep one request in flight and discard stale positions.
+  let localCursorSerial = 0;
+  let pendingLocalCursor = null;
+  let localCursorRunning = false;
+  async function sampleLocalCursor(position, serial) {
+    pendingLocalCursor = { position, serial, provider: viewer.terrainProvider };
+    if (localCursorRunning) return;
+    localCursorRunning = true;
+    try {
+      while (pendingLocalCursor) {
+        const request = pendingLocalCursor;
+        pendingLocalCursor = null;
+        try {
+          const samples = await TerrainManager.sampleLocalRasterPoints([request.position]);
+          if (TerrainManager.currentType === 'localDem' && request.provider === viewer.terrainProvider &&
+              request.serial === localCursorSerial) {
+            const height = samples[0]?.height;
+            sendHostMessage({ event: 'map.cursorMoved', position: {
+              valid: true, ...request.position,
+              altitude: Number.isFinite(height) ? height : null
+            }});
+          }
+        } catch (_) {
+          // The already-sent unknown elevation stays visible on failure.
+        }
+      }
+    } finally {
+      localCursorRunning = false;
+    }
+  }
 
   // Live Throttled Cursor Position Tracking (CRS-02)
   let lastMouseMoveTime = 0;
@@ -3299,19 +4301,24 @@
     if (pickCartesian) {
       const carto = Cesium.Cartographic.fromCartesian(pickCartesian);
       if (!isNaN(carto.latitude) && !isNaN(carto.longitude)) {
+        const latitude = Cesium.Math.toDegrees(carto.latitude);
+        const longitude = Cesium.Math.toDegrees(carto.longitude);
+        const local = TerrainManager.currentType === 'localDem';
+        const serial = ++localCursorSerial;
         sendHostMessage({
           event: 'map.cursorMoved',
           position: {
-            valid: true,
-            latitude: Cesium.Math.toDegrees(carto.latitude),
-            longitude: Cesium.Math.toDegrees(carto.longitude),
-            altitude: isNaN(carto.height) ? 0 : carto.height
+            valid: true, latitude, longitude,
+            altitude: local ? null : (isNaN(carto.height) ? 0 : carto.height)
           }
         });
+        if (local) sampleLocalCursor({ latitude, longitude }, serial);
         return;
       }
     }
 
+    ++localCursorSerial;
+    pendingLocalCursor = null;
     sendHostMessage({
       event: 'map.cursorMoved',
       position: { valid: false, latitude: 0, longitude: 0, altitude: 0 }
@@ -3319,6 +4326,8 @@
   }, Cesium.ScreenSpaceEventType.MOUSE_MOVE);
 
   viewer.canvas.addEventListener('mouseleave', () => {
+    ++localCursorSerial;
+    pendingLocalCursor = null;
     sendHostMessage({
       event: 'map.cursorMoved',
       position: { valid: false, latitude: 0, longitude: 0, altitude: 0 }
@@ -3402,7 +4411,7 @@
       canvas.clientHeight / 2);
     const factor = Cesium.Math.clamp(
       Number.isFinite(requestedFactor) ? requestedFactor : zoomFactor,
-      0.05,
+      0.0000001,
       0.65);
     const anchor = pickGroundAtScreenPosition(position);
     const magnitude = Math.max(20.0, camera.getMagnitude());
@@ -3465,13 +4474,39 @@
     return true;
   }
 
-  function zoomIn() {
-    zoomAtScreenPosition(true, lastMapPointerPosition);
+  const zoomAnimator = window.ZEarthCameraZoom.createZoomAnimator({
+    requestFrame: callback => window.requestAnimationFrame(callback),
+    cancelFrame: id => window.cancelAnimationFrame(id),
+    step: zoomAtScreenPosition,
+    duration: 420
+  });
+  let zoomRequestId = null;
+
+  function startAnimatedZoom(zoomingIn, position, factor, onComplete, onCancel, onFailure, requestId = null) {
+    // Other programmatic flights and repeated zooms must not fight for control.
+    if (typeof viewer.camera.cancelFlight === 'function') viewer.camera.cancelFlight();
+    zoomRequestId = null;
+    zoomAnimator.cancel();
+    zoomRequestId = requestId;
+    // Freeze the screen target: mouse-move telemetry mutates lastMapPointerPosition.
+    const screenAnchor = position ? Cesium.Cartesian2.clone(position) : null;
+    return zoomAnimator.start(zoomingIn, screenAnchor, factor,
+      () => { zoomRequestId = null; onComplete?.(); },
+      () => { zoomRequestId = null; onCancel?.(); },
+      error => { zoomRequestId = null; onFailure?.(error); });
   }
 
-  function zoomOut() {
-    zoomAtScreenPosition(false, lastMapPointerPosition);
+  function zoomIn(onComplete, onCancel, onFailure, requestId) {
+    return startAnimatedZoom(true, lastMapPointerPosition, zoomFactor, onComplete, onCancel, onFailure, requestId);
   }
+
+  function zoomOut(onComplete, onCancel, onFailure, requestId) {
+    return startAnimatedZoom(false, lastMapPointerPosition, zoomFactor, onComplete, onCancel, onFailure, requestId);
+  }
+
+  // User drag/wheel interrupts animation immediately instead of fighting it.
+  viewer.canvas.addEventListener('pointerdown', () => zoomAnimator.cancel());
+  viewer.canvas.addEventListener('wheel', () => zoomAnimator.cancel(), { passive: true });
 
   // Fit selection & bounding box with antimeridian/dateline crossing support (ZE-017, AC-024)
   function fitSelection(payload) {
@@ -3559,6 +4594,9 @@
 
     if (isTarget2D) {
       if (currentMode !== Cesium.SceneMode.SCENE2D) {
+        if (CrsManager.activeProjection) {
+          viewer.scene._mapProjection = CrsManager.activeProjection;
+        }
         viewer.scene.morphTo2D(0.8);
       }
     } else if (isTargetColumbus) {
@@ -3591,8 +4629,8 @@
   }
 
   // 9. Bind HTML HUD Controls
-  document.getElementById('btn-zoom-in')?.addEventListener('click', zoomIn);
-  document.getElementById('btn-zoom-out')?.addEventListener('click', zoomOut);
+  document.getElementById('btn-zoom-in')?.addEventListener('click', () => zoomIn());
+  document.getElementById('btn-zoom-out')?.addEventListener('click', () => zoomOut());
   document.getElementById('btn-home')?.addEventListener('click', flyToHome);
   document.getElementById('btn-full-extent')?.addEventListener('click', flyToFullExtent);
 
@@ -3665,6 +4703,10 @@
            'camera.zoomOut', 'camera.fitSelection', 'scene.setMode']
           .includes(data.action) && FlightSimulator.getState().enabled) {
         FlightSimulator.stop(false);
+      }
+      if (['camera.flyTo', 'camera.home', 'camera.fullExtent', 'camera.resetNorth',
+           'camera.resetPitch', 'camera.fitSelection', 'scene.setMode'].includes(data.action)) {
+        zoomAnimator.cancel();
       }
       switch (data.action) {
         case 'app.setTheme': {
@@ -3742,13 +4784,19 @@
           break;
         }
         case 'camera.zoomIn': {
-          zoomIn();
-          respondSuccess({ altitude: viewer.camera.positionCartographic.height });
+          respondAccepted({ started: true });
+          zoomIn(
+            () => respondSuccess({ altitude: viewer.camera.positionCartographic.height }),
+            () => respond('cancelled', { reason: 'navigation interrupted' }),
+            error => respond('failed', null, String(error || 'Zoom unavailable')), reqId);
           break;
         }
         case 'camera.zoomOut': {
-          zoomOut();
-          respondSuccess({ altitude: viewer.camera.positionCartographic.height });
+          respondAccepted({ started: true });
+          zoomOut(
+            () => respondSuccess({ altitude: viewer.camera.positionCartographic.height }),
+            () => respond('cancelled', { reason: 'navigation interrupted' }),
+            error => respond('failed', null, String(error || 'Zoom unavailable')), reqId);
           break;
         }
         case 'camera.setZoomFactor': {
@@ -3769,8 +4817,8 @@
         }
         case 'layers.setBasemap': {
           const mode = data.payload?.mode || data.payload?.id || 'esri-hybrid';
-          ImageryManager.setBasemap(mode);
-          respondSuccess({ basemap: mode });
+          if (ImageryManager.setBasemap(mode)) respondSuccess({ basemap: ImageryManager.activeBasemap });
+          else respond('failed', null, 'Unknown basemap: ' + mode);
           break;
         }
         case 'historical.loading': {
@@ -3989,6 +5037,21 @@
           respondSuccess({ enabled });
           break;
         }
+        case 'saveImage.toggle': {
+          const visible = SaveImageManager.toggle();
+          respondSuccess({ visible });
+          break;
+        }
+        case 'saveImage.show': {
+          SaveImageManager.show();
+          respondSuccess({ visible: true });
+          break;
+        }
+        case 'saveImage.hide': {
+          SaveImageManager.hide();
+          respondSuccess({ visible: false });
+          break;
+        }
         case 'environment.setClouds': {
           const state = CloudManager.setEnabled(data.payload?.enabled === true);
           respondSuccess(state);
@@ -4019,6 +5082,18 @@
         case 'environment.setTimeOfDay': {
           const timeHours = EnvironmentManager.setTimeOfDay(data.payload?.timeHours, data.payload?.dateUtc);
           respondSuccess({ timeHours });
+          break;
+        }
+        case 'models.add': {
+          respondAccepted({ loading: true, id: data.payload?.id });
+          Model3DManager.add(data.payload).then(result => respondSuccess(result))
+            .catch(error => respond('failed', null, String(error?.message || error)));
+          break;
+        }
+        case 'models.set': {
+          respondAccepted({ loading: true });
+          Model3DManager.set(data.payload).then(result => respondSuccess(result))
+            .catch(error => respond('failed', null, String(error?.message || error)));
           break;
         }
         case 'placemarks.set': {
@@ -4056,7 +5131,8 @@
             mode: SnapManager.mode,
             snapVertices: SnapManager.snapVertices,
             snapMidpoints: SnapManager.snapMidpoints,
-            snapEdges: SnapManager.snapEdges
+            snapEdges: SnapManager.snapEdges,
+            snapIntersections: SnapManager.snapIntersections
           });
           break;
         }
@@ -4079,6 +5155,7 @@
         case 'terrain.samplePath': {
           const points = data.payload?.points;
           const provider = viewer.terrainProvider;
+          const terrainSource = TerrainManager.currentType;
           if (!Array.isArray(points) || points.length < 2 || points.length > 256 ||
               points.some(p => !Number.isFinite(p?.longitude) || !Number.isFinite(p?.latitude) ||
                 p.latitude < -90 || p.latitude > 90 || p.longitude < -180 || p.longitude > 180)) {
@@ -4092,8 +5169,12 @@
           }
           const cartographics = points.map(p =>
             Cesium.Cartographic.fromDegrees(p.longitude, p.latitude));
-          respondAccepted({ started: true, source: TerrainManager.currentType });
+          respondAccepted({ started: true, source: terrainSource });
           const terrainSampling = async () => {
+            // The render-only ellipsoid background is not a DEM measurement.
+            if (terrainSource === 'localDem') {
+              return TerrainManager.sampleLocalRasterPoints(points);
+            }
             // The local Terrarium CustomHeightmap provider has no availability tree,
             // so sampleTerrainMostDetailed cannot always determine a target level.
             if (provider.availability && typeof Cesium.sampleTerrainMostDetailed === 'function') {
@@ -4106,13 +5187,17 @@
             return await Cesium.sampleTerrain(provider, 11, cartographics);
           };
           terrainSampling().then(sampled => {
+            if (viewer.terrainProvider !== provider || TerrainManager.currentType !== terrainSource) {
+              respond('failed', null, 'Terrain source changed during the elevation request.');
+              return;
+            }
             if (!Array.isArray(sampled) || sampled.length !== points.length ||
                 sampled.some(p => !Number.isFinite(p.height))) {
               respond('failed', null, 'No complete numeric terrain profile: one or more DEM samples are missing.');
               return;
             }
             respondSuccess({
-              source: TerrainManager.currentType,
+              source: terrainSource,
               verticalUnits: 'metres (source terrain elevation datum)',
               samples: sampled.map((p,i) => ({
                 longitude: points[i].longitude,
@@ -4153,6 +5238,8 @@
           // Abort the orphaned work so the globe does not keep animating/streaming for a command the
           // host is no longer tracking (RC-3).
           const target = (data.payload && data.payload.action) || '';
+          if ((target === 'camera.zoomIn' || target === 'camera.zoomOut') &&
+              data.payload?.requestId === zoomRequestId) zoomAnimator.cancel();
           if (target.indexOf('camera.') === 0 && viewer && viewer.camera &&
               typeof viewer.camera.cancelFlight === 'function') {
             flightToken++; // invalidate any pending complete/cancel callbacks of the old flight

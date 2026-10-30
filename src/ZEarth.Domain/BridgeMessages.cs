@@ -142,6 +142,6 @@ namespace ZEarth.Domain
         public double Longitude { get; set; }
 
         [JsonPropertyName("altitude")]
-        public double Altitude { get; set; }
+        public double? Altitude { get; set; }
     }
 }

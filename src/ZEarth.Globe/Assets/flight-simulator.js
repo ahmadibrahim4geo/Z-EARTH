@@ -13,7 +13,7 @@
     const keys = new Set();
     const rad = Math.PI / 180;
     let active = false, paused = false, rafId = 0, lastFrame = 0;
-    let throttle = 0.55, heading = 0, pitch = 0, bank = 0;
+    let throttle = 0.55, heading = 0, pitch = 0, bank = 0, verticalSpeed = 0;
     let lon = 0, lat = 0, height = 1600, speed = 0;
     let priorCamera = null, priorController = null, hud = null;
 
@@ -28,10 +28,15 @@
     }
     function updateHud() {
       if (!hud) return;
-      const estimated = groundHeight() === null ? ' · TERRAIN NOT SAMPLED' : '';
-      hud.textContent = `ZEarth Flight · ${paused ? 'PAUSED' : 'ACTIVE'} · ${Math.round(speed * 3.6)} km/h · ${Math.round(height)} m ellipsoid · THR ${Math.round(throttle * 100)}%\n` +
-        `Heading ${Math.round((heading / rad + 360) % 360)}° · Pitch ${Math.round(pitch / rad)}°${estimated}\n` +
-        'Arrow keys: bank / pitch · Page Up/Down: throttle · P: pause · Esc: exit';
+      const terrain = groundHeight();
+      const agl = terrain === null ? null : Math.max(0, height - terrain);
+      const altitude = agl === null
+        ? `${Math.round(height)} m ellipsoid · TERRAIN N/A`
+        : `${Math.round(height)} m ellipsoid · ${Math.round(agl)} m AGL`;
+      hud.textContent = `Z EARTH Flight Navigation · ${paused ? 'PAUSED' : 'ACTIVE'} · CAMERA MODE / NOT AIRCRAFT SIMULATION\n` +
+        `${Math.round(speed * 3.6)} km/h · ${altitude} · THR ${Math.round(throttle * 100)}%\n` +
+        `Heading ${Math.round((heading / rad + 360) % 360)}° · Pitch ${Math.round(pitch / rad)}° · Bank ${Math.round(bank / rad)}° · VS ${Math.round(verticalSpeed)} m/s\n` +
+        'Arrows or W/A/S/D: steer · Page Up/Down or +/-: throttle · P/Space: pause · Esc: exit';
     }
     function ensureHud() {
       if (hud) return;
@@ -59,6 +64,7 @@
     function stop(restore = true) {
       if (!active) return { enabled: false };
       active = false; paused = false;
+      verticalSpeed = 0;
       keys.clear();
       if (rafId) root.cancelAnimationFrame?.(rafId);
       rafId = 0; lastFrame = 0;
@@ -85,8 +91,10 @@
       lastFrame = timestamp;
       if (!is3D()) { stop(false); return; }
       if (!paused && dt > 0) {
-        const rollInput = Number(keys.has('ArrowRight')) - Number(keys.has('ArrowLeft'));
-        const pitchInput = Number(keys.has('ArrowDown')) - Number(keys.has('ArrowUp'));
+        const rollInput = Number(keys.has('ArrowRight') || keys.has('d')) -
+          Number(keys.has('ArrowLeft') || keys.has('a'));
+        const pitchInput = Number(keys.has('ArrowDown') || keys.has('s')) -
+          Number(keys.has('ArrowUp') || keys.has('w'));
         bank += (rollInput * 30 * rad - bank) * Math.min(1, dt * 3);
         pitch = bound(pitch + pitchInput * dt * 0.24, -28 * rad, 28 * rad);
         heading = ((heading + bank * dt * (0.35 + throttle) + Math.PI * 4) % (Math.PI * 2));
@@ -96,10 +104,14 @@
         const denom = 111320 * Math.max(0.10, Math.cos(nextLat * rad));
         lon = ((lon + Math.sin(heading) * distance / denom + 540) % 360) - 180;
         lat = nextLat;
+        const previousHeight = height;
         height += speed * Math.sin(pitch) * dt;
         const ground = groundHeight();
         height = bound(Math.max(height, (ground ?? 0) + 100), 100, 50000);
+        verticalSpeed = (height - previousHeight) / dt;
         renderCamera();
+      } else if (paused) {
+        verticalSpeed = 0;
       }
       updateHud();
       rafId = root.requestAnimationFrame(step);
@@ -121,7 +133,7 @@
         controller[k] = false;
       }
       heading = camera.heading;
-      pitch = 0; bank = 0;
+      pitch = 0; bank = 0; verticalSpeed = 0;
       throttle = 0.55; speed = 25 + throttle * 145;
       height = Math.max(1600, (groundHeight() ?? 0) + 600);
       active = true; paused = false; lastFrame = 0;
@@ -132,17 +144,21 @@
     }
     function onKeyDown(event) {
       if (!active || event.target?.matches?.('input,textarea,select,[contenteditable="true"]')) return;
-      const k = event.key;
-      if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','PageUp','PageDown','Escape',' '].includes(k)) {
+      const k = event.key.length === 1 ? event.key.toLowerCase() : event.key;
+      if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','PageUp','PageDown','Escape',' ',
+           'w','a','s','d','+','=','-','_'].includes(k)) {
         event.preventDefault?.();
       }
       if (k === 'Escape') { stop(); return; }
-      if (k === 'p' || k === 'P' || k === ' ') { if (!event.repeat) paused = !paused; updateHud(); return; }
-      if (k === 'PageUp') { throttle = bound(throttle + 0.08, 0, 1); updateHud(); }
-      if (k === 'PageDown') { throttle = bound(throttle - 0.08, 0, 1); updateHud(); }
-      if (k.startsWith('Arrow')) keys.add(k);
+      if (k === 'p' || k === ' ') { if (!event.repeat) paused = !paused; updateHud(); return; }
+      if (k === 'PageUp' || k === '+' || k === '=') { throttle = bound(throttle + 0.08, 0, 1); updateHud(); }
+      if (k === 'PageDown' || k === '-' || k === '_') { throttle = bound(throttle - 0.08, 0, 1); updateHud(); }
+      if (k.startsWith('Arrow') || ['w','a','s','d'].includes(k)) keys.add(k);
     }
-    function onKeyUp(event) { keys.delete(event.key); }
+    function onKeyUp(event) {
+      const k = event.key.length === 1 ? event.key.toLowerCase() : event.key;
+      keys.delete(k);
+    }
     document.addEventListener('keydown', onKeyDown, true);
     document.addEventListener('keyup', onKeyUp, true);
     root.addEventListener?.('blur', () => { keys.clear(); if (active) { paused = true; updateHud(); } });
@@ -151,7 +167,24 @@
       start,
       stop,
       setActive(requested) { return requested === true ? start() : stop(); },
-      getState() { return { enabled: active, paused, throttle, speedMetersPerSecond: speed, longitude: lon, latitude: lat, height }; }
+      getState() {
+        const terrain = groundHeight();
+        return {
+          enabled: active,
+          paused,
+          throttle,
+          speedMetersPerSecond: speed,
+          verticalSpeedMetersPerSecond: verticalSpeed,
+          headingDegrees: (heading / rad + 360) % 360,
+          pitchDegrees: pitch / rad,
+          bankDegrees: bank / rad,
+          longitude: lon,
+          latitude: lat,
+          height,
+          terrainSampleAvailable: terrain !== null,
+          aglMeters: terrain === null ? null : Math.max(0, height - terrain)
+        };
+      }
     };
   }
 

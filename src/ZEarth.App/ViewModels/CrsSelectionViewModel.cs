@@ -18,12 +18,20 @@ namespace ZEarth.App.ViewModels
         public override string ToString() => IsCategory ? $"[{Name}]" : Crs?.ToString() ?? Name;
     }
 
+    public enum CrsTabFilter
+    {
+        Horizontal,
+        Vertical,
+        All
+    }
+
     public class CrsSelectionViewModel : ViewModelBase
     {
         private readonly ICrsRegistry _crsRegistry;
         private string _searchQuery = string.Empty;
         private CrsDefinition? _selectedCrs;
         private CrsTreeNode? _selectedNode;
+        private CrsTabFilter _tabFilter = CrsTabFilter.Horizontal;
 
         public ObservableCollection<CrsTreeNode> RootNodes { get; } = new();
         public ObservableCollection<CrsDefinition> SearchResults { get; } = new();
@@ -33,6 +41,39 @@ namespace ZEarth.App.ViewModels
         public bool IsSearchResultsVisible => IsSearching;
 
         public string FavoriteButtonText => IsSelectedFavorite ? "★ In Favorites" : "☆ Add to Favorites";
+
+        public CrsTabFilter SelectedTabFilter
+        {
+            get => _tabFilter;
+            set
+            {
+                if (SetProperty(ref _tabFilter, value))
+                {
+                    OnPropertyChanged(nameof(IsHorizontalTabSelected));
+                    OnPropertyChanged(nameof(IsVerticalTabSelected));
+                    OnPropertyChanged(nameof(IsAllTabSelected));
+                    BuildTree();
+                }
+            }
+        }
+
+        public bool IsHorizontalTabSelected
+        {
+            get => _tabFilter == CrsTabFilter.Horizontal;
+            set { if (value) SelectedTabFilter = CrsTabFilter.Horizontal; }
+        }
+
+        public bool IsVerticalTabSelected
+        {
+            get => _tabFilter == CrsTabFilter.Vertical;
+            set { if (value) SelectedTabFilter = CrsTabFilter.Vertical; }
+        }
+
+        public bool IsAllTabSelected
+        {
+            get => _tabFilter == CrsTabFilter.All;
+            set { if (value) SelectedTabFilter = CrsTabFilter.All; }
+        }
 
         public string SearchQuery
         {
@@ -91,9 +132,11 @@ namespace ZEarth.App.ViewModels
             {
                 if (SelectedCrs == null) return "Select a coordinate system from the catalog tree or search results.";
 
-                var verticalNotice = SelectedCrs.IsVerticalOnly
-                    ? "\n⚠️ NOTICE: Vertical-only CRS. Informational only; cannot be used as horizontal 2D map projection.\n"
-                    : "";
+                var projectionStatus = SelectedCrs.IsVerticalOnly
+                    ? "⚠️ NOTICE: Vertical height CRS. Informational only; cannot be applied to 2D map plane.\n"
+                    : (SelectedCrs.IsProjected
+                        ? "🗺️ 2D Map Reprojection: Supported (Planar Map Projection will adapt 2D view in real-time).\n"
+                        : "🌐 2D Map Reprojection: Supported (Equirectangular / Plate Carrée 2D View).\n");
 
                 return $"Authority / Code: {SelectedCrs.AuthorityCode}\n" +
                        $"Name: {SelectedCrs.Name}\n" +
@@ -104,7 +147,7 @@ namespace ZEarth.App.ViewModels
                        $"Ellipsoid: {SelectedCrs.Ellipsoid}\n" +
                        $"Units: {SelectedCrs.Unit}\n" +
                        (string.IsNullOrEmpty(SelectedCrs.ProjectionMethod) ? "" : $"Projection Method: {SelectedCrs.ProjectionMethod}\n") +
-                       verticalNotice +
+                       $"{projectionStatus}" +
                        (string.IsNullOrEmpty(SelectedCrs.Wkt) ? "" : $"\nWKT Definition:\n{SelectedCrs.Wkt}");
             }
         }
@@ -123,13 +166,21 @@ namespace ZEarth.App.ViewModels
         }
 
         public string CatalogStatus => _crsRegistry.GetAll().Count > 1000
-            ? $"Offline EPSG/PROJ catalog: {_crsRegistry.GetAll().Count:N0} systems • geographic folders derived from areas of use"
-            : "Limited built-in CRS presets: proj.db unavailable; install the complete GDAL/PROJ runtime.";
+            ? $"ArcGIS Pro-aligned CRS Catalog: {_crsRegistry.GetAll().Count:N0} systems • Horizontal & Vertical systems hierarchy"
+            : $"Curated Core CRS Catalog: {_crsRegistry.GetAll().Count:N0} systems (UTM 1-60 N/S, Egypt Belts, World, Polar)";
 
         private void BuildTree()
         {
             RootNodes.Clear();
             var allCrs = _crsRegistry.GetAll();
+
+            // Filter according to active tab
+            IEnumerable<CrsDefinition> filteredCrs = SelectedTabFilter switch
+            {
+                CrsTabFilter.Horizontal => allCrs.Where(c => !c.IsVerticalOnly),
+                CrsTabFilter.Vertical => allCrs.Where(c => c.IsVerticalOnly),
+                _ => allCrs
+            };
 
             // 1. Favorites Node
             var favNode = new CrsTreeNode { Name = "Favorites", IsCategory = true };
@@ -139,6 +190,9 @@ namespace ZEarth.App.ViewModels
                 var crs = _crsRegistry.GetByEpsg(epsg);
                 if (crs != null)
                 {
+                    if (SelectedTabFilter == CrsTabFilter.Horizontal && crs.IsVerticalOnly) continue;
+                    if (SelectedTabFilter == CrsTabFilter.Vertical && !crs.IsVerticalOnly) continue;
+
                     favNode.Children.Add(new CrsTreeNode
                     {
                         Name = $"{crs.AuthorityCode} - {crs.Name}",
@@ -147,10 +201,12 @@ namespace ZEarth.App.ViewModels
                     });
                 }
             }
-            RootNodes.Add(favNode);
+            if (favNode.Children.Count > 0 || SelectedTabFilter != CrsTabFilter.Vertical)
+            {
+                RootNodes.Add(favNode);
+            }
 
-            // Project CRS is live configuration, not fabricated EPSG:32636.
-            // Source-layer CRSs must be added only when the active layer exposes them.
+            // 2. Layers Node (Current Map CRS)
             var layersNode = new CrsTreeNode { Name = "Layers (Current Map CRS)", IsCategory = true };
             var inUseCodes = new[] { SettingsService.Instance.Settings.MapCrsEpsg };
             foreach (var code in inUseCodes)
@@ -158,6 +214,8 @@ namespace ZEarth.App.ViewModels
                 var crs = _crsRegistry.GetByEpsg(code);
                 if (crs != null)
                 {
+                    if (SelectedTabFilter == CrsTabFilter.Vertical && !crs.IsVerticalOnly) continue;
+
                     layersNode.Children.Add(new CrsTreeNode
                     {
                         Name = $"{crs.AuthorityCode} - {crs.Name} ({crs.AreaOfUse})",
@@ -166,15 +224,23 @@ namespace ZEarth.App.ViewModels
                     });
                 }
             }
-            RootNodes.Add(layersNode);
+            if (layersNode.Children.Count > 0)
+            {
+                RootNodes.Add(layersNode);
+            }
 
             // 3. Hierarchical Taxonomy from CategoryPath
             var categoryMap = new Dictionary<string, CrsTreeNode>();
 
-            foreach (var crs in allCrs)
+            foreach (var crs in filteredCrs)
             {
                 var path = crs.CategoryPath;
-                if (string.IsNullOrEmpty(path)) path = crs.IsProjected ? "Projected Coordinate Systems/Other" : "Geographic Coordinate Systems/World";
+                if (string.IsNullOrEmpty(path))
+                {
+                    path = crs.IsVerticalOnly
+                        ? "Vertical Coordinate Systems/Gravity-related"
+                        : (crs.IsProjected ? "Projected Coordinate Systems/Other" : "Geographic Coordinate Systems/World");
+                }
 
                 var parts = path.Split('/');
                 CrsTreeNode? parentNode = null;
@@ -217,6 +283,9 @@ namespace ZEarth.App.ViewModels
             var results = _crsRegistry.Search(SearchQuery);
             foreach (var crs in results)
             {
+                if (SelectedTabFilter == CrsTabFilter.Horizontal && crs.IsVerticalOnly) continue;
+                if (SelectedTabFilter == CrsTabFilter.Vertical && !crs.IsVerticalOnly) continue;
+
                 SearchResults.Add(crs);
             }
 

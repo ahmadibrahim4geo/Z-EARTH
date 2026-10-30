@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.IO;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using ZEarth.App.Services;
 
@@ -7,6 +8,27 @@ namespace ZEarth.Tests;
 [TestClass]
 public sealed class SettingsModelSerializationTests
 {
+    [TestMethod]
+    public void SettingsService_UsesProcessScopedTestDirectory()
+    {
+        var directory = Environment.GetEnvironmentVariable("ZEARTH_SETTINGS_DIRECTORY");
+        Assert.IsFalse(string.IsNullOrWhiteSpace(directory));
+
+        var originalTheme = SettingsService.Instance.Settings.Theme;
+        try
+        {
+            SettingsService.Instance.Settings.Theme = "test-isolated";
+            SettingsService.Instance.Save();
+            var path = Path.Combine(directory!, "settings.json");
+            Assert.IsTrue(File.Exists(path));
+            StringAssert.Contains(File.ReadAllText(path), "test-isolated");
+        }
+        finally
+        {
+            SettingsService.Instance.Settings.Theme = originalTheme;
+        }
+    }
+
     [TestMethod]
     public void AtomicSettingsStorePersistsTheSelectedModelToAnIsolatedFile()
     {

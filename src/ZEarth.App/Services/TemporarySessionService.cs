@@ -30,7 +30,10 @@ namespace ZEarth.App.Services
             }
             else
             {
-                var appData = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ZEarth");
+                var overrideDirectory = Environment.GetEnvironmentVariable("ZEARTH_PROFILE_DIRECTORY");
+                var appData = string.IsNullOrWhiteSpace(overrideDirectory)
+                    ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ZEarth")
+                    : Path.GetFullPath(overrideDirectory);
                 Directory.CreateDirectory(appData);
                 _sessionFilePath = Path.Combine(appData, "temporary_session.json");
             }
@@ -38,18 +41,31 @@ namespace ZEarth.App.Services
 
         public string SessionFilePath => _sessionFilePath;
 
-        public void SaveSession(IEnumerable<PlaceItem> items)
+        public void SaveSession(IEnumerable<PlaceItem> items) => TrySaveSession(items);
+
+        /// <summary>Write a complete replacement before publishing it, retaining the old session on failure.</summary>
+        public bool TrySaveSession(IEnumerable<PlaceItem> items)
         {
+            var tempPath = _sessionFilePath + ".tmp_" + Guid.NewGuid().ToString("N");
             try
             {
                 var list = new List<PlaceItem>(items);
                 var json = JsonSerializer.Serialize(list, _jsonOptions);
-                File.WriteAllText(_sessionFilePath, json);
-                LoggerService.Instance.LogInfo($"Temporary places session saved ({list.Count} root items) to {_sessionFilePath}");
+                using (var stream = new FileStream(tempPath, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+                using (var writer = new StreamWriter(stream))
+                    writer.Write(json);
+                File.Move(tempPath, _sessionFilePath, overwrite: true);
+                LoggerService.Instance.LogInfo($"Temporary places session saved ({list.Count} root items).");
+                return true;
             }
             catch (Exception ex)
             {
                 LoggerService.Instance.LogWarning($"Failed to save temporary places session: {ex.Message}");
+                return false;
+            }
+            finally
+            {
+                try { if (File.Exists(tempPath)) File.Delete(tempPath); } catch { }
             }
         }
 

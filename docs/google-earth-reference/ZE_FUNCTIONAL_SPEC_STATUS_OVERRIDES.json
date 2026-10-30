@@ -1,0 +1,84 @@
+{
+  "ADV-008": {
+    "current_status": "PARTIAL",
+    "priority": "P1",
+    "evidence_tier": "T3",
+    "source_evidence": [
+      "src/ZEarth.App/ViewModels/MainViewModel.cs: TakeScreenshotCommand",
+      "src/ZEarth.App/Views/MainWindow.xaml.cs: CaptureMapScreenshotAsync",
+      "tests/screenshot-contract.test.cjs"
+    ],
+    "runtime_evidence": [
+      "native-evidence/ge-parity-pilot-2026-10-28/viewport-screenshot-grid.png",
+      "native-evidence/ge-parity-pilot-2026-10-28/flight-hud-screenshot.png"
+    ],
+    "notes": "Current command truthfully advertises and natively produced 910x600 visible-viewport PNG captures. Layout, explicit output dimensions, preview and export composition remain unverified or absent."
+  },
+  "FILE-005": {
+    "current_status": "PARTIAL",
+    "priority": "P1",
+    "evidence_tier": "T3",
+    "source_evidence": [
+      "src/ZEarth.App/ViewModels/MainViewModel.cs: ExecuteTakeScreenshotAsync",
+      "src/ZEarth.App/Views/MainWindow.xaml.cs: CaptureMapScreenshotAsync",
+      "tests/screenshot-contract.test.cjs"
+    ],
+    "runtime_evidence": [
+      "native-evidence/ge-parity-pilot-2026-10-28/viewport-screenshot-grid.png",
+      "native-evidence/ge-parity-pilot-2026-10-28/flight-hud-screenshot.png"
+    ],
+    "notes": "Quick current-viewport PNG capture produced two inspected 910x600 files; professional composed Save Image behavior remains absent."
+  },
+  "VIEW-006": {
+    "current_status": "PRESENT_UNVERIFIED",
+    "priority": "P0",
+    "evidence_tier": "T2",
+    "source_evidence": [
+      "src/ZEarth.App/ViewModels/MainViewModel.cs: ToggleGraticulesCommand",
+      "src/ZEarth.Globe/GlobeBridge.cs: SetGraticulesConfigAsync",
+      "src/ZEarth.Globe/Assets/cesium-engine.js: GraticuleManager",
+      "tests/ZEarth.Tests/MapGridSettingsTests.cs: BridgeDefaultsMatchTheDocumentedGridDefaults",
+      "tests/terrain-grid-source-contract.test.cjs: cross-layer default contract"
+    ],
+    "runtime_evidence": [
+      "Development Reports/Map_Grid_Evidence"
+    ],
+    "notes": "Source, T2 contracts and recorded native screenshots exist. Bridge, Cesium and Options defaults are now aligned; the full current-revision interaction/persistence matrix must be re-read before promotion."
+  },
+  "TOOLS-009": {
+    "current_status": "PARTIAL",
+    "priority": "P3",
+    "evidence_tier": "T3",
+    "source_evidence": [
+      "src/ZEarth.App/Views/MainWindow.xaml: ToggleFlightModeCommand",
+      "src/ZEarth.App/ViewModels/MainViewModel.cs: ExecuteToggleFlightModeAsync",
+      "src/ZEarth.Globe/GlobeBridge.cs: flight.setActive",
+      "src/ZEarth.Globe/Assets/flight-simulator.js"
+    ],
+    "runtime_evidence": [
+      "native-evidence/ge-parity-pilot-2026-10-28/flight-hud-screenshot.png"
+    ],
+    "notes": "A limited native WebView2 scenario verified activation, truthful HUD, terrain-aware AGL, Page Up throttle change and focused Esc exit. The run exposed stale WPF OFF text; the event-sync fix passed build/T1/T2, while post-fix T3 recheck was blocked by an unrelated Filee UAC prompt. Pause via P was not visibly confirmed; aircraft selection/dynamics remain outside the current lightweight camera-mode implementation."
+  },
+  "TIME-006": {
+    "current_status": "DIFFERENT_BY_DESIGN",
+    "priority": "P2",
+    "evidence_tier": "T2",
+    "source_evidence": [
+      "docs/HISTORICAL_IMAGERY_TIMELINE.md",
+      "src/ZEarth.App/Services/WaybackService.cs",
+      "src/ZEarth.Globe/Assets/historical-timeline.js"
+    ],
+    "notes": "Esri Wayback release dates are intentionally not labeled as image acquisition dates."
+  },
+  "LAYER-010": {
+    "current_status": "DIFFERENT_BY_DESIGN",
+    "priority": "P2",
+    "evidence_tier": "T2",
+    "source_evidence": [
+      "src/ZEarth.Globe/Assets/cloud-layer.js",
+      "src/ZEarth.Globe/GlobeBridge.cs: environment.setClouds"
+    ],
+    "notes": "The existing option is an offline illustrative 3D cloud layer, not observed or live weather."
+  }
+}

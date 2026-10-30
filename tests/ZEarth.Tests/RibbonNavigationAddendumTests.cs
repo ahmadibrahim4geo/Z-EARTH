@@ -68,6 +68,10 @@ namespace ZEarth.Tests
         [TestMethod]
         public void CRS01_CRS03_MapCenterAndCursorAndEye_DistinctReadouts()
         {
+            var originalEpsg = SettingsService.Instance.Settings.MapCrsEpsg;
+            SettingsService.Instance.Settings.MapCrsEpsg = 4326;
+            try
+            {
             var bridge = new GlobeBridge();
             var vm = new MainViewModel(new ProjectService(), bridge);
 
@@ -84,6 +88,11 @@ namespace ZEarth.Tests
             // Cursor coordinate and elevation
             Assert.IsTrue(vm.StatusCursorCoordinates.StartsWith("Cursor:"));
             Assert.IsTrue(vm.StatusCursorElevation.StartsWith("Elev:"));
+            }
+            finally
+            {
+                SettingsService.Instance.Settings.MapCrsEpsg = originalEpsg;
+            }
         }
 
         [TestMethod]
@@ -271,6 +280,10 @@ namespace ZEarth.Tests
         [TestMethod]
         public void CRS02_CursorMoved_Throttled_UpdatesIndependentlyOfCenter()
         {
+            var originalEpsg = SettingsService.Instance.Settings.MapCrsEpsg;
+            SettingsService.Instance.Settings.MapCrsEpsg = 4326;
+            try
+            {
             var bridge = new GlobeBridge();
             var vm = new MainViewModel(new ProjectService(), bridge);
 
@@ -281,6 +294,20 @@ namespace ZEarth.Tests
             Assert.AreEqual(initialCenter, vm.StatusCenterCoordinates, "Center coordinates must not change when mouse moves");
             Assert.IsTrue(vm.StatusCursorCoordinates.Contains("31.2001° N"));
             Assert.AreEqual("Elev: 120 m", vm.StatusCursorElevation);
+            }
+            finally
+            {
+                SettingsService.Instance.Settings.MapCrsEpsg = originalEpsg;
+            }
+        }
+
+        [TestMethod]
+        public void CursorWithoutDemElevation_DisplaysUnavailableInsteadOfZero()
+        {
+            var bridge = new GlobeBridge();
+            var vm = new MainViewModel(new ProjectService(), bridge);
+            bridge.HandleWebMessage("{\"event\":\"map.cursorMoved\",\"position\":{\"valid\":true,\"latitude\":30,\"longitude\":31,\"altitude\":null}}");
+            Assert.AreEqual("Elev: —", vm.StatusCursorElevation);
         }
 
         [TestMethod]
@@ -295,11 +322,18 @@ namespace ZEarth.Tests
             bridge.HandleWebMessage("{\"event\":\"map.centerChanged\",\"center\":{\"valid\":true,\"latitude\":30.0444,\"longitude\":31.2357,\"altitude\":25.0}}");
             Assert.IsTrue(vm.StatusCenterCoordinates.StartsWith("Center X/E:"), "Projected center coordinates must show Easting/Northing");
             Assert.IsTrue(vm.StatusCenterCoordinates.Contains("Y/N:"));
+            StringAssert.Contains(vm.StatusCrs, "EPSG:32636", "CRS label must identify the active projected map CRS");
 
             // Reset back to WGS84 (EPSG 4326)
             SettingsService.Instance.Settings.MapCrsEpsg = 4326;
             bridge.HandleWebMessage("{\"event\":\"map.centerChanged\",\"center\":{\"valid\":true,\"latitude\":30.0444,\"longitude\":31.2357,\"altitude\":25.0}}");
             Assert.IsTrue(vm.StatusCenterCoordinates.Contains("30.0444° N"));
+            var statusCrs = vm.StatusCrs;
+            vm.ExecuteToggleCoordinateFormat();
+            Assert.AreEqual(statusCrs, vm.StatusCrs, "Coordinate display format must not replace the active map CRS label");
+            vm.ExecuteToggleCoordinateFormat();
+            vm.ExecuteToggleCoordinateFormat();
+            vm.ExecuteToggleCoordinateFormat();
         }
 
         [TestMethod]

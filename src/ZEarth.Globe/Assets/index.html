@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -138,28 +138,138 @@
 
     <!-- Floating Sunlight & Time-of-Day Slider Widget (Google Earth Pro Style) -->
     <div id="sunlight-hud" class="sunlight-hud" style="display: none;">
-      <div class="sunlight-header">
+      <div class="sunlight-header" id="sunlight-drag-handle" role="group" aria-label="Drag header to move sunlight controller">
         <div class="sunlight-brand">
+          <span class="sunlight-grip" title="Drag to move panel">⋮⋮</span>
           <span class="sunlight-icon">☀️</span>
-          <span class="sunlight-title">Sunlight &amp; Time</span>
+          <span class="sunlight-title">Sunlight &amp; Solar Time</span>
         </div>
         <div class="sunlight-header-actions">
-          <button id="btn-sunlight-play" class="sunlight-btn sunlight-play-btn" title="Play / Pause Time Animation">▶</button>
+          <button id="btn-sunlight-play" class="sunlight-btn sunlight-play-btn" title="Play / Pause Solar Animation">▶</button>
           <button id="btn-sunlight-now" class="sunlight-btn" title="Set to Current Real-World Time (UTC)">Now</button>
-          <span id="sunlight-time-label" class="sunlight-time-label">12:00 PM (UTC)</span>
           <button id="btn-sunlight-close" class="sunlight-close-btn" title="Close Sunlight HUD">✕</button>
         </div>
       </div>
-      <div class="sunlight-slider-row">
-        <span class="time-marker">00:00</span>
-        <input type="range" id="sunlight-slider" min="0" max="24" step="0.1" value="12" class="sunlight-range" />
-        <span class="time-marker">24:00</span>
+
+      <!-- Date & Phase Row -->
+      <div class="sunlight-date-row">
+        <div class="sunlight-date-group">
+          <span class="sunlight-date-icon">📅</span>
+          <input type="date" id="sunlight-date-picker" class="sunlight-date-input" title="Select UTC Calendar Date" />
+          <button id="btn-sunlight-prev-day" class="sunlight-day-btn" title="Previous Day">◀</button>
+          <button id="btn-sunlight-next-day" class="sunlight-day-btn" title="Next Day">▶</button>
+        </div>
+        <div class="sunlight-phase-pill" id="sunlight-phase-pill">
+          <span id="sunlight-phase-icon">☀️</span>
+          <span id="sunlight-phase-text">Daylight</span>
+        </div>
       </div>
+
+      <!-- Digital Clock Display -->
+      <div class="sunlight-clock-display">
+        <span id="sunlight-time-label" class="sunlight-digital-time">12:00 PM (UTC)</span>
+      </div>
+
+      <!-- Continuous 24h Slider -->
+      <div class="sunlight-slider-container">
+        <div class="sunlight-slider-track-bg"></div>
+        <input type="range" id="sunlight-slider" min="0" max="24" step="0.05" value="12" class="sunlight-range" />
+        <div class="sunlight-slider-ticks">
+          <span>00:00</span>
+          <span>06:00 (Dawn)</span>
+          <span>12:00 (Noon)</span>
+          <span>18:00 (Dusk)</span>
+          <span>24:00</span>
+        </div>
+      </div>
+
+      <!-- Quick Preset Buttons -->
       <div class="sunlight-presets">
-        <button class="sunlight-preset-btn" data-time="6">Dawn (06:00)</button>
-        <button class="sunlight-preset-btn" data-time="12">Noon (12:00)</button>
-        <button class="sunlight-preset-btn" data-time="18">Dusk (18:00)</button>
-        <button class="sunlight-preset-btn" data-time="0">Midnight (00:00)</button>
+        <button class="sunlight-preset-btn" data-time="6">🌅 Dawn</button>
+        <button class="sunlight-preset-btn" data-time="12">☀️ Noon</button>
+        <button class="sunlight-preset-btn" data-time="18">🌇 Dusk</button>
+        <button class="sunlight-preset-btn" data-time="0">🌙 Night</button>
+      </div>
+
+      <!-- Animation Speed Row -->
+      <div class="sunlight-speed-row">
+        <span class="sunlight-speed-label">Speed:</span>
+        <button class="sunlight-speed-btn active" data-speed="60">1x</button>
+        <button class="sunlight-speed-btn" data-speed="300">5x</button>
+        <button class="sunlight-speed-btn" data-speed="1200">20x</button>
+      </div>
+    </div>
+
+    <!-- Google Earth Pro Style Save Image HUD & Overlays -->
+    <div id="save-image-hud" class="save-image-hud" style="display: none;">
+      <!-- Top Bar: Map Options & Actions (Google Earth Pro style) -->
+      <div class="save-image-toolbar">
+        <div class="save-image-brand">
+          <span class="save-image-icon">📷</span>
+          <span class="save-image-title">Save Image</span>
+        </div>
+        <div class="save-image-options">
+          <label class="save-image-opt"><input type="checkbox" id="chk-save-title" checked /> Title &amp; Description</label>
+          <label class="save-image-opt"><input type="checkbox" id="chk-save-legend" checked /> Legend</label>
+          <label class="save-image-opt"><input type="checkbox" id="chk-save-compass" checked /> Compass</label>
+          <label class="save-image-opt"><input type="checkbox" id="chk-save-scale" checked /> Scale</label>
+        </div>
+        <div class="save-image-actions">
+          <button id="btn-save-image-export" class="save-image-btn save-image-export-btn" title="Save map image to file (PNG/JPEG)...">💾 Save Image...</button>
+          <button id="btn-save-image-close" class="save-image-btn save-image-close-btn" title="Exit Save Image Mode (Esc)">✕ Close</button>
+        </div>
+      </div>
+
+      <!-- In-Viewport Overlays (Active during design/export mode) -->
+      <div id="save-image-overlays" class="save-image-overlays">
+        <!-- Top-Left Title & Description Card (Editable on screen) -->
+        <div id="save-image-title-card" class="save-overlay-card save-title-card">
+          <input type="text" id="save-map-title-input" class="save-title-input" value="Untitled Map" placeholder="Click to edit map title..." />
+          <textarea id="save-map-desc-input" class="save-desc-input" rows="2" placeholder="Click to write description or notes...">Created with Z EARTH Desktop GIS</textarea>
+          <div class="save-title-meta">
+            <span id="save-meta-date">2026-10-29</span> • <span id="save-meta-coords">30.04° N, 31.23° E</span>
+          </div>
+        </div>
+
+        <!-- Top-Right Compass / North Arrow -->
+        <div id="save-image-compass-card" class="save-overlay-card save-compass-card">
+          <div class="compass-widget" title="True North">
+            <span class="compass-n-label">N</span>
+            <svg class="compass-needle-svg" viewBox="0 0 44 44" width="44" height="44">
+              <polygon points="22,4 27,22 22,18 17,22" fill="#ef4444" />
+              <polygon points="22,40 27,22 22,18 17,22" fill="#cbd5e1" />
+              <circle cx="22" cy="22" r="3" fill="#ffffff" />
+            </svg>
+          </div>
+        </div>
+
+        <!-- Bottom-Left Scale Bar -->
+        <div id="save-image-scale-card" class="save-overlay-card save-scale-card">
+          <div class="save-scale-segments">
+            <div class="scale-seg black"></div>
+            <div class="scale-seg white"></div>
+            <div class="scale-seg black"></div>
+            <div class="scale-seg white"></div>
+          </div>
+          <div class="save-scale-labels">
+            <span>0</span>
+            <span id="save-scale-mid">100</span>
+            <span id="save-scale-max">200 km</span>
+          </div>
+        </div>
+
+        <!-- Bottom-Right Legend Card -->
+        <div id="save-image-legend-card" class="save-overlay-card save-legend-card">
+          <div class="save-legend-header">
+            <span class="save-legend-icon">📋</span>
+            <span class="save-legend-title">Legend</span>
+          </div>
+          <div class="save-legend-items" id="save-legend-items">
+            <div class="save-legend-row"><span class="legend-swatch swatch-sat">🛰️</span> <span id="save-legend-sat-name">Satellite Basemap</span></div>
+            <div class="save-legend-row" id="save-legend-terrain-row"><span class="legend-swatch swatch-ter">⛰️</span> <span>3D Terrain Relief</span></div>
+            <div class="save-legend-row" id="save-legend-grid-row"><span class="legend-swatch swatch-grd">🌐</span> <span>Coordinate Grid</span></div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -281,6 +391,8 @@
   <script src="flight-simulator.js"></script>
   <script src="nasa-gibs-imagery.js"></script>
   <script src="gps-track-playback.js"></script>
+  <script src="camera-zoom.js"></script>
+  <script src="map-projections.js"></script>
   <script src="cesium-engine.js"></script>
 </body>
 </html>

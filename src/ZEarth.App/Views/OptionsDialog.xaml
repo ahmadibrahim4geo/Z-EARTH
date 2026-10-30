@@ -1,15 +1,236 @@
 <Window x:Class="ZEarth.App.Views.OptionsDialog"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:views="clr-namespace:ZEarth.App.Views"
         Title="Options &amp; GIS Settings"
-        Height="650" Width="680"
+        Height="760" Width="1180"
         WindowStartupLocation="CenterOwner"
-        ResizeMode="CanResize" MinWidth="640" MinHeight="580"
+        ResizeMode="CanResize" MinWidth="900" MinHeight="560"
         Background="{DynamicResource Brush.Window.Background}"
         Foreground="{DynamicResource Brush.Text.Primary}"
-        FontFamily="Segoe UI">
+        FontFamily="Segoe UI"
+        Loaded="OnOptionsDialogLoaded"
+        Closing="OnOptionsDialogClosing"
+        AutomationProperties.AutomationId="ZE.Options.Window"
+        AutomationProperties.Name="Z EARTH Options and GIS Settings">
 
-    <Grid Margin="18">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+        <!-- Original, provider-neutral illustrative previews. These are UI thumbnails, not cached provider tiles. -->
+        <ImageBrush x:Key="BasemapThumbSatellite" ImageSource="pack://application:,,,/Assets/Options/basemap-thumbnail-atlas.png" ViewboxUnits="RelativeToBoundingBox" Viewbox="0,0,0.325,0.325" Stretch="UniformToFill"/>
+        <ImageBrush x:Key="BasemapThumbHybrid" ImageSource="pack://application:,,,/Assets/Options/basemap-thumbnail-atlas.png" ViewboxUnits="RelativeToBoundingBox" Viewbox="0.338,0,0.325,0.325" Stretch="UniformToFill"/>
+        <ImageBrush x:Key="BasemapThumbStreet" ImageSource="pack://application:,,,/Assets/Options/basemap-thumbnail-atlas.png" ViewboxUnits="RelativeToBoundingBox" Viewbox="0.675,0,0.325,0.325" Stretch="UniformToFill"/>
+        <ImageBrush x:Key="BasemapThumbTopo" ImageSource="pack://application:,,,/Assets/Options/basemap-thumbnail-atlas.png" ViewboxUnits="RelativeToBoundingBox" Viewbox="0,0.338,0.325,0.325" Stretch="UniformToFill"/>
+        <ImageBrush x:Key="BasemapThumbLight" ImageSource="pack://application:,,,/Assets/Options/basemap-thumbnail-atlas.png" ViewboxUnits="RelativeToBoundingBox" Viewbox="0.338,0.338,0.325,0.325" Stretch="UniformToFill"/>
+        <ImageBrush x:Key="BasemapThumbDark" ImageSource="pack://application:,,,/Assets/Options/basemap-thumbnail-atlas.png" ViewboxUnits="RelativeToBoundingBox" Viewbox="0.675,0.338,0.325,0.325" Stretch="UniformToFill"/>
+        <ImageBrush x:Key="BasemapThumbPhysical" ImageSource="pack://application:,,,/Assets/Options/basemap-thumbnail-atlas.png" ViewboxUnits="RelativeToBoundingBox" Viewbox="0,0.675,0.325,0.325" Stretch="UniformToFill"/>
+
+        <ImageBrush x:Key="TerrainThumbDem" ImageSource="pack://application:,,,/Assets/Options/terrain-thumbnail-atlas.png" ViewboxUnits="RelativeToBoundingBox" Viewbox="0,0,0.325,0.325" Stretch="UniformToFill"/>
+        <ImageBrush x:Key="TerrainThumbWorld" ImageSource="pack://application:,,,/Assets/Options/terrain-thumbnail-atlas.png" ViewboxUnits="RelativeToBoundingBox" Viewbox="0.338,0,0.325,0.325" Stretch="UniformToFill"/>
+        <ImageBrush x:Key="TerrainThumbBathymetry" ImageSource="pack://application:,,,/Assets/Options/terrain-thumbnail-atlas.png" ViewboxUnits="RelativeToBoundingBox" Viewbox="0.675,0,0.325,0.325" Stretch="UniformToFill"/>
+        <ImageBrush x:Key="TerrainThumbGebco" ImageSource="pack://application:,,,/Assets/Options/terrain-thumbnail-atlas.png" ViewboxUnits="RelativeToBoundingBox" Viewbox="0,0.338,0.325,0.325" Stretch="UniformToFill"/>
+        <ImageBrush x:Key="TerrainThumbEllipsoid" ImageSource="pack://application:,,,/Assets/Options/terrain-thumbnail-atlas.png" ViewboxUnits="RelativeToBoundingBox" Viewbox="0.338,0.338,0.325,0.325" Stretch="UniformToFill"/>
+        <ImageBrush x:Key="TerrainThumbLocal" ImageSource="pack://application:,,,/Assets/Options/terrain-thumbnail-atlas.png" ViewboxUnits="RelativeToBoundingBox" Viewbox="0.675,0.338,0.325,0.325" Stretch="UniformToFill"/>
+        <ImageBrush x:Key="TerrainThumbCustom" ImageSource="pack://application:,,,/Assets/Options/terrain-thumbnail-atlas.png" ViewboxUnits="RelativeToBoundingBox" Viewbox="0,0.675,0.325,0.325" Stretch="UniformToFill"/>
+
+        <Style x:Key="BasemapThumbnailFrameStyle" TargetType="Border">
+            <Setter Property="Width" Value="66"/><Setter Property="Height" Value="46"/>
+            <Setter Property="CornerRadius" Value="6"/><Setter Property="BorderBrush" Value="#668496A3"/>
+            <Setter Property="BorderThickness" Value="1"/><Setter Property="SnapsToDevicePixels" Value="True"/>
+        </Style>
+        <Style x:Key="TerrainThumbnailFrameStyle" TargetType="Border">
+            <Setter Property="Width" Value="54"/><Setter Property="Height" Value="46"/>
+            <Setter Property="CornerRadius" Value="6"/><Setter Property="BorderBrush" Value="#668496A3"/>
+            <Setter Property="BorderThickness" Value="1"/><Setter Property="SnapsToDevicePixels" Value="True"/>
+        </Style>
+        <Style x:Key="SettingsCardStyle" TargetType="Border">
+            <Setter Property="Background" Value="#202932"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource Brush.Ribbon.Border}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="10"/>
+            <Setter Property="Padding" Value="16"/>
+        </Style>
+        <Style x:Key="SectionTitleStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}"/>
+            <Setter Property="Margin" Value="0,0,0,4"/>
+        </Style>
+        <Style x:Key="FieldLabelStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11.5"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}"/>
+            <Setter Property="Margin" Value="0,0,0,5"/>
+        </Style>
+        <Style x:Key="HintTextStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="10.5"/>
+            <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Secondary}"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="LineHeight" Value="16"/>
+        </Style>
+        <Style x:Key="SettingsComboStyle" TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
+            <Setter Property="Height" Value="38"/>
+            <Setter Property="Padding" Value="8,3"/>
+            <Setter Property="Background" Value="{DynamicResource Brush.Control.Background}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource Brush.Control.Border}"/>
+        </Style>
+        <Style x:Key="GalleryListStyle" TargetType="ListBox">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/>
+            <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto"/>
+            <Setter Property="KeyboardNavigation.DirectionalNavigation" Value="Contained"/>
+        </Style>
+        <Style x:Key="GalleryItemStyle" TargetType="ListBoxItem">
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Margin" Value="0,0,0,6"/>
+            <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}"/>
+            <Setter Property="Background" Value="#202932"/>
+            <Setter Property="BorderBrush" Value="#3B4650"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="ItemBorder" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="8" Padding="10">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="28"/><ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Border x:Name="RadioRing" Width="20" Height="20" CornerRadius="10"
+                                        BorderBrush="#D8E2EA" BorderThickness="2" VerticalAlignment="Center" HorizontalAlignment="Left">
+                                    <Ellipse x:Name="RadioDot" Width="10" Height="10" Fill="{DynamicResource Brush.Accent}" Visibility="Collapsed"/>
+                                </Border>
+                                <ContentPresenter Grid.Column="1"/>
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="ItemBorder" Property="Background" Value="#173F58"/>
+                                <Setter TargetName="ItemBorder" Property="BorderBrush" Value="{DynamicResource Brush.Accent}"/>
+                                <Setter TargetName="ItemBorder" Property="BorderThickness" Value="2"/>
+                                <Setter TargetName="RadioRing" Property="BorderBrush" Value="{DynamicResource Brush.Accent}"/>
+                                <Setter TargetName="RadioDot" Property="Visibility" Value="Visible"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ItemBorder" Property="Background" Value="#253641"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="ItemBorder" Property="Opacity" Value="0.55"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="SwitchCheckBoxStyle" TargetType="CheckBox">
+            <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="CheckBox">
+                        <StackPanel Orientation="Horizontal">
+                            <Border x:Name="Track" Width="48" Height="26" CornerRadius="13" Background="#4A5560" Margin="0,0,10,0">
+                                <Ellipse x:Name="Thumb" Width="20" Height="20" Fill="White" HorizontalAlignment="Left" Margin="3"/>
+                            </Border>
+                            <ContentPresenter VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Track" Property="Background" Value="{DynamicResource Brush.Accent}"/>
+                                <Setter TargetName="Thumb" Property="HorizontalAlignment" Value="Right"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.45"/></Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Track" Property="BorderBrush" Value="White"/><Setter TargetName="Track" Property="BorderThickness" Value="1"/></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="TargetRowStyle" TargetType="Border" BasedOn="{StaticResource SettingsCardStyle}">
+            <Setter Property="Padding" Value="12"/>
+            <Setter Property="Margin" Value="0,0,0,8"/>
+        </Style>
+        <Style x:Key="InfoPanelStyle" TargetType="Border" BasedOn="{StaticResource SettingsCardStyle}">
+            <Setter Property="Background" Value="#102E3E"/>
+            <Setter Property="BorderBrush" Value="#1879A6"/>
+        </Style>
+        <Style x:Key="GridFormatRadioStyle" TargetType="RadioButton">
+            <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="Card" Background="#1B252E" BorderBrush="#46525C" BorderThickness="1" CornerRadius="7" Padding="10" Margin="0,0,8,0">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True"><Setter TargetName="Card" Property="Background" Value="#173F58"/><Setter TargetName="Card" Property="BorderBrush" Value="{DynamicResource Brush.Accent}"/><Setter TargetName="Card" Property="BorderThickness" Value="2"/></Trigger>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Card" Property="Background" Value="#253641"/></Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Card" Property="BorderBrush" Value="White"/></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="SettingsInputStyle" TargetType="TextBox">
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Background" Value="{DynamicResource Brush.Control.Background}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource Brush.Control.Border}"/>
+        </Style>
+        <Style x:Key="SecondaryButtonStyle" TargetType="Button">
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="Padding" Value="14,0"/>
+            <Setter Property="Background" Value="{DynamicResource Brush.Control.Background}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource Brush.Control.Border}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+        <Style x:Key="PrimaryButtonStyle" TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}">
+            <Setter Property="Background" Value="{DynamicResource Brush.Accent}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+        <Style TargetType="TabItem">
+            <Setter Property="MinWidth" Value="180"/>
+            <Setter Property="Height" Value="42"/>
+            <Setter Property="Padding" Value="18,8"/>
+            <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}"/>
+            <Setter Property="Background" Value="{DynamicResource Brush.Control.Background}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource Brush.Ribbon.Border}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabItem">
+                        <Border x:Name="TabBorder" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1,1,1,0"
+                                CornerRadius="6,6,0,0" Margin="0,0,3,0">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              ContentSource="Header" Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="TabBorder" Property="Background" Value="#193C50"/>
+                                <Setter TargetName="TabBorder" Property="BorderBrush" Value="{DynamicResource Brush.Accent}"/>
+                                <Setter Property="Foreground" Value="White"/>
+                                <Setter Property="FontWeight" Value="SemiBold"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="TabBorder" Property="Background" Value="#263642"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="18,12,18,12">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
@@ -17,230 +238,669 @@
         </Grid.RowDefinitions>
 
         <!-- Header -->
-        <Border Grid.Row="0" Background="{DynamicResource Brush.Ribbon.Background}" CornerRadius="6" Padding="12" Margin="0,0,0,14"
+        <Border Grid.Row="0" Background="{DynamicResource Brush.Ribbon.Background}" CornerRadius="10" Padding="20,14" Margin="0,0,0,10"
                 BorderBrush="{DynamicResource Brush.Ribbon.Border}" BorderThickness="1">
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                <Path Data="{StaticResource Icon.Options}" Style="{StaticResource RibbonIconPathStyle}" Width="22" Height="22" Margin="0,0,10,0"/>
+                <Border Width="48" Height="48" CornerRadius="24" Background="#223C4A" Margin="0,0,16,0">
+                    <Path Data="{StaticResource Icon.Options}" Style="{StaticResource RibbonIconPathStyle}" Width="26" Height="26"
+                          Fill="{DynamicResource Brush.Accent}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
                 <StackPanel>
-                    <TextBlock Text="Z EARTH Options &amp; GIS Configuration" FontWeight="Bold" FontSize="14" Foreground="{DynamicResource Brush.Text.Primary}"/>
-                    <TextBlock Text="Configure measurement units, spatial snapping, basemaps, and display preferences." FontSize="11" Foreground="{DynamicResource Brush.Text.Secondary}"/>
+                    <TextBlock Text="Z EARTH Options &amp; GIS Configuration" FontWeight="Bold" FontSize="19" Foreground="{DynamicResource Brush.Text.Primary}"/>
+                    <TextBlock Text="Configure measurement units, spatial snapping, basemaps, terrain, grid, and display preferences."
+                               FontSize="12" Margin="0,3,0,0" Foreground="{DynamicResource Brush.Text.Secondary}"/>
                 </StackPanel>
             </StackPanel>
         </Border>
 
         <!-- Tabbed Settings Content -->
-        <TabControl x:Name="SettingsTabs" Grid.Row="1" Background="{DynamicResource Brush.Ribbon.Background}" BorderBrush="{DynamicResource Brush.Ribbon.Border}">
+        <TabControl x:Name="SettingsTabs" Grid.Row="1" Background="{DynamicResource Brush.Ribbon.Background}"
+                    BorderBrush="{DynamicResource Brush.Ribbon.Border}" BorderThickness="1" Padding="0"
+                    AutomationProperties.AutomationId="ZE.Options.Tabs">
             
             <!-- Tab 1: Measurement Units -->
-            <TabItem Header="Measurement Units">
-                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="14">
+            <TabItem Header="Measurement Units" AutomationProperties.AutomationId="ZE.Options.Tab.Units">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16">
                     <StackPanel>
-                        <TextBlock Text="Geodesic Distance Units" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource Brush.Accent}" Margin="0,0,0,6"/>
-                        <ComboBox x:Name="DistanceUnitCombo" Height="28" Margin="0,0,0,14" Background="{DynamicResource Brush.Control.Background}" Foreground="{DynamicResource Brush.Text.Primary}">
-                            <ComboBoxItem Content="Auto Metric (m / km)" Tag="AutoMetric"/>
-                            <ComboBoxItem Content="Meters (m)" Tag="Meters"/>
-                            <ComboBoxItem Content="Kilometers (km)" Tag="Kilometers"/>
-                            <ComboBoxItem Content="Auto Imperial (ft / mi)" Tag="AutoImperial"/>
-                            <ComboBoxItem Content="Feet (ft)" Tag="Feet"/>
-                            <ComboBoxItem Content="Miles (mi)" Tag="Miles"/>
-                            <ComboBoxItem Content="Nautical Miles (nmi)" Tag="NauticalMiles"/>
-                            <ComboBoxItem Content="Centimeters (cm)" Tag="Centimeters"/>
-                            <ComboBoxItem Content="Millimeters (mm)" Tag="Millimeters"/>
-                        </ComboBox>
-
-                        <TextBlock Text="Surface Area Units" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource Brush.Accent}" Margin="0,0,0,6"/>
-                        <ComboBox x:Name="AreaUnitCombo" Height="28" Margin="0,0,0,14" Background="{DynamicResource Brush.Control.Background}" Foreground="{DynamicResource Brush.Text.Primary}">
-                            <ComboBoxItem Content="Auto Metric (m² / ha / km²)" Tag="AutoMetric"/>
-                            <ComboBoxItem Content="Square Meters (m²)" Tag="SquareMeters"/>
-                            <ComboBoxItem Content="Square Kilometers (km²)" Tag="SquareKilometers"/>
-                            <ComboBoxItem Content="Hectares (ha)" Tag="Hectares"/>
-                            <ComboBoxItem Content="Egyptian Feddan (4,200.83 m²)" Tag="EgyptianFeddan"/>
-                            <ComboBoxItem Content="Auto Imperial (ft² / ac / mi²)" Tag="AutoImperial"/>
-                            <ComboBoxItem Content="Acres (ac)" Tag="Acres"/>
-                            <ComboBoxItem Content="Square Feet (ft²)" Tag="SquareFeet"/>
-                            <ComboBoxItem Content="Square Miles (mi²)" Tag="SquareMiles"/>
-                        </ComboBox>
-
-                        <TextBlock Text="Elevation Units" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource Brush.Accent}" Margin="0,0,0,6"/>
-                        <ComboBox x:Name="ElevationUnitCombo" Height="28" Margin="0,0,0,14" Background="{DynamicResource Brush.Control.Background}" Foreground="{DynamicResource Brush.Text.Primary}">
-                            <ComboBoxItem Content="Meters (m)" Tag="Meters"/>
-                            <ComboBoxItem Content="Feet (ft)" Tag="Feet"/>
-                        </ComboBox>
-
-                        <Border Background="{DynamicResource Brush.Control.Background}" CornerRadius="4" Padding="10" Margin="0,4,0,0">
-                            <TextBlock Text="All internal calculations are computed strictly on the WGS 84 ellipsoid (EPSG:4326). Display units convert automatically with full SI fidelity without precision degradation."
-                                       TextWrapping="Wrap" FontSize="11" Foreground="{DynamicResource Brush.Text.Secondary}"/>
+                        <Border Style="{StaticResource SettingsCardStyle}" Padding="18,14" Margin="0,0,0,12">
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="58"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                <TextBlock Text="⌁" FontSize="38" Foreground="{DynamicResource Brush.Accent}" VerticalAlignment="Center"/>
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock Text="Measurement Units" Style="{StaticResource SectionTitleStyle}" FontSize="19"/>
+                                    <TextBlock Text="Choose the units used for distance, area, and elevation display. Calculation values remain in canonical SI units internally."
+                                               Style="{StaticResource HintTextStyle}" FontSize="12"/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/><ColumnDefinition Width="14"/><ColumnDefinition Width="*"/><ColumnDefinition Width="14"/><ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Border Grid.Column="0" Style="{StaticResource SettingsCardStyle}" MinHeight="320">
+                                <StackPanel>
+                                    <Grid Margin="0,0,0,12"><Grid.ColumnDefinitions><ColumnDefinition Width="58"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                        <Border Width="48" Height="48" CornerRadius="24" Background="#12364A"><TextBlock Text="↔" FontSize="26" Foreground="{DynamicResource Brush.Accent}" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                                        <StackPanel Grid.Column="1"><TextBlock Text="Distance" Style="{StaticResource SectionTitleStyle}" FontSize="17"/><TextBlock Text="Horizontal distances, paths, ruler results and navigation readouts." Style="{StaticResource HintTextStyle}"/></StackPanel>
+                                    </Grid>
+                                    <TextBlock Text="Distance unit" Style="{StaticResource FieldLabelStyle}"/>
+                                    <ComboBox x:Name="DistanceUnitCombo" Style="{StaticResource SettingsComboStyle}" SelectionChanged="OnUnitSelectionChanged" AutomationProperties.Name="Geodesic distance units">
+                                        <ComboBoxItem Content="Auto Metric (m / km)" Tag="AutoMetric"/><ComboBoxItem Content="Meters (m)" Tag="Meters"/><ComboBoxItem Content="Kilometers (km)" Tag="Kilometers"/>
+                                        <ComboBoxItem Content="Centimeters (cm)" Tag="Centimeters"/><ComboBoxItem Content="Millimeters (mm)" Tag="Millimeters"/>
+                                        <ComboBoxItem Content="Auto Imperial (ft / mi)" Tag="AutoImperial"/><ComboBoxItem Content="Feet (ft)" Tag="Feet"/><ComboBoxItem Content="Inches (in)" Tag="Inches"/>
+                                        <ComboBoxItem Content="Yards (yd)" Tag="Yards"/><ComboBoxItem Content="Miles (mi)" Tag="Miles"/><ComboBoxItem Content="Nautical Miles (nmi)" Tag="NauticalMiles"/>
+                                    </ComboBox>
+                                    <Border Style="{StaticResource InfoPanelStyle}" Padding="14" Margin="0,16,0,0">
+                                        <StackPanel><TextBlock Text="Example" Foreground="#61C4F2" FontWeight="SemiBold"/><TextBlock Text="A distance of 1,234.56 metres is displayed as:" Style="{StaticResource HintTextStyle}" Margin="0,8,0,4"/><TextBlock x:Name="DistancePreviewText" Text="1.235 km (1234.6 m)" FontSize="19" FontWeight="Bold" Foreground="#61C4F2"/></StackPanel>
+                                    </Border>
+                                </StackPanel>
+                            </Border>
+                            <Border Grid.Column="2" Style="{StaticResource SettingsCardStyle}" MinHeight="320">
+                                <StackPanel>
+                                    <Grid Margin="0,0,0,12"><Grid.ColumnDefinitions><ColumnDefinition Width="58"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                        <Border Width="48" Height="48" CornerRadius="24" Background="#123D35"><TextBlock Text="⬡" FontSize="24" Foreground="#44D477" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                                        <StackPanel Grid.Column="1"><TextBlock Text="Area" Style="{StaticResource SectionTitleStyle}" FontSize="17"/><TextBlock Text="Polygon measurements, regions, coverage and saved area results." Style="{StaticResource HintTextStyle}"/></StackPanel>
+                                    </Grid>
+                                    <TextBlock Text="Area unit" Style="{StaticResource FieldLabelStyle}"/>
+                                    <ComboBox x:Name="AreaUnitCombo" Style="{StaticResource SettingsComboStyle}" SelectionChanged="OnUnitSelectionChanged" AutomationProperties.Name="Surface area units">
+                                        <ComboBoxItem Content="Auto Metric (m² / ha / km²)" Tag="AutoMetric"/><ComboBoxItem Content="Square metres (m²)" Tag="SquareMeters"/><ComboBoxItem Content="Square kilometres (km²)" Tag="SquareKilometers"/>
+                                        <ComboBoxItem Content="Hectares (ha)" Tag="Hectares"/><ComboBoxItem Content="Egyptian feddan (4,200.8335 m²)" Tag="EgyptianFeddan"/><ComboBoxItem Content="Square centimetres (cm²)" Tag="SquareCentimeters"/>
+                                        <ComboBoxItem Content="Square millimetres (mm²)" Tag="SquareMillimeters"/><ComboBoxItem Content="Auto Imperial (ft² / ac / mi²)" Tag="AutoImperial"/><ComboBoxItem Content="Square feet (ft²)" Tag="SquareFeet"/>
+                                        <ComboBoxItem Content="Square inches (in²)" Tag="SquareInches"/><ComboBoxItem Content="Square yards (yd²)" Tag="SquareYards"/><ComboBoxItem Content="Acres (ac)" Tag="Acres"/><ComboBoxItem Content="Square miles (mi²)" Tag="SquareMiles"/>
+                                    </ComboBox>
+                                    <Border Style="{StaticResource InfoPanelStyle}" Padding="14" Margin="0,16,0,0">
+                                        <StackPanel><TextBlock Text="Example" Foreground="#61C4F2" FontWeight="SemiBold"/><TextBlock Text="An area of 1,250,000 square metres is displayed as:" Style="{StaticResource HintTextStyle}" Margin="0,8,0,4"/><TextBlock x:Name="AreaPreviewText" Text="1.250 km² (125.0 ha)" FontSize="19" FontWeight="Bold" Foreground="#61C4F2"/></StackPanel>
+                                    </Border>
+                                </StackPanel>
+                            </Border>
+                            <Border Grid.Column="4" Style="{StaticResource SettingsCardStyle}" MinHeight="320">
+                                <StackPanel>
+                                    <Grid Margin="0,0,0,12"><Grid.ColumnDefinitions><ColumnDefinition Width="58"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                        <Border Width="48" Height="48" CornerRadius="24" Background="#12364A"><TextBlock Text="▲" FontSize="23" Foreground="{DynamicResource Brush.Accent}" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                                        <StackPanel Grid.Column="1"><TextBlock Text="Elevation" Style="{StaticResource SectionTitleStyle}" FontSize="17"/><TextBlock Text="Terrain samples, profiles, placemark altitude and eye height." Style="{StaticResource HintTextStyle}"/></StackPanel>
+                                    </Grid>
+                                    <TextBlock Text="Elevation unit" Style="{StaticResource FieldLabelStyle}"/>
+                                    <ComboBox x:Name="ElevationUnitCombo" Style="{StaticResource SettingsComboStyle}" SelectionChanged="OnUnitSelectionChanged" AutomationProperties.Name="Elevation units">
+                                        <ComboBoxItem Content="Metres (m)" Tag="Meters"/><ComboBoxItem Content="Kilometres (km)" Tag="Kilometers"/><ComboBoxItem Content="Centimetres (cm)" Tag="Centimeters"/>
+                                        <ComboBoxItem Content="Millimetres (mm)" Tag="Millimeters"/><ComboBoxItem Content="Feet (ft)" Tag="Feet"/><ComboBoxItem Content="Inches (in)" Tag="Inches"/>
+                                    </ComboBox>
+                                    <Border Style="{StaticResource InfoPanelStyle}" Padding="14" Margin="0,16,0,0">
+                                        <StackPanel><TextBlock Text="Example" Foreground="#61C4F2" FontWeight="SemiBold"/><TextBlock Text="An elevation of 987.65 metres is displayed as:" Style="{StaticResource HintTextStyle}" Margin="0,8,0,4"/><TextBlock x:Name="ElevationPreviewText" Text="987.7 m" FontSize="19" FontWeight="Bold" Foreground="#61C4F2"/></StackPanel>
+                                    </Border>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                        <Border Style="{StaticResource InfoPanelStyle}" Margin="0,14,0,0" Padding="18">
+                            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="54"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                <Border Width="38" Height="38" CornerRadius="19" Background="{DynamicResource Brush.Accent}"><TextBlock Text="i" FontSize="20" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                                <StackPanel Grid.Column="1"><TextBlock Text="About Measurement Units" Style="{StaticResource SectionTitleStyle}" FontSize="16"/><TextBlock Text="Z EARTH stores length and elevation in metres and area in square metres; geodesic measurements use WGS 84. Unit choices affect display and supported export formatting only—they never redefine the map CRS or modify stored geometry." Style="{StaticResource HintTextStyle}" FontSize="11.5"/></StackPanel>
+                            </Grid>
                         </Border>
                     </StackPanel>
                 </ScrollViewer>
             </TabItem>
 
             <!-- Tab 2: Spatial Snapping -->
-            <TabItem Header="Spatial Snapping">
-                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="14">
+            <TabItem Header="Spatial Snapping" AutomationProperties.AutomationId="ZE.Options.Tab.Snapping">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16">
                     <StackPanel>
-                        <CheckBox x:Name="SnapEnabledCheck" Content="Enable Spatial Snapping for Vector Drawing &amp; Measurement" IsChecked="true" FontWeight="SemiBold" Margin="0,0,0,12" Foreground="{DynamicResource Brush.Text.Primary}"/>
-
-                        <Border Background="{DynamicResource Brush.Control.Background}" CornerRadius="4" Padding="10" Margin="0,0,0,14">
-                            <TextBlock Text="Snapping uses real geodesic ground distance on WGS 84. Its tolerance is stable in meters and does not change with screen resolution or zoom level."
-                                       TextWrapping="Wrap" Foreground="{DynamicResource Brush.Text.Secondary}"/>
-                        </Border>
-
-                        <TextBlock Text="Ground Tolerance (Meters)" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource Brush.Accent}" Margin="0,0,0,4"/>
-                        <Grid Margin="0,0,0,14">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="50"/>
-                            </Grid.ColumnDefinitions>
-                            <Slider x:Name="GroundToleranceSlider" Minimum="1" Maximum="50" Value="5" TickFrequency="1" IsSnapToTickEnabled="True" VerticalAlignment="Center"/>
-                            <TextBlock Grid.Column="1" Text="{Binding Value, ElementName=GroundToleranceSlider, StringFormat='{}{0} m'}" HorizontalAlignment="Right" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text.Primary}"/>
+                        <Grid Margin="4,0,4,14">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="64"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <TextBlock Text="⌖" FontSize="40" Foreground="{DynamicResource Brush.Accent}" VerticalAlignment="Center"/>
+                            <StackPanel Grid.Column="1">
+                                <TextBlock Text="Spatial Snapping" Style="{StaticResource SectionTitleStyle}" FontSize="19"/>
+                                <TextBlock Text="Control how Z EARTH snaps to geographic features when drawing and measuring." Style="{StaticResource HintTextStyle}" FontSize="12"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2"><CheckBox x:Name="SnapEnabledCheck" Content="Enable snapping" IsChecked="True" Style="{StaticResource SwitchCheckBoxStyle}"
+                                      FontWeight="SemiBold" FontSize="14" AutomationProperties.AutomationId="ZE.Options.Snapping.Enabled"/>
+                                <TextBlock Text="Snap to features while drawing and measuring." Style="{StaticResource HintTextStyle}" Margin="58,5,0,0"/>
+                            </StackPanel>
                         </Grid>
-
-                        <TextBlock Text="Active Snap Targets" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource Brush.Accent}" Margin="0,0,0,6"/>
-                        <CheckBox x:Name="SnapVerticesCheck" Content="Snap to Vertices (Points and corner vertices)" IsChecked="True" Margin="0,2" Foreground="{DynamicResource Brush.Text.Primary}"/>
-                        <CheckBox x:Name="SnapMidpointsCheck" Content="Snap to Segment Midpoints" IsChecked="True" Margin="0,2" Foreground="{DynamicResource Brush.Text.Primary}"/>
-                        <CheckBox x:Name="SnapEdgesCheck" Content="Snap to Nearest Edge / Boundary" IsChecked="True" Margin="0,2" Foreground="{DynamicResource Brush.Text.Primary}"/>
-                        <CheckBox x:Name="SnapIntersectionsCheck" Content="Snap to Intersections" IsChecked="True" Margin="0,2" Foreground="{DynamicResource Brush.Text.Primary}"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="1*"/><ColumnDefinition Width="14"/><ColumnDefinition Width="1.05*"/></Grid.ColumnDefinitions>
+                            <Border Grid.Column="0" Style="{StaticResource SettingsCardStyle}" MinHeight="400">
+                                <StackPanel>
+                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="48"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                        <TextBlock Text="⚙" FontSize="30" Foreground="{DynamicResource Brush.Accent}" VerticalAlignment="Center"/><StackPanel Grid.Column="1"><TextBlock Text="Snap Behavior" Style="{StaticResource SectionTitleStyle}" FontSize="17"/><TextBlock Text="Configure the ground tolerance used by all supported tools." Style="{StaticResource HintTextStyle}"/></StackPanel>
+                                    </Grid>
+                                    <Border Style="{StaticResource SettingsCardStyle}" Margin="0,18,0,0" Background="#1B252E">
+                                        <StackPanel>
+                                            <TextBlock Text="Ground tolerance" Style="{StaticResource SectionTitleStyle}"/>
+                                            <TextBlock Text="Maximum geodesic ground distance from a candidate to snap, in metres." Style="{StaticResource HintTextStyle}"/>
+                                            <Grid Margin="0,18,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="96"/></Grid.ColumnDefinitions>
+                                                <Slider x:Name="GroundToleranceSlider" Minimum="0.1" Maximum="100" Value="5" TickFrequency="0.1" IsSnapToTickEnabled="False"
+                                                        ValueChanged="OnGroundToleranceSliderChanged" VerticalAlignment="Center" AutomationProperties.Name="Ground tolerance in metres"/>
+                                                <TextBox x:Name="GroundToleranceInput" Grid.Column="1" Style="{StaticResource SettingsInputStyle}" Margin="14,0,0,0" Text="5.0"
+                                                         LostFocus="OnGroundToleranceInputLostFocus" AutomationProperties.Name="Ground tolerance numeric value in metres"/>
+                                            </Grid>
+                                            <Grid Margin="0,4,100,0"><TextBlock Text="0.1" Style="{StaticResource HintTextStyle}" HorizontalAlignment="Left"/><TextBlock Text="100 m" Style="{StaticResource HintTextStyle}" HorizontalAlignment="Right"/></Grid>
+                                            <Border Style="{StaticResource InfoPanelStyle}" Padding="12" Margin="0,18,0,0"><TextBlock Text="A larger tolerance makes nearby targets easier to acquire; use a smaller value for precise editing. The value is ground distance, not screen pixels." Style="{StaticResource HintTextStyle}"/></Border>
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+                            </Border>
+                            <Border Grid.Column="2" Style="{StaticResource SettingsCardStyle}" MinHeight="400">
+                                <StackPanel>
+                                    <Grid Margin="0,0,0,12"><Grid.ColumnDefinitions><ColumnDefinition Width="48"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><TextBlock Text="▱" FontSize="30" Foreground="{DynamicResource Brush.Accent}"/><StackPanel Grid.Column="1"><TextBlock Text="Active Snap Targets" Style="{StaticResource SectionTitleStyle}" FontSize="17"/><TextBlock Text="Choose which existing geometry may attract the pointer." Style="{StaticResource HintTextStyle}"/></StackPanel></Grid>
+                                    <Border Style="{StaticResource TargetRowStyle}"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="48"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><CheckBox x:Name="SnapVerticesCheck" IsChecked="True" VerticalAlignment="Center" AutomationProperties.Name="Snap to vertices and endpoints"/><TextBlock Grid.Column="1" Text="⌁" FontSize="25" Foreground="#61C4F2" HorizontalAlignment="Center"/><StackPanel Grid.Column="2"><TextBlock Text="Vertices and endpoints" FontWeight="SemiBold"/><TextBlock Text="Existing points, nodes, and line or polygon endpoints." Style="{StaticResource HintTextStyle}"/></StackPanel></Grid></Border>
+                                    <Border Style="{StaticResource TargetRowStyle}"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="48"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><CheckBox x:Name="SnapMidpointsCheck" IsChecked="True" VerticalAlignment="Center" AutomationProperties.Name="Snap to segment midpoints"/><TextBlock Grid.Column="1" Text="—•—" FontSize="18" Foreground="#61C4F2" HorizontalAlignment="Center"/><StackPanel Grid.Column="2"><TextBlock Text="Segment midpoints" FontWeight="SemiBold"/><TextBlock Text="The calculated midpoint of existing line and polygon segments." Style="{StaticResource HintTextStyle}"/></StackPanel></Grid></Border>
+                                    <Border Style="{StaticResource TargetRowStyle}"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="48"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><CheckBox x:Name="SnapEdgesCheck" IsChecked="True" VerticalAlignment="Center" AutomationProperties.Name="Snap to nearest edge or boundary"/><TextBlock Grid.Column="1" Text="▱" FontSize="25" Foreground="#61C4F2" HorizontalAlignment="Center"/><StackPanel Grid.Column="2"><TextBlock Text="Nearest edge or boundary" FontWeight="SemiBold"/><TextBlock Text="The closest projected position along an eligible segment." Style="{StaticResource HintTextStyle}"/></StackPanel></Grid></Border>
+                                    <Border Style="{StaticResource TargetRowStyle}" Margin="0"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="48"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><CheckBox x:Name="SnapIntersectionsCheck" IsChecked="True" VerticalAlignment="Center" AutomationProperties.Name="Snap to intersections"/><TextBlock Grid.Column="1" Text="＋" FontSize="27" Foreground="#61C4F2" HorizontalAlignment="Center"/><StackPanel Grid.Column="2"><TextBlock Text="Intersections" FontWeight="SemiBold"/><TextBlock Text="True crossings between eligible segments in the cursor's local tangent plane." Style="{StaticResource HintTextStyle}"/></StackPanel></Grid></Border>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                        <Border Style="{StaticResource InfoPanelStyle}" Margin="0,14,0,0" Padding="18">
+                            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="54"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Border Width="38" Height="38" CornerRadius="19" Background="{DynamicResource Brush.Accent}"><TextBlock Text="?" FontSize="20" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><StackPanel Grid.Column="1"><TextBlock Text="How Spatial Snapping Works" Style="{StaticResource SectionTitleStyle}" FontSize="16"/><TextBlock Text="Drawing and measurement tools evaluate saved placemarks plus active drawing/measurement vertices and segments. The closest enabled target inside the ground tolerance wins; unsupported layers are ignored rather than reported as snapped. Intersections exclude shared endpoints because vertex snapping owns those candidates." Style="{StaticResource HintTextStyle}" FontSize="11.5"/></StackPanel></Grid>
+                        </Border>
                     </StackPanel>
                 </ScrollViewer>
             </TabItem>
 
             <!-- Tab 3: Basemap startup and display -->
-            <TabItem Header="Basemap &amp; Display">
-                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="14">
+            <TabItem Header="Basemap &amp; Display" AutomationProperties.AutomationId="ZE.Options.Tab.Display">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16">
                     <StackPanel>
-                        <TextBlock Text="Startup Basemap" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource Brush.Accent}" Margin="0,0,0,6"/>
-                        <ComboBox x:Name="DefaultBasemapCombo" Height="28" Margin="0,0,0,14" Background="{DynamicResource Brush.Control.Background}" Foreground="{DynamicResource Brush.Text.Primary}">
-                            <ComboBoxItem Content="Natural Earth II (Offline Cartographic — Zero Network)" Tag="offline-vector"/>
-                            <ComboBoxItem Content="OpenStreetMap Standard" Tag="osm-standard"/>
-                            <ComboBoxItem Content="OpenStreetMap Humanitarian" Tag="osm-humanitarian"/>
-                            <ComboBoxItem Content="CyclOSM Cycling Map" Tag="osm-cycling"/>
-                            <ComboBoxItem Content="OpenTopoMap (Topographic Relief)" Tag="opentopo"/>
-                            <ComboBoxItem Content="CartoDB Dark Matter" Tag="carto-dark"/>
-                            <ComboBoxItem Content="CartoDB Positron (Light)" Tag="carto-light"/>
-                            <ComboBoxItem Content="CARTO Voyager" Tag="carto-voyager"/>
-                            <ComboBoxItem Content="Esri World Imagery (No Labels)" Tag="esri-imagery"/>
-                            <ComboBoxItem Content="Esri World Imagery (Hybrid Labels)" Tag="esri-hybrid"/>
-                            <ComboBoxItem Content="Esri World Street Map" Tag="esri-streets"/>
-                            <ComboBoxItem Content="Esri World Topographic Map" Tag="esri-topo"/>
-                            <ComboBoxItem Content="Esri Light Gray Canvas" Tag="esri-gray"/>
-                            <ComboBoxItem Content="Esri World Physical Map" Tag="esri-physical"/>
-                            <ComboBoxItem Content="Esri World Shaded Relief" Tag="esri-shaded-relief"/>
-                            <ComboBoxItem Content="Esri Ocean &amp; Bathymetry" Tag="esri-ocean"/>
-                        </ComboBox>
-
-                        <TextBlock Text="Screenshot save folder" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource Brush.Accent}" Margin="0,0,0,6"/>
-                        <TextBox x:Name="ScreenshotDirectoryInput" Height="28" Margin="0,0,0,14" ToolTip="Enter an absolute local folder path for saved map screenshots"/>
-
-                        <TextBlock Text="Interface Theme" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource Brush.Accent}" Margin="0,0,0,6"/>
-                        <ComboBox x:Name="ThemeCombo" Height="28" Margin="0,0,0,14" Background="{DynamicResource Brush.Control.Background}" Foreground="{DynamicResource Brush.Text.Primary}">
-                            <ComboBoxItem Content="Dark Charcoal Theme (GIS Optimized)" Tag="Dark"/>
-                            <ComboBoxItem Content="Light Theme (Cartographic High-Contrast)" Tag="Light"/>
-                        </ComboBox>
-
-                        <TextBlock Text="Interface Language" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource Brush.Accent}" Margin="0,0,0,6"/>
-                        <ComboBox x:Name="LanguageCombo" Height="28" Margin="0,0,0,14" Background="{DynamicResource Brush.Control.Background}" Foreground="{DynamicResource Brush.Text.Primary}">
-                            <ComboBoxItem Content="English (US/UK)" Tag="en"/>
-                            <ComboBoxItem Content="العربية (Arabic - RTL)" Tag="ar"/>
-                        </ComboBox>
-
-                        <CheckBox x:Name="SceneMarkersCheck" Content="Show Saved Scene Locations as Map Ground Markers" Margin="0,4" Foreground="{DynamicResource Brush.Text.Primary}"/>
-
-                        <TextBlock Text="Map Credits &amp; Attribution Display" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource Brush.Accent}" Margin="0,10,0,6"/>
-                        <ComboBox x:Name="CreditsModeCombo" Height="28" Margin="0,0,0,8" Background="{DynamicResource Brush.Control.Background}" Foreground="{DynamicResource Brush.Text.Primary}">
-                            <ComboBoxItem Content="Compact (Horizontal Provider Row + Lightbox Modal)" Tag="Compact"/>
-                            <ComboBoxItem Content="Expanded (Full In-Viewport Text Attribution)" Tag="Expanded"/>
-                        </ComboBox>
-                        <CheckBox x:Name="ProviderLogosCheck" Content="Show Optional Provider Brand Logos (Cesium, Esri, OSM, CARTO)" Margin="0,4" Foreground="{DynamicResource Brush.Text.Primary}"/>
-
-                        <TextBlock Text="Navigation &amp; Zoom Step Factor" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource Brush.Accent}" Margin="0,10,0,4"/>
-                        <Grid Margin="0,0,0,10">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="60"/>
-                            </Grid.ColumnDefinitions>
-                            <Slider x:Name="ZoomSensitivitySlider" Minimum="0.10" Maximum="0.60" Value="0.33" TickFrequency="0.05" IsSnapToTickEnabled="True" VerticalAlignment="Center"/>
-                            <TextBlock Grid.Column="1" Text="{Binding Value, ElementName=ZoomSensitivitySlider, StringFormat='{}{0:P0}'}" HorizontalAlignment="Right" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text.Primary}"/>
+                        <Grid Margin="4,0,4,14">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="64"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                            <TextBlock Text="▰" FontSize="38" Foreground="{DynamicResource Brush.Accent}" VerticalAlignment="Center"/>
+                            <StackPanel Grid.Column="1">
+                                <TextBlock Text="Basemap &amp; Display" Style="{StaticResource SectionTitleStyle}" FontSize="19"/>
+                                <TextBlock Text="Set the startup map, interface appearance, attribution, screenshots, and navigation response." Style="{StaticResource HintTextStyle}" FontSize="12"/>
+                            </StackPanel>
+                        </Grid>
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="1.05*"/><ColumnDefinition Width="16"/><ColumnDefinition Width="1*"/></Grid.ColumnDefinitions>
+                            <Border Grid.Column="0" Style="{StaticResource SettingsCardStyle}" Padding="14">
+                                <DockPanel>
+                                    <StackPanel DockPanel.Dock="Top" Margin="4,0,4,10"><TextBlock Text="Startup Basemap" Style="{StaticResource SectionTitleStyle}" FontSize="17"/><TextBlock Text="Select the default source used when Z EARTH starts. Hosted maps require internet and provider attribution." Style="{StaticResource HintTextStyle}"/></StackPanel>
+                                    <ListBox x:Name="DefaultBasemapCombo" Style="{StaticResource GalleryListStyle}" ItemContainerStyle="{StaticResource GalleryItemStyle}" MaxHeight="555" AutomationProperties.Name="Default startup basemap gallery">
+                                        <ListBoxItem Tag="esri-imagery"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="76"/><ColumnDefinition Width="*"/><ColumnDefinition Width="78"/></Grid.ColumnDefinitions><Border Style="{StaticResource BasemapThumbnailFrameStyle}" Background="{StaticResource BasemapThumbSatellite}"/><StackPanel Grid.Column="1"><TextBlock Text="Esri World Imagery" FontWeight="Bold"/><TextBlock Text="Satellite and aerial imagery without reference labels." Style="{StaticResource HintTextStyle}"/></StackPanel><StackPanel Grid.Column="2"><TextBlock Text="No app key" Foreground="#55D891" FontWeight="SemiBold" HorizontalAlignment="Right"/><TextBlock Text="Online" Style="{StaticResource HintTextStyle}" HorizontalAlignment="Right"/></StackPanel></Grid></ListBoxItem>
+                                        <ListBoxItem Tag="esri-hybrid"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="76"/><ColumnDefinition Width="*"/><ColumnDefinition Width="78"/></Grid.ColumnDefinitions><Border Style="{StaticResource BasemapThumbnailFrameStyle}" Background="{StaticResource BasemapThumbHybrid}"/><StackPanel Grid.Column="1"><TextBlock Text="Esri World Imagery (Hybrid Labels)" FontWeight="Bold"/><TextBlock Text="Imagery with roads, boundaries and place-name overlay." Style="{StaticResource HintTextStyle}"/></StackPanel><StackPanel Grid.Column="2"><TextBlock Text="No app key" Foreground="#55D891" FontWeight="SemiBold" HorizontalAlignment="Right"/><TextBlock Text="Online" Style="{StaticResource HintTextStyle}" HorizontalAlignment="Right"/></StackPanel></Grid></ListBoxItem>
+                                        <ListBoxItem Tag="osm-standard"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="76"/><ColumnDefinition Width="*"/><ColumnDefinition Width="78"/></Grid.ColumnDefinitions><Border Style="{StaticResource BasemapThumbnailFrameStyle}" Background="{StaticResource BasemapThumbStreet}"/><StackPanel Grid.Column="1"><TextBlock Text="OpenStreetMap Standard" FontWeight="Bold"/><TextBlock Text="Community street map; OSM attribution required." Style="{StaticResource HintTextStyle}"/></StackPanel><StackPanel Grid.Column="2"><TextBlock Text="No key" Foreground="#55D891" FontWeight="SemiBold" HorizontalAlignment="Right"/><TextBlock Text="Online" Style="{StaticResource HintTextStyle}" HorizontalAlignment="Right"/></StackPanel></Grid></ListBoxItem>
+                                        <ListBoxItem Tag="opentopo"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="76"/><ColumnDefinition Width="*"/><ColumnDefinition Width="78"/></Grid.ColumnDefinitions><Border Style="{StaticResource BasemapThumbnailFrameStyle}" Background="{StaticResource BasemapThumbTopo}"/><StackPanel Grid.Column="1"><TextBlock Text="OpenTopoMap" FontWeight="Bold"/><TextBlock Text="Topographic raster with contours and relief." Style="{StaticResource HintTextStyle}"/></StackPanel><StackPanel Grid.Column="2"><TextBlock Text="No key" Foreground="#55D891" FontWeight="SemiBold" HorizontalAlignment="Right"/><TextBlock Text="Online" Style="{StaticResource HintTextStyle}" HorizontalAlignment="Right"/></StackPanel></Grid></ListBoxItem>
+                                        <ListBoxItem Tag="esri-gray"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="76"/><ColumnDefinition Width="*"/><ColumnDefinition Width="78"/></Grid.ColumnDefinitions><Border Style="{StaticResource BasemapThumbnailFrameStyle}" Background="{StaticResource BasemapThumbLight}"/><StackPanel Grid.Column="1"><TextBlock Text="Esri Light Gray Canvas" FontWeight="Bold"/><TextBlock Text="Low-contrast reference map for thematic overlays." Style="{StaticResource HintTextStyle}"/></StackPanel><StackPanel Grid.Column="2"><TextBlock Text="No app key" Foreground="#55D891" FontWeight="SemiBold" HorizontalAlignment="Right"/><TextBlock Text="Online" Style="{StaticResource HintTextStyle}" HorizontalAlignment="Right"/></StackPanel></Grid></ListBoxItem>
+                                        <ListBoxItem Tag="carto-dark" IsEnabled="False" Opacity="0.62" ToolTip="CARTO hosted basemaps now require provider-authorized access and an API key; this legacy entry is retained for settings compatibility."><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="76"/><ColumnDefinition Width="*"/><ColumnDefinition Width="90"/></Grid.ColumnDefinitions><Border Style="{StaticResource BasemapThumbnailFrameStyle}" Background="{StaticResource BasemapThumbDark}"/><StackPanel Grid.Column="1"><TextBlock Text="CARTO Dark Matter" FontWeight="Bold"/><TextBlock Text="Legacy entry retained; hosted access requires CARTO authorization." Style="{StaticResource HintTextStyle}"/></StackPanel><StackPanel Grid.Column="2"><TextBlock Text="Key required" Foreground="#F3B35B" FontWeight="SemiBold" HorizontalAlignment="Right"/><TextBlock Text="Unavailable" Style="{StaticResource HintTextStyle}" HorizontalAlignment="Right"/></StackPanel></Grid></ListBoxItem>
+                                        <ListBoxItem Tag="offline-vector"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="76"/><ColumnDefinition Width="*"/><ColumnDefinition Width="78"/></Grid.ColumnDefinitions><Border Style="{StaticResource BasemapThumbnailFrameStyle}" Background="{StaticResource BasemapThumbPhysical}"/><StackPanel Grid.Column="1"><TextBlock Text="Natural Earth II (Offline)" FontWeight="Bold"/><TextBlock Text="Bundled cartographic raster; zero network required." Style="{StaticResource HintTextStyle}"/></StackPanel><StackPanel Grid.Column="2"><TextBlock Text="Bundled" Foreground="#55D891" FontWeight="SemiBold" HorizontalAlignment="Right"/><TextBlock Text="Offline" Style="{StaticResource HintTextStyle}" HorizontalAlignment="Right"/></StackPanel></Grid></ListBoxItem>
+                                        <ListBoxItem Tag="osm-humanitarian"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="76"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Border Style="{StaticResource BasemapThumbnailFrameStyle}" Background="{StaticResource BasemapThumbStreet}"/><StackPanel Grid.Column="1"><TextBlock Text="OpenStreetMap Humanitarian" FontWeight="Bold"/><TextBlock Text="Humanitarian cartography • online • attribution required" Style="{StaticResource HintTextStyle}"/></StackPanel></Grid></ListBoxItem>
+                                        <ListBoxItem Tag="osm-cycling"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="76"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Border Style="{StaticResource BasemapThumbnailFrameStyle}" Background="{StaticResource BasemapThumbStreet}"/><StackPanel Grid.Column="1"><TextBlock Text="CyclOSM Cycling Map" FontWeight="Bold"/><TextBlock Text="Cycling cartography • online • attribution required" Style="{StaticResource HintTextStyle}"/></StackPanel></Grid></ListBoxItem>
+                                        <ListBoxItem Tag="carto-light" IsEnabled="False" Opacity="0.62" ToolTip="Provider-authorized CARTO access and an API key are required."><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="76"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Border Style="{StaticResource BasemapThumbnailFrameStyle}" Background="{StaticResource BasemapThumbLight}"/><StackPanel Grid.Column="1"><TextBlock Text="CARTO Positron — key required" FontWeight="Bold"/><TextBlock Text="Legacy compatibility entry; hosted access is unavailable without authorization." Style="{StaticResource HintTextStyle}"/></StackPanel></Grid></ListBoxItem>
+                                        <ListBoxItem Tag="carto-voyager" IsEnabled="False" Opacity="0.62" ToolTip="Provider-authorized CARTO access and an API key are required."><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="76"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Border Style="{StaticResource BasemapThumbnailFrameStyle}" Background="{StaticResource BasemapThumbHybrid}"/><StackPanel Grid.Column="1"><TextBlock Text="CARTO Voyager — key required" FontWeight="Bold"/><TextBlock Text="Legacy compatibility entry; hosted access is unavailable without authorization." Style="{StaticResource HintTextStyle}"/></StackPanel></Grid></ListBoxItem>
+                                        <ListBoxItem Tag="esri-streets"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="76"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Border Style="{StaticResource BasemapThumbnailFrameStyle}" Background="{StaticResource BasemapThumbStreet}"/><StackPanel Grid.Column="1"><TextBlock Text="Esri World Street Map" FontWeight="Bold"/><TextBlock Text="Worldwide street reference • online" Style="{StaticResource HintTextStyle}"/></StackPanel></Grid></ListBoxItem>
+                                        <ListBoxItem Tag="esri-topo"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="76"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Border Style="{StaticResource BasemapThumbnailFrameStyle}" Background="{StaticResource BasemapThumbTopo}"/><StackPanel Grid.Column="1"><TextBlock Text="Esri World Topographic Map" FontWeight="Bold"/><TextBlock Text="Worldwide topographic reference • online" Style="{StaticResource HintTextStyle}"/></StackPanel></Grid></ListBoxItem>
+                                        <ListBoxItem Tag="esri-physical"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="76"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Border Style="{StaticResource BasemapThumbnailFrameStyle}" Background="{StaticResource BasemapThumbPhysical}"/><StackPanel Grid.Column="1"><TextBlock Text="Esri World Physical Map" FontWeight="Bold"/><TextBlock Text="Physical geography reference • online" Style="{StaticResource HintTextStyle}"/></StackPanel></Grid></ListBoxItem>
+                                        <ListBoxItem Tag="esri-shaded-relief"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="76"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Border Style="{StaticResource BasemapThumbnailFrameStyle}" Background="{StaticResource BasemapThumbTopo}"/><StackPanel Grid.Column="1"><TextBlock Text="Esri World Shaded Relief" FontWeight="Bold"/><TextBlock Text="2D relief imagery—not numeric terrain" Style="{StaticResource HintTextStyle}"/></StackPanel></Grid></ListBoxItem>
+                                        <ListBoxItem Tag="esri-ocean"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="76"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Border Style="{StaticResource BasemapThumbnailFrameStyle}" Background="{StaticResource TerrainThumbBathymetry}"/><StackPanel Grid.Column="1"><TextBlock Text="Esri Ocean &amp; Bathymetry" FontWeight="Bold"/><TextBlock Text="Ocean imagery—not 3D seabed geometry" Style="{StaticResource HintTextStyle}"/></StackPanel></Grid></ListBoxItem>
+                                    </ListBox>
+                                </DockPanel>
+                            </Border>
+                            <StackPanel Grid.Column="2">
+                                <Border Style="{StaticResource SettingsCardStyle}" Margin="0,0,0,12"><StackPanel><TextBlock Text="Credits &amp; Provider Identity" Style="{StaticResource SectionTitleStyle}" FontSize="16"/><TextBlock Text="Attribution display" Style="{StaticResource FieldLabelStyle}" Margin="0,8,0,5"/><ComboBox x:Name="CreditsModeCombo" Style="{StaticResource SettingsComboStyle}" Margin="0,0,0,8"><ComboBoxItem Content="Compact provider row + details panel" Tag="Compact"/><ComboBoxItem Content="Expanded in-viewport text attribution" Tag="Expanded"/></ComboBox><CheckBox x:Name="ProviderLogosCheck" Content="Show optional provider identity marks" Margin="0,4"/><TextBlock Text="Required text credits remain visible even when optional marks are hidden." Style="{StaticResource HintTextStyle}" Margin="22,0,0,10"/><Border Background="#182129" BorderBrush="#46525C" BorderThickness="1" CornerRadius="7" Padding="12"><WrapPanel><TextBlock Text="Esri" FontWeight="Bold" Margin="0,0,20,0"/><TextBlock Text="OpenStreetMap" FontWeight="Bold" Margin="0,0,20,0"/><TextBlock Text="OpenTopoMap" FontWeight="Bold" Margin="0,0,20,0"/><TextBlock Text="Natural Earth" FontWeight="Bold"/></WrapPanel></Border></StackPanel>
+                                </Border>
+                                <Border Style="{StaticResource SettingsCardStyle}" Margin="0,0,0,12"><StackPanel><TextBlock Text="Output, Appearance &amp; Navigation" Style="{StaticResource SectionTitleStyle}" FontSize="16"/><TextBlock Text="Screenshot folder" Style="{StaticResource FieldLabelStyle}" Margin="0,8,0,5"/><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBox x:Name="ScreenshotDirectoryInput" Style="{StaticResource SettingsInputStyle}" ToolTip="Absolute local folder for saved screenshots"/><Button Grid.Column="1" Content="Browse…" Style="{StaticResource SecondaryButtonStyle}" Margin="8,0,0,0" Click="OnBrowseScreenshotFolderClick" AutomationProperties.Name="Browse screenshot folder"/></Grid><Grid Margin="0,12,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><StackPanel><TextBlock Text="Theme" Style="{StaticResource FieldLabelStyle}"/><ComboBox x:Name="ThemeCombo" Style="{StaticResource SettingsComboStyle}"><ComboBoxItem Content="Dark Charcoal" Tag="Dark"/><ComboBoxItem Content="Light High-Contrast" Tag="Light"/></ComboBox></StackPanel><StackPanel Grid.Column="2"><TextBlock Text="Language" Style="{StaticResource FieldLabelStyle}"/><ComboBox x:Name="LanguageCombo" Style="{StaticResource SettingsComboStyle}"><ComboBoxItem Content="English" Tag="en"/><ComboBoxItem Content="العربية" Tag="ar"/></ComboBox></StackPanel></Grid><CheckBox x:Name="SceneMarkersCheck" Content="Show saved scene locations as ground markers" Margin="0,12,0,0"/><TextBlock Text="Navigation zoom step" Style="{StaticResource FieldLabelStyle}" Margin="0,12,0,5"/><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="54"/></Grid.ColumnDefinitions><Slider x:Name="ZoomSensitivitySlider" Minimum="0.10" Maximum="0.60" Value="0.33" TickFrequency="0.05" IsSnapToTickEnabled="True"/><TextBlock Grid.Column="1" Text="{Binding Value, ElementName=ZoomSensitivitySlider, StringFormat='{}{0:P0}'}" HorizontalAlignment="Right" Foreground="{DynamicResource Brush.Accent}" FontWeight="SemiBold"/></Grid></StackPanel>
+                                </Border>
+                                <Border Style="{StaticResource InfoPanelStyle}"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="44"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Border Width="32" Height="32" CornerRadius="16" Background="{DynamicResource Brush.Accent}"><TextBlock Text="?" FontWeight="Bold" FontSize="17" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><StackPanel Grid.Column="1"><TextBlock Text="Basemap Information" Style="{StaticResource SectionTitleStyle}"/><TextBlock Text="Save Settings applies the selection to the live Cesium globe. Hosted services need internet access and may enforce quotas or fair-use terms. Z EARTH keeps required credits visible and does not cache hosted tiles for offline redistribution." Style="{StaticResource HintTextStyle}"/></StackPanel></Grid></Border>
+                            </StackPanel>
                         </Grid>
                     </StackPanel>
                 </ScrollViewer>
             </TabItem>
 
             <!-- Terrain provider selection and startup behavior -->
-            <TabItem Header="Terrain Models">
-                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="14">
+            <TabItem Header="Terrain Models" AutomationProperties.AutomationId="ZE.Options.Tab.Terrain">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16">
                     <StackPanel>
-                        <TextBlock Text="Default Elevation Model" FontWeight="Bold" FontSize="13" Foreground="{DynamicResource Brush.Accent}" Margin="0,0,0,7"/>
-                        <ComboBox x:Name="TerrainProviderCombo" Height="30" Margin="0,0,0,8" Background="{DynamicResource Brush.Control.Background}" Foreground="{DynamicResource Brush.Text.Primary}">
-                            <ComboBoxItem Content="AWS Open Data Terrarium DEM — global, free, no key" Tag="demTerrain"/>
-                            <ComboBoxItem Content="WGS84 Smooth Ellipsoid — offline, no elevation" Tag="ellipsoid"/>
-                            <ComboBoxItem Content="Cesium World Terrain / Copernicus GLO-30 — free ion account required" Tag="worldTerrain"/>
-                            <ComboBoxItem Content="Cesium World Bathymetry / GEBCO 2023 — free ion account required" Tag="worldBathymetry"/>
-                            <ComboBoxItem Content="Custom Cesium Quantized-Mesh Service" Tag="custom"/>
-                        </ComboBox>
-                        <TextBlock Text="This selection is the model used when Terrain is enabled from the ribbon; saving Options does not toggle terrain. AWS Terrain Tiles provide global land elevation but are not guaranteed to be bare-earth everywhere. For a dedicated DTM such as FABDEM, publish it as quantized-mesh and use Custom. World Bathymetry combines GEBCO ocean depths with land terrain. Token-backed choices fall back safely to the ellipsoid if authentication fails."
-                                   TextWrapping="Wrap" FontSize="11" Foreground="{DynamicResource Brush.Text.Secondary}" Margin="0,0,0,14"/>
+                        <Grid Margin="4,0,4,14">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="64"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <TextBlock Text="⌁" FontSize="40" Foreground="#65BCEB" VerticalAlignment="Center"/>
+                            <StackPanel Grid.Column="1">
+                                <TextBlock Text="Terrain Models &amp; Bathymetry" Style="{StaticResource SectionTitleStyle}" FontSize="19"/>
+                                <TextBlock Text="Choose, connect, and verify numeric elevation sources for land and seafloor visualization." Style="{StaticResource HintTextStyle}" FontSize="12"/>
+                            </StackPanel>
+                            <Border Grid.Column="2" x:Name="TerrainConnectionPill" Background="#342128" BorderBrush="#6A3941" BorderThickness="1" CornerRadius="14" Padding="12,5" VerticalAlignment="Center">
+                                <StackPanel Orientation="Horizontal">
+                                    <Ellipse x:Name="TerrainConnectionDot" Width="8" Height="8" Fill="#EF5350" Margin="0,0,7,0" VerticalAlignment="Center"/>
+                                    <TextBlock x:Name="TerrainConnectionText" Text="Not tested" FontWeight="SemiBold"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
 
-                        <TextBlock Text="Cesium ion access token (stored locally)" FontWeight="SemiBold" Margin="0,0,0,4"/>
-                        <PasswordBox x:Name="CesiumIonTokenBox" Height="28" Margin="0,0,0,12" Background="{DynamicResource Brush.Control.Background}" Foreground="{DynamicResource Brush.Text.Primary}"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="1.02*"/><ColumnDefinition Width="14"/><ColumnDefinition Width="1.08*"/><ColumnDefinition Width="14"/><ColumnDefinition Width="0.9*"/></Grid.ColumnDefinitions>
+                            <Border Grid.Column="0" Style="{StaticResource SettingsCardStyle}" Padding="12">
+                                <DockPanel><TextBlock DockPanel.Dock="Top" Text="Available Elevation Models" Style="{StaticResource SectionTitleStyle}" FontSize="16" Foreground="#65BCEB" Margin="4,0,4,10"/>
+                                    <ListBox x:Name="TerrainProviderCombo" Style="{StaticResource GalleryListStyle}" ItemContainerStyle="{StaticResource GalleryItemStyle}" SelectionChanged="OnTerrainProviderSelectionChanged" MaxHeight="535" AutomationProperties.Name="Default elevation model gallery">
+                                        <ListBoxItem Tag="demTerrain"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="64"/><ColumnDefinition Width="*"/><ColumnDefinition Width="72"/></Grid.ColumnDefinitions><Border Style="{StaticResource TerrainThumbnailFrameStyle}" Background="{StaticResource TerrainThumbDem}"/><StackPanel Grid.Column="1"><TextBlock Text="AWS Terrarium DEM" FontWeight="Bold"/><TextBlock Text="Global numeric land elevation" Style="{StaticResource HintTextStyle}"/></StackPanel><TextBlock Grid.Column="2" Text="No key" Foreground="#55D891" HorizontalAlignment="Right"/></Grid></ListBoxItem>
+                                        <ListBoxItem Tag="copernicusGlo30"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="64"/><ColumnDefinition Width="*"/><ColumnDefinition Width="84"/></Grid.ColumnDefinitions><Border Style="{StaticResource TerrainThumbnailFrameStyle}" Background="{StaticResource TerrainThumbDem}"/><StackPanel Grid.Column="1"><TextBlock Text="Copernicus DEM GLO-30" FontWeight="Bold"/><TextBlock Text="Official CDSE Process API • 30 m DSM" Style="{StaticResource HintTextStyle}"/></StackPanel><TextBlock Grid.Column="2" Text="Free API" Foreground="#55D891" HorizontalAlignment="Right"/></Grid></ListBoxItem>
+                                        <ListBoxItem Tag="srtm30"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="64"/><ColumnDefinition Width="*"/><ColumnDefinition Width="84"/></Grid.ColumnDefinitions><Border Style="{StaticResource TerrainThumbnailFrameStyle}" Background="{StaticResource TerrainThumbDem}"/><StackPanel Grid.Column="1"><TextBlock Text="SRTM-backed Terrain" FontWeight="Bold"/><TextBlock Text="AWS Terrain Tiles • ~30 m source regions" Style="{StaticResource HintTextStyle}"/></StackPanel><TextBlock Grid.Column="2" Text="No key" Foreground="#55D891" HorizontalAlignment="Right"/></Grid></ListBoxItem>
+                                        <ListBoxItem Tag="aw3d30"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="64"/><ColumnDefinition Width="*"/><ColumnDefinition Width="84"/></Grid.ColumnDefinitions><Border Style="{StaticResource TerrainThumbnailFrameStyle}" Background="{StaticResource TerrainThumbDem}"/><StackPanel Grid.Column="1"><TextBlock Text="JAXA AW3D30" FontWeight="Bold"/><TextBlock Text="Official JAXA Earth API • ~30 m DSM" Style="{StaticResource HintTextStyle}"/></StackPanel><TextBlock Grid.Column="2" Text="No key" Foreground="#55D891" HorizontalAlignment="Right"/></Grid></ListBoxItem>
+                                        <ListBoxItem Tag="worldTerrain"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="64"/><ColumnDefinition Width="*"/><ColumnDefinition Width="72"/></Grid.ColumnDefinitions><Border Style="{StaticResource TerrainThumbnailFrameStyle}" Background="{StaticResource TerrainThumbWorld}"/><StackPanel Grid.Column="1"><TextBlock Text="Cesium World Terrain" FontWeight="Bold"/><TextBlock Text="Global land terrain; ion asset 1" Style="{StaticResource HintTextStyle}"/></StackPanel><TextBlock Grid.Column="2" Text="ion token" Foreground="#61C4F2" HorizontalAlignment="Right"/></Grid></ListBoxItem>
+                                        <ListBoxItem Tag="worldBathymetry"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="64"/><ColumnDefinition Width="*"/><ColumnDefinition Width="72"/></Grid.ColumnDefinitions><Border Style="{StaticResource TerrainThumbnailFrameStyle}" Background="{StaticResource TerrainThumbBathymetry}"/><StackPanel Grid.Column="1"><TextBlock Text="Cesium World Bathymetry" FontWeight="Bold"/><TextBlock Text="Land + seabed relief; asset 2426648" Style="{StaticResource HintTextStyle}"/></StackPanel><TextBlock Grid.Column="2" Text="ion token" Foreground="#61C4F2" HorizontalAlignment="Right"/></Grid></ListBoxItem>
+                                        <ListBoxItem Tag="gebco2026"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="64"/><ColumnDefinition Width="*"/><ColumnDefinition Width="84"/></Grid.ColumnDefinitions><Border Style="{StaticResource TerrainThumbnailFrameStyle}" Background="{StaticResource TerrainThumbGebco}"/><StackPanel Grid.Column="1"><TextBlock Text="GEBCO 2026 Bathymetry" FontWeight="Bold"/><TextBlock Text="Australian Antarctic Division mirror • 15 arc-second" Style="{StaticResource HintTextStyle}"/></StackPanel><TextBlock Grid.Column="2" Text="No key" Foreground="#55D891" HorizontalAlignment="Right"/></Grid></ListBoxItem>
+                                        <ListBoxItem Tag="ellipsoid"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="64"/><ColumnDefinition Width="*"/><ColumnDefinition Width="72"/></Grid.ColumnDefinitions><Border Style="{StaticResource TerrainThumbnailFrameStyle}" Background="{StaticResource TerrainThumbEllipsoid}"/><StackPanel Grid.Column="1"><TextBlock Text="WGS84 Ellipsoid" FontWeight="Bold"/><TextBlock Text="Smooth globe; no elevation" Style="{StaticResource HintTextStyle}"/></StackPanel><TextBlock Grid.Column="2" Text="Offline" Foreground="#D6D9DC" HorizontalAlignment="Right"/></Grid></ListBoxItem>
+                                        <ListBoxItem Tag="localDem"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="64"/><ColumnDefinition Width="*"/><ColumnDefinition Width="72"/></Grid.ColumnDefinitions><Border Style="{StaticResource TerrainThumbnailFrameStyle}" Background="{StaticResource TerrainThumbLocal}"/><StackPanel Grid.Column="1"><TextBlock Text="Local DEM / Bathymetry" FontWeight="Bold"/><TextBlock Text="GeoTIFF/IMG/DEM numeric raster" Style="{StaticResource HintTextStyle}"/></StackPanel><TextBlock Grid.Column="2" Text="Local" Foreground="#61C4F2" HorizontalAlignment="Right"/></Grid></ListBoxItem>
+                                        <ListBoxItem Tag="custom"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="64"/><ColumnDefinition Width="*"/><ColumnDefinition Width="72"/></Grid.ColumnDefinitions><Border Style="{StaticResource TerrainThumbnailFrameStyle}" Background="{StaticResource TerrainThumbCustom}"/><StackPanel Grid.Column="1"><TextBlock Text="Custom Quantized-Mesh Service" FontWeight="Bold"/><TextBlock Text="Authorized HTTPS terrain endpoint" Style="{StaticResource HintTextStyle}"/></StackPanel><TextBlock Grid.Column="2" Text="Online" Foreground="#61C4F2" HorizontalAlignment="Right"/></Grid></ListBoxItem>
+                                    </ListBox>
+                                </DockPanel>
+                            </Border>
 
-                        <TextBlock Text="Custom quantized-mesh URL" FontWeight="SemiBold" Margin="0,0,0,4"/>
-                        <TextBox x:Name="CustomTerrainUrlBox" Height="28" Margin="0,0,0,8" Background="{DynamicResource Brush.Control.Background}" Foreground="{DynamicResource Brush.Text.Primary}"/>
-                        <TextBlock Text="Example: https://your-server.example/terrain/ (must expose layer.json and quantized-mesh tiles)."
-                                   TextWrapping="Wrap" FontSize="10.5" Foreground="{DynamicResource Brush.Text.Secondary}"/>
+                            <Border Grid.Column="2" Style="{StaticResource SettingsCardStyle}">
+                                <StackPanel>
+                                    <TextBlock Text="Source Configuration" Style="{StaticResource SectionTitleStyle}"/>
+                                    <Border Background="#17364A" BorderBrush="#2D739A" BorderThickness="1" CornerRadius="7" Padding="12" Margin="0,8,0,12"><StackPanel><TextBlock x:Name="TerrainSourceTitle" Text="AWS Terrarium DEM" FontWeight="Bold" FontSize="15"/><TextBlock x:Name="TerrainSourceSummary" Text="Global numeric land elevation from AWS Open Data." Style="{StaticResource HintTextStyle}" Margin="0,4,0,0"/></StackPanel></Border>
+                                    <TextBlock x:Name="TerrainRequirementsText" Text="No credentials are required for AWS Terrarium DEM."
+                                               Style="{StaticResource HintTextStyle}" Margin="0,0,0,12"/>
+
+                                    <StackPanel x:Name="IonConfigurationPanel">
+                                        <TextBlock Text="Cesium ion access token" Style="{StaticResource FieldLabelStyle}"/>
+                                        <Grid Margin="0,0,0,7"><PasswordBox x:Name="CesiumIonTokenBox" Height="38" Padding="8,5" Background="{DynamicResource Brush.Control.Background}" Foreground="{DynamicResource Brush.Text.Primary}" BorderBrush="{DynamicResource Brush.Control.Border}" PasswordChanged="OnCesiumTokenPasswordChanged" AutomationProperties.Name="Cesium ion access token"/><TextBox x:Name="CesiumIonTokenVisibleBox" Style="{StaticResource SettingsInputStyle}" Visibility="Collapsed" TextChanged="OnCesiumTokenVisibleChanged"/><Button Content="👁" HorizontalAlignment="Right" Width="42" Margin="0,1,1,1" Style="{StaticResource SecondaryButtonStyle}" Click="OnToggleTokenVisibilityClick" AutomationProperties.Name="Show or hide Cesium ion token"/></Grid>
+                                        <Grid x:Name="TerrainAssetIdPanel" Margin="0,0,0,8"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="120"/></Grid.ColumnDefinitions><TextBlock Text="Asset access is validated by the Cesium engine." Style="{StaticResource HintTextStyle}" VerticalAlignment="Center"/><TextBox Grid.Column="1" Text="2426648" IsReadOnly="True" Style="{StaticResource SettingsInputStyle}" AutomationProperties.Name="Cesium World Bathymetry asset id"/></Grid>
+                                        <TextBlock Text="The token is kept in process memory only and is excluded from settings.json and logs. Managed deployments may use ZEARTH_CESIUM_ION_TOKEN." Style="{StaticResource HintTextStyle}" Margin="0,0,0,12"/>
+                                    </StackPanel>
+
+                                    <StackPanel x:Name="CustomTerrainPanel">
+                                        <TextBlock Text="Custom quantized-mesh service URL" Style="{StaticResource FieldLabelStyle}"/>
+                                        <TextBox x:Name="CustomTerrainUrlBox" Style="{StaticResource SettingsInputStyle}" Margin="0,0,0,5"
+                                                 ToolTip="HTTPS URL whose root exposes layer.json and quantized-mesh tiles"/>
+                                        <TextBlock Text="The HTTPS service root must expose layer.json and Cesium quantized-mesh tiles. Arbitrary file and private-network URLs are rejected."
+                                                   Style="{StaticResource HintTextStyle}" Margin="0,0,0,12"/>
+                                    </StackPanel>
+
+                                    <StackPanel x:Name="CopernicusApiPanel" Visibility="Collapsed">
+                                        <TextBlock Text="Copernicus Data Space OAuth access token" Style="{StaticResource FieldLabelStyle}"/>
+                                        <PasswordBox x:Name="CopernicusAccessTokenBox" Height="38" Padding="8,5" Margin="0,0,0,6" Background="{DynamicResource Brush.Control.Background}" Foreground="{DynamicResource Brush.Text.Primary}" BorderBrush="{DynamicResource Brush.Control.Border}" AutomationProperties.Name="Copernicus Data Space access token"/>
+                                        <TextBlock Text="GLO-30 is free after CDSE/CCM registration, but its official Process API is authenticated. This token is kept in memory only and is never written to settings.json." Style="{StaticResource HintTextStyle}" Margin="0,0,0,12"/>
+                                    </StackPanel>
+
+                                    <StackPanel x:Name="LocalTerrainPanel" Visibility="Collapsed">
+                                        <Button Content="Browse Numeric Elevation Raster…" Style="{StaticResource SecondaryButtonStyle}" Margin="0,0,0,8" Click="OnBrowseLocalDemClick" AutomationProperties.Name="Choose local numeric elevation raster"/>
+                                        <TextBlock Text="Stored vertical unit" Style="{StaticResource FieldLabelStyle}"/>
+                                        <ComboBox x:Name="LocalTerrainVerticalUnitCombo" Style="{StaticResource SettingsComboStyle}" Margin="0,0,0,8"><ComboBoxItem Content="Metres" Tag="Meters"/><ComboBoxItem Content="Feet (converted to metres)" Tag="Feet"/></ComboBox>
+                                        <TextBlock x:Name="LocalDemMetadataText" Text="Select a georeferenced numeric raster. GDAL validates its CRS, transform, band and NoData before Z EARTH can render it." Style="{StaticResource HintTextStyle}" Margin="0,0,0,8"/>
+                                        <Button x:Name="GebcoGuideButton" Content="Open official GEBCO guidance ↗" Style="{StaticResource SecondaryButtonStyle}" Margin="0,0,0,12" Click="OnOpenGebcoGuidanceClick"/>
+                                    </StackPanel>
+
+                                    <Grid Margin="0,2,0,12">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="10"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                        <Button Content="Test Connection" Style="{StaticResource PrimaryButtonStyle}" Click="OnTestTerrainConnectionClick"
+                                                AutomationProperties.AutomationId="ZE.Options.Terrain.Test"/>
+                                        <Button Grid.Column="2" x:Name="GetCesiumIonTokenButton" Content="Get Cesium ion Token ↗" Style="{StaticResource SecondaryButtonStyle}"
+                                                Click="OnOpenCesiumIonClick"/>
+                                    </Grid>
+                                    <TextBlock x:Name="TerrainTestResultText" Text="A connection test uses the embedded Cesium engine and may temporarily apply the selected source to the current globe."
+                                               Style="{StaticResource HintTextStyle}"/>
+                                </StackPanel>
+                            </Border>
+
+                            <StackPanel Grid.Column="4">
+                                <Border Style="{StaticResource SettingsCardStyle}" Margin="0,0,0,14">
+                                    <StackPanel>
+                                        <TextBlock Text="Source Help" Style="{StaticResource SectionTitleStyle}"/>
+                                        <TextBlock x:Name="TerrainHelpTitle" Text="AWS Terrarium DEM" FontWeight="Bold" Foreground="#65BCEB" Margin="0,8,0,4"/>
+                                        <TextBlock x:Name="TerrainHelpText"
+                                                   Text="A free public heightmap source hosted through AWS Open Data. It supplies numeric land elevation to Cesium; coverage and source quality vary by region."
+                                                   Style="{StaticResource HintTextStyle}"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border Style="{StaticResource InfoPanelStyle}">
+                                    <StackPanel>
+                                        <TextBlock Text="GIS Source Truth" Style="{StaticResource SectionTitleStyle}"/>
+                                        <TextBlock Text="• Terrain tiles contain numeric heights and can shape the globe." Style="{StaticResource HintTextStyle}" Margin="0,5,0,2"/>
+                                        <TextBlock Text="• WMS and shaded-relief images are 2D imagery, not elevation." Style="{StaticResource HintTextStyle}" Margin="0,2"/>
+                                        <TextBlock Text="• A raw DEM/GeoTIFF needs tiling or conversion before Cesium can render it as terrain." Style="{StaticResource HintTextStyle}" Margin="0,2"/>
+                                        <TextBlock Text="• GEBCO 2026 is a dataset, not a ready TerrainServer endpoint." Style="{StaticResource HintTextStyle}" Margin="0,2"/>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </Grid>
+                        <Border Style="{StaticResource SettingsCardStyle}" Margin="0,14,0,0" Padding="14"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="56"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Text="⚙" FontSize="30" Foreground="{DynamicResource Brush.Text.Primary}" VerticalAlignment="Center"/><StackPanel Grid.Column="1"><TextBlock Text="Default Elevation Model" Style="{StaticResource SectionTitleStyle}" FontSize="15"/><TextBlock Text="The selected source is saved as the preferred provider. Saving does not turn Terrain on; the ribbon owns OFF, loading, success, and error state." Style="{StaticResource HintTextStyle}"/></StackPanel><TextBlock x:Name="DefaultTerrainSummary" Grid.Column="2" Text="AWS Terrarium DEM" FontWeight="SemiBold" Foreground="#61C4F2" VerticalAlignment="Center" Margin="18,0,0,0"/></Grid></Border>
                     </StackPanel>
                 </ScrollViewer>
             </TabItem>
 
             <!-- Dedicated grid configuration: deliberately isolated from basemap settings. -->
-            <TabItem Header="Map Grid">
-                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="14">
+            <TabItem Header="Map Grid" AutomationProperties.AutomationId="ZE.Options.Tab.Grid">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12">
                     <StackPanel>
-                        <TextBlock Text="Geographic Coordinate Grid" FontWeight="Bold" FontSize="13" Foreground="{DynamicResource Brush.Accent}" Margin="0,0,0,8"/>
-                        <CheckBox x:Name="KeyParallelsCheck" Content="Major Geographic Reference Lines &amp; Points (Equator, Tropics, Polar Circles, Greenwich, Date Line, Poles)" IsChecked="True" Margin="0,4,0,10" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text.Primary}"/>
-                        <CheckBox x:Name="LongitudeLinesCheck" Content="Show longitude lines (meridians)" Margin="16,4,0,4" Foreground="{DynamicResource Brush.Text.Primary}"/>
-                        <CheckBox x:Name="LatitudeLinesCheck" Content="Show latitude lines (parallels)" Margin="16,4,0,4" Foreground="{DynamicResource Brush.Text.Primary}"/>
-                        <CheckBox x:Name="GraticuleLabelsCheck" Content="Show coordinate labels" Margin="16,4,0,4" Foreground="{DynamicResource Brush.Text.Primary}"/>
-                        <TextBlock Text="Grid coordinate labels (independent from status-bar Format Units)" FontWeight="SemiBold" Margin="16,8,0,4" Foreground="{DynamicResource Brush.Text.Primary}"/>
-                        <ComboBox x:Name="GridLabelFormatCombo" Height="30" Margin="16,0,0,12" Background="{DynamicResource Brush.Control.Background}" Foreground="{DynamicResource Brush.Text.Primary}">
-                            <ComboBoxItem Content="Degrees, minutes, seconds (DMS)" Tag="DMS"/>
-                            <ComboBoxItem Content="Degrees and decimal minutes (DM)" Tag="DM"/>
-                            <ComboBoxItem Content="Decimal degrees (DD)" Tag="DD"/>
-                            <ComboBoxItem Content="Whole degrees only" Tag="Degrees"/>
-                        </ComboBox>
+                        <!-- Grid identity + single authoritative ON/OFF state -->
+                        <Border Background="{DynamicResource Brush.Sidebar.Background}"
+                                BorderBrush="{DynamicResource Brush.Ribbon.Border}"
+                                BorderThickness="1" CornerRadius="8" Padding="12,10" Margin="0,0,0,8">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <Path Data="{StaticResource Icon.CrsGlobe}" Stretch="Uniform"
+                                      Width="26" Height="26" Fill="{DynamicResource Brush.Accent}"
+                                      Margin="0,0,10,0" VerticalAlignment="Center"/>
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock Text="Geographic Coordinate Grid" FontSize="15" FontWeight="Bold"
+                                               Foreground="{DynamicResource Brush.Text.Primary}"/>
+                                    <TextBlock Text="Geographic reference lines, grid lines, coordinate labels and UTM zone boundaries."
+                                               FontSize="11" TextWrapping="Wrap"
+                                               Foreground="{DynamicResource Brush.Text.Secondary}" Margin="0,2,0,0"/>
+                                </StackPanel>
+                                <Button x:Name="ResetGridDefaultsButton" Grid.Column="2" Content="Reset to defaults"
+                                        Height="26" Padding="10,0" Margin="0,0,10,0" VerticalAlignment="Center"
+                                        Click="OnResetGridDefaultsClick"
+                                        Background="{DynamicResource Brush.Control.Background}"
+                                        Foreground="{DynamicResource Brush.Text.Primary}"
+                                        BorderBrush="{DynamicResource Brush.Control.Border}" BorderThickness="1"
+                                        ToolTip="Restore the documented Map Grid defaults. Nothing is saved until Save Settings."/>
+                                <Border x:Name="GridStatePill" Grid.Column="3" CornerRadius="14" Padding="12,5"
+                                        Background="#22303A" BorderBrush="{DynamicResource Brush.Control.Border}"
+                                        BorderThickness="1" VerticalAlignment="Center"
+                                        ToolTip="Controlled by View → Show Grid">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Ellipse x:Name="GridStateDot" Width="8" Height="8" Fill="#9CA3AF"
+                                                 Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                        <TextBlock x:Name="GridStateText" Text="Grid OFF" FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource Brush.Text.Primary}"/>
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+                        </Border>
 
-                        <TextBlock Text="Includes Equator, Greenwich/Prime Meridian, International Date Line, Tropics, Polar Circles, both Poles, and Grid Origin 0°/0°. Major lines override coincident regular lines."
-                                   TextWrapping="Wrap" FontSize="11" Foreground="{DynamicResource Brush.Text.Secondary}" Margin="16,0,0,14"/>
+                        <!-- Visibility and independent colours -->
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="318"/>
+                            </Grid.ColumnDefinitions>
+                            <Border Grid.Column="0" Margin="0,0,8,0"
+                                    Background="{DynamicResource Brush.Sidebar.Background}"
+                                    BorderBrush="{DynamicResource Brush.Ribbon.Border}"
+                                    BorderThickness="1" CornerRadius="8" Padding="12,10">
+                                <StackPanel>
+                                    <TextBlock Text="Grid Visibility" FontWeight="Bold" FontSize="12.5"
+                                               Foreground="{DynamicResource Brush.Text.Primary}" Margin="0,0,0,8"/>
+                                    <CheckBox x:Name="KeyParallelsCheck"
+                                              Content="Major Geographic Reference Lines &amp; Points"
+                                              IsChecked="True" FontWeight="SemiBold"
+                                              Style="{StaticResource SwitchCheckBoxStyle}"
+                                              Foreground="{DynamicResource Brush.Text.Primary}"/>
+                                    <TextBlock Text="Equator, Tropics, Polar Circles, Greenwich, Date Line, both Poles and Grid Origin 0°, 0°."
+                                               TextWrapping="Wrap" FontSize="10.5" Margin="22,2,0,8"
+                                               Foreground="{DynamicResource Brush.Text.Secondary}"/>
+                                    <CheckBox x:Name="LongitudeLinesCheck" Content="Show longitude lines (meridians)"
+                                              Style="{StaticResource SwitchCheckBoxStyle}"
+                                              Margin="0,0,0,6" Foreground="{DynamicResource Brush.Text.Primary}"/>
+                                    <CheckBox x:Name="LatitudeLinesCheck" Content="Show latitude lines (parallels)"
+                                              Style="{StaticResource SwitchCheckBoxStyle}"
+                                              Margin="0,0,0,6" Foreground="{DynamicResource Brush.Text.Primary}"/>
+                                    <TextBlock Text="Labels are generated automatically for every enabled component. View → Show Grid overrides all of them."
+                                               TextWrapping="Wrap" FontSize="10.5" Margin="0,2,0,0"
+                                               Foreground="{DynamicResource Brush.Text.Secondary}"/>
+                                </StackPanel>
+                            </Border>
 
-                        <TextBlock Text="Longitude interval (degrees; 0 = automatic)" FontWeight="SemiBold" Margin="0,0,0,4"/>
-                        <TextBox x:Name="LongitudeIntervalInput" Width="128" HorizontalAlignment="Left" Height="28"
-                                 MaxLength="6" ToolTip="Enter 0 (auto) or a numeric interval from 0.05° to 60°"
-                                 Background="{DynamicResource Brush.Control.Background}" Foreground="{DynamicResource Brush.Text.Primary}" Margin="0,0,0,12"/>
+                            <Border Grid.Column="1"
+                                    Background="{DynamicResource Brush.Sidebar.Background}"
+                                    BorderBrush="{DynamicResource Brush.Ribbon.Border}"
+                                    BorderThickness="1" CornerRadius="8" Padding="12,10">
+                                <StackPanel>
+                                    <TextBlock Text="Grid Colors" FontWeight="Bold" FontSize="12.5"
+                                               Foreground="{DynamicResource Brush.Text.Primary}" Margin="0,0,0,8"/>
+                                    <Grid Margin="0,0,0,3">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="120"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Major reference lines &amp; points" VerticalAlignment="Center"
+                                                   FontSize="11.5" Foreground="{DynamicResource Brush.Text.Primary}"/>
+                                        <views:ColorPickerButton x:Name="MajorColorPicker" Grid.Column="1" ColorHex="#FF5252"/>
+                                    </Grid>
+                                    <Grid Margin="0,0,0,3">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="120"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Longitude lines (meridians)" VerticalAlignment="Center"
+                                                   FontSize="11.5" Foreground="{DynamicResource Brush.Text.Primary}"/>
+                                        <views:ColorPickerButton x:Name="LongitudeColorPicker" Grid.Column="1" ColorHex="#3BA9FF"/>
+                                    </Grid>
+                                    <Grid Margin="0,0,0,3">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="120"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Latitude lines (parallels)" VerticalAlignment="Center"
+                                                   FontSize="11.5" Foreground="{DynamicResource Brush.Text.Primary}"/>
+                                        <views:ColorPickerButton x:Name="LatitudeColorPicker" Grid.Column="1" ColorHex="#3AD17B"/>
+                                    </Grid>
+                                    <Grid Margin="0,0,0,3">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="120"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Coordinate labels" VerticalAlignment="Center"
+                                                   FontSize="11.5" Foreground="{DynamicResource Brush.Text.Primary}"/>
+                                        <views:ColorPickerButton x:Name="LabelColorPicker" Grid.Column="1" ColorHex="#E8E8E8"/>
+                                    </Grid>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="120"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="UTM zone boundaries" VerticalAlignment="Center"
+                                                   FontSize="11.5" Foreground="{DynamicResource Brush.Text.Primary}"/>
+                                        <views:ColorPickerButton x:Name="UtmColorPicker" Grid.Column="1" ColorHex="#FFC107"/>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
 
-                        <TextBlock Text="Latitude interval (degrees; 0 = automatic)" FontWeight="SemiBold" Margin="0,0,0,4"/>
-                        <TextBox x:Name="LatitudeIntervalInput" Width="128" HorizontalAlignment="Left" Height="28"
-                                 MaxLength="6" ToolTip="Enter 0 (auto) or a numeric interval from 0.05° to 60°"
-                                 Background="{DynamicResource Brush.Control.Background}" Foreground="{DynamicResource Brush.Text.Primary}" Margin="0,0,0,12"/>
+                        <!-- Label format, size and independent intervals -->
+                        <Border Background="{DynamicResource Brush.Sidebar.Background}"
+                                BorderBrush="{DynamicResource Brush.Ribbon.Border}"
+                                BorderThickness="1" CornerRadius="8" Padding="12,10" Margin="0,0,0,8">
+                            <StackPanel>
+                                <TextBlock Text="Label Format &amp; Appearance" FontWeight="Bold" FontSize="12.5"
+                                           Foreground="{DynamicResource Brush.Text.Primary}" Margin="0,0,0,8"/>
+                                <Grid>
+                                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="1.7*"/><ColumnDefinition Width="1.05*"/><ColumnDefinition Width="0.85*"/></Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" Margin="0,0,16,0">
+                                        <TextBlock Text="Coordinate format" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text.Primary}" Margin="0,0,0,6"/>
+                                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                            <RadioButton x:Name="GridFormatDdRadio" GroupName="GridFormat" Tag="DD" Style="{StaticResource GridFormatRadioStyle}" IsChecked="True" Checked="OnGridFormatChecked"><StackPanel><TextBlock Text="Decimal Degrees" FontWeight="SemiBold" TextAlignment="Center"/><TextBlock Text="−122.4194°" Style="{StaticResource HintTextStyle}" TextAlignment="Center" Margin="0,5,0,0"/></StackPanel></RadioButton>
+                                            <RadioButton x:Name="GridFormatDmRadio" Grid.Column="1" GroupName="GridFormat" Tag="DM" Style="{StaticResource GridFormatRadioStyle}" Checked="OnGridFormatChecked"><StackPanel><TextBlock Text="Degrees Minutes" FontWeight="SemiBold" TextAlignment="Center"/><TextBlock Text="122° 25.164′" Style="{StaticResource HintTextStyle}" TextAlignment="Center" Margin="0,5,0,0"/></StackPanel></RadioButton>
+                                            <RadioButton x:Name="GridFormatDmsRadio" Grid.Column="2" GroupName="GridFormat" Tag="DMS" Style="{StaticResource GridFormatRadioStyle}" Checked="OnGridFormatChecked"><StackPanel><TextBlock Text="DMS" FontWeight="SemiBold" TextAlignment="Center"/><TextBlock Text="122° 25′ 9.8″" Style="{StaticResource HintTextStyle}" TextAlignment="Center" Margin="0,5,0,0"/></StackPanel></RadioButton>
+                                            <RadioButton x:Name="GridFormatDegreesRadio" Grid.Column="3" GroupName="GridFormat" Tag="Degrees" Style="{StaticResource GridFormatRadioStyle}" Checked="OnGridFormatChecked"><StackPanel><TextBlock Text="Whole Degrees" FontWeight="SemiBold" TextAlignment="Center"/><TextBlock Text="122°" Style="{StaticResource HintTextStyle}" TextAlignment="Center" Margin="0,5,0,0"/></StackPanel></RadioButton>
+                                        </Grid>
+                                        <ComboBox x:Name="GridLabelFormatCombo" Visibility="Collapsed"><ComboBoxItem Content="Decimal degrees" Tag="DD"/><ComboBoxItem Content="Whole degrees" Tag="Degrees"/><ComboBoxItem Content="Degrees minutes" Tag="DM"/><ComboBoxItem Content="DMS" Tag="DMS"/></ComboBox>
+                                        <TextBlock Text="Trailing zeros are trimmed; whole coordinates stay clean (10°, not 10.000°)." Style="{StaticResource HintTextStyle}" Margin="0,5,0,0"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1" Margin="0,0,16,0">
+                                        <TextBlock Text="Label size" FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource Brush.Text.Primary}" Margin="0,0,0,7"/>
+                                        <Slider x:Name="GridLabelSizeSlider" Minimum="0" Maximum="3"
+                                                TickFrequency="1" IsSnapToTickEnabled="True" Value="2"
+                                                VerticalAlignment="Center" ValueChanged="OnGridLabelSizeChanged"/>
+                                        <Grid Margin="0,1,0,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock x:Name="SizeSmallText" Text="Small" FontSize="10" TextAlignment="Left"
+                                                       Foreground="{DynamicResource Brush.Text.Secondary}"/>
+                                            <TextBlock x:Name="SizeMediumText" Grid.Column="1" Text="Medium" FontSize="10" TextAlignment="Center"
+                                                       Foreground="{DynamicResource Brush.Text.Secondary}"/>
+                                            <TextBlock x:Name="SizeLargeText" Grid.Column="2" Text="Large" FontSize="10" TextAlignment="Center"
+                                                       Foreground="{DynamicResource Brush.Accent}" FontWeight="SemiBold"/>
+                                            <TextBlock x:Name="SizeExtraLargeText" Grid.Column="3" Text="Extra Large" FontSize="10" TextAlignment="Right"
+                                                       Foreground="{DynamicResource Brush.Text.Secondary}"/>
+                                        </Grid>
+                                    </StackPanel>
 
-                        <CheckBox x:Name="UtmZonesCheck" Content="Show UTM zone boundaries &amp; zone labels" Margin="0,4" Foreground="{DynamicResource Brush.Text.Primary}"/>
-                        <TextBlock Text="UTM label type" Margin="16,8,0,4" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text.Primary}"/>
-                        <ComboBox x:Name="UtmLabelModeCombo" Height="30" Margin="16,0,0,8" Background="{DynamicResource Brush.Control.Background}" Foreground="{DynamicResource Brush.Text.Primary}">
-                            <ComboBoxItem Content="UTM hemisphere + grid zone designation (e.g. UTM 36N · GZD 36R)" Tag="Both"/>
-                            <ComboBoxItem Content="UTM hemisphere only (e.g. 36N)" Tag="Hemisphere"/>
-                            <ComboBoxItem Content="Grid zone designation only (e.g. 36R)" Tag="GridZone"/>
-                        </ComboBox>
+                                    <StackPanel Grid.Column="2">
+                                        <TextBlock Text="Longitude interval (0 = auto)" FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource Brush.Text.Primary}" Margin="0,0,0,4"/>
+                                        <TextBox x:Name="LongitudeIntervalInput" Height="26" MaxLength="6"
+                                                 ToolTip="Enter 0 (auto) or a numeric interval from 0.05° to 60°"
+                                                 Background="{DynamicResource Brush.Control.Background}"
+                                                 Foreground="{DynamicResource Brush.Text.Primary}"
+                                                 BorderBrush="{DynamicResource Brush.Control.Border}"
+                                                 Margin="0,0,0,6"/>
+                                        <TextBlock Text="Latitude interval (0 = auto)" FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource Brush.Text.Primary}" Margin="0,0,0,4"/>
+                                        <TextBox x:Name="LatitudeIntervalInput" Height="26" MaxLength="6"
+                                                 ToolTip="Enter 0 (auto) or a numeric interval from 0.05° to 60°"
+                                                 Background="{DynamicResource Brush.Control.Background}"
+                                                 Foreground="{DynamicResource Brush.Text.Primary}"
+                                                 BorderBrush="{DynamicResource Brush.Control.Border}"/>
+                                        <TextBlock Text="Use 0 for automatic spacing at every zoom level. A fixed interval may be outside the current view."
+                                                   Style="{StaticResource HintTextStyle}" Margin="0,5,0,0"/>
+                                    </StackPanel>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- UTM zones -->
+                        <Border Background="{DynamicResource Brush.Sidebar.Background}"
+                                BorderBrush="{DynamicResource Brush.Ribbon.Border}"
+                                BorderThickness="1" CornerRadius="8" Padding="12,10"
+                                ToolTip="UTM zone labels are centered inside each 6° zone, never drawn on the boundary line.">
+                            <StackPanel>
+                                <Grid Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="UTM Zone Boundaries &amp; Labels" FontWeight="Bold" FontSize="12.5"
+                                               VerticalAlignment="Center"
+                                               Foreground="{DynamicResource Brush.Text.Primary}"/>
+                                    <CheckBox x:Name="UtmZonesCheck" Grid.Column="1" Content="Show UTM zone boundaries &amp; labels"
+                                              HorizontalAlignment="Right" VerticalAlignment="Center"
+                                              Style="{StaticResource SwitchCheckBoxStyle}"
+                                              Foreground="{DynamicResource Brush.Text.Primary}"/>
+                                </Grid>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="1*"/>
+                                        <ColumnDefinition Width="1.15*"/>
+                                        <ColumnDefinition Width="1.5*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" Margin="0,0,16,0">
+                                        <TextBlock Text="Boundary color" FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource Brush.Text.Primary}" Margin="0,0,0,4"/>
+                                        <views:ColorPickerButton x:Name="UtmBoundaryColorPicker" ColorHex="#FFC107"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1" Margin="0,0,16,0">
+                                        <TextBlock Text="Label placement" FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource Brush.Text.Primary}" Margin="0,0,0,4"/>
+                                        <ComboBox x:Name="UtmLabelPlacementCombo" Style="{StaticResource SettingsComboStyle}">
+                                            <ComboBoxItem Content="Center of each zone" Tag="Center"/>
+                                        </ComboBox>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="2">
+                                        <TextBlock Text="Label type" FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource Brush.Text.Primary}" Margin="0,0,0,4"/>
+                                        <ComboBox x:Name="UtmLabelModeCombo" Style="{StaticResource SettingsComboStyle}">
+                                            <ComboBoxItem Content="Grid zone designation (e.g. 36R)" Tag="GridZone"/>
+                                            <ComboBoxItem Content="UTM hemisphere (e.g. UTM 36N)" Tag="Hemisphere"/>
+                                            <ComboBoxItem Content="Hemisphere + grid zone designation" Tag="Both"/>
+                                        </ComboBox>
+                                    </StackPanel>
+                                </Grid>
+                                <Border Style="{StaticResource InfoPanelStyle}" Margin="0,10,0,0" Padding="10">
+                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="1.3*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                        <Border Height="170" CornerRadius="7" BorderBrush="#2D739A" BorderThickness="1" ClipToBounds="True" Background="#101C27">
+                                            <Grid AutomationProperties.Name="Dynamic map grid and UTM preview">
+                                                <!-- Image and overlays share one viewport so resizing cannot crop one independently of the other. -->
+                                                <Viewbox Stretch="Uniform" IsHitTestVisible="False">
+                                                  <Grid Width="1000" Height="375">
+                                                    <Image Source="pack://application:,,,/Assets/Options/map-grid-preview.png"
+                                                           Stretch="Fill" RenderOptions.BitmapScalingMode="HighQuality"/>
+                                                    <Canvas Width="1000" Height="375" ClipToBounds="True">
+                                                        <Canvas Width="1000" Height="375"
+                                                                Visibility="{Binding IsChecked, ElementName=LongitudeLinesCheck, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                            <Line X1="83" Y1="0" X2="83" Y2="375" Stroke="{Binding ColorHex, ElementName=LongitudeColorPicker}" StrokeThickness="3"/>
+                                                            <Line X1="167" Y1="0" X2="167" Y2="375" Stroke="{Binding ColorHex, ElementName=LongitudeColorPicker}" StrokeThickness="3"/>
+                                                            <Line X1="250" Y1="0" X2="250" Y2="375" Stroke="{Binding ColorHex, ElementName=LongitudeColorPicker}" StrokeThickness="3"/>
+                                                            <Line X1="333" Y1="0" X2="333" Y2="375" Stroke="{Binding ColorHex, ElementName=LongitudeColorPicker}" StrokeThickness="3"/>
+                                                            <Line X1="417" Y1="0" X2="417" Y2="375" Stroke="{Binding ColorHex, ElementName=LongitudeColorPicker}" StrokeThickness="3"/>
+                                                            <Line X1="583" Y1="0" X2="583" Y2="375" Stroke="{Binding ColorHex, ElementName=LongitudeColorPicker}" StrokeThickness="3"/>
+                                                            <Line X1="667" Y1="0" X2="667" Y2="375" Stroke="{Binding ColorHex, ElementName=LongitudeColorPicker}" StrokeThickness="3"/>
+                                                            <Line X1="750" Y1="0" X2="750" Y2="375" Stroke="{Binding ColorHex, ElementName=LongitudeColorPicker}" StrokeThickness="3"/>
+                                                            <Line X1="833" Y1="0" X2="833" Y2="375" Stroke="{Binding ColorHex, ElementName=LongitudeColorPicker}" StrokeThickness="3"/>
+                                                            <Line X1="917" Y1="0" X2="917" Y2="375" Stroke="{Binding ColorHex, ElementName=LongitudeColorPicker}" StrokeThickness="3"/>
+                                                            <TextBlock Canvas.Left="238" Canvas.Top="334.375" Text="90°W" FontSize="18" FontWeight="SemiBold" Foreground="{Binding ColorHex, ElementName=LabelColorPicker}"/>
+                                                            <TextBlock Canvas.Left="738" Canvas.Top="334.375" Text="90°E" FontSize="18" FontWeight="SemiBold" Foreground="{Binding ColorHex, ElementName=LabelColorPicker}"/>
+                                                        </Canvas>
+
+                                                        <Canvas Width="1000" Height="375"
+                                                                Visibility="{Binding IsChecked, ElementName=LatitudeLinesCheck, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                            <Line X1="0" Y1="62.5" X2="1000" Y2="62.5" Stroke="{Binding ColorHex, ElementName=LatitudeColorPicker}" StrokeThickness="3"/>
+                                                            <Line X1="0" Y1="125" X2="1000" Y2="125" Stroke="{Binding ColorHex, ElementName=LatitudeColorPicker}" StrokeThickness="3"/>
+                                                            <Line X1="0" Y1="250" X2="1000" Y2="250" Stroke="{Binding ColorHex, ElementName=LatitudeColorPicker}" StrokeThickness="3"/>
+                                                            <Line X1="0" Y1="312.5" X2="1000" Y2="312.5" Stroke="{Binding ColorHex, ElementName=LatitudeColorPicker}" StrokeThickness="3"/>
+                                                            <TextBlock Canvas.Left="8" Canvas.Top="25" Text="60°N" FontSize="18" FontWeight="SemiBold" Foreground="{Binding ColorHex, ElementName=LabelColorPicker}"/>
+                                                            <TextBlock Canvas.Left="8" Canvas.Top="87.5" Text="30°N" FontSize="18" FontWeight="SemiBold" Foreground="{Binding ColorHex, ElementName=LabelColorPicker}"/>
+                                                            <TextBlock Canvas.Left="8" Canvas.Top="212.5" Text="30°S" FontSize="18" FontWeight="SemiBold" Foreground="{Binding ColorHex, ElementName=LabelColorPicker}"/>
+                                                            <TextBlock Canvas.Left="8" Canvas.Top="275" Text="60°S" FontSize="18" FontWeight="SemiBold" Foreground="{Binding ColorHex, ElementName=LabelColorPicker}"/>
+                                                        </Canvas>
+
+                                                        <Canvas Width="1000" Height="375"
+                                                                Visibility="{Binding IsChecked, ElementName=KeyParallelsCheck, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                            <Line X1="0" Y1="187.5" X2="1000" Y2="187.5" Stroke="{Binding ColorHex, ElementName=MajorColorPicker}" StrokeThickness="5"/>
+                                                            <Line X1="500" Y1="0" X2="500" Y2="375" Stroke="{Binding ColorHex, ElementName=MajorColorPicker}" StrokeThickness="5"/>
+                                                            <Line X1="1" Y1="0" X2="1" Y2="375" Stroke="{Binding ColorHex, ElementName=MajorColorPicker}" StrokeThickness="4"/>
+                                                            <Line X1="999" Y1="0" X2="999" Y2="375" Stroke="{Binding ColorHex, ElementName=MajorColorPicker}" StrokeThickness="4"/>
+                                                            <Line X1="0" Y1="139.0625" X2="1000" Y2="139.0625" Stroke="{Binding ColorHex, ElementName=MajorColorPicker}" StrokeThickness="3" StrokeDashArray="8,5"/>
+                                                            <Line X1="0" Y1="235.9375" X2="1000" Y2="235.9375" Stroke="{Binding ColorHex, ElementName=MajorColorPicker}" StrokeThickness="3" StrokeDashArray="8,5"/>
+                                                            <Line X1="0" Y1="48.4375" X2="1000" Y2="48.4375" Stroke="{Binding ColorHex, ElementName=MajorColorPicker}" StrokeThickness="3" StrokeDashArray="8,5"/>
+                                                            <Line X1="0" Y1="326.5625" X2="1000" Y2="326.5625" Stroke="{Binding ColorHex, ElementName=MajorColorPicker}" StrokeThickness="3" StrokeDashArray="8,5"/>
+                                                            <Ellipse Canvas.Left="493" Canvas.Top="176.5625" Width="14" Height="14" Fill="{Binding ColorHex, ElementName=MajorColorPicker}" Stroke="White" StrokeThickness="2"/>
+                                                            <TextBlock Canvas.Left="510" Canvas.Top="193.75" Text="0°, 0°" FontSize="18" FontWeight="Bold" Foreground="{Binding ColorHex, ElementName=LabelColorPicker}"/>
+                                                        </Canvas>
+
+                                                        <Canvas Width="1000" Height="375"
+                                                                Visibility="{Binding IsChecked, ElementName=UtmZonesCheck, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                            <Line X1="50" Y1="0" X2="50" Y2="375" Stroke="{Binding ColorHex, ElementName=UtmBoundaryColorPicker}" StrokeThickness="4" StrokeDashArray="7,5"/>
+                                                            <Line X1="150" Y1="0" X2="150" Y2="375" Stroke="{Binding ColorHex, ElementName=UtmBoundaryColorPicker}" StrokeThickness="4" StrokeDashArray="7,5"/>
+                                                            <Line X1="350" Y1="0" X2="350" Y2="375" Stroke="{Binding ColorHex, ElementName=UtmBoundaryColorPicker}" StrokeThickness="4" StrokeDashArray="7,5"/>
+                                                            <Line X1="450" Y1="0" X2="450" Y2="375" Stroke="{Binding ColorHex, ElementName=UtmBoundaryColorPicker}" StrokeThickness="4" StrokeDashArray="7,5"/>
+                                                            <Line X1="550" Y1="0" X2="550" Y2="375" Stroke="{Binding ColorHex, ElementName=UtmBoundaryColorPicker}" StrokeThickness="4" StrokeDashArray="7,5"/>
+                                                            <Line X1="650" Y1="0" X2="650" Y2="375" Stroke="{Binding ColorHex, ElementName=UtmBoundaryColorPicker}" StrokeThickness="4" StrokeDashArray="7,5"/>
+                                                            <Line X1="850" Y1="0" X2="850" Y2="375" Stroke="{Binding ColorHex, ElementName=UtmBoundaryColorPicker}" StrokeThickness="4" StrokeDashArray="7,5"/>
+                                                            <Line X1="950" Y1="0" X2="950" Y2="375" Stroke="{Binding ColorHex, ElementName=UtmBoundaryColorPicker}" StrokeThickness="4" StrokeDashArray="7,5"/>
+                                                            <TextBlock Canvas.Left="260" Canvas.Top="145.3125" Text="18T" FontSize="20" FontWeight="Bold" Foreground="{Binding ColorHex, ElementName=UtmBoundaryColorPicker}"/>
+                                                            <TextBlock Canvas.Left="560" Canvas.Top="145.3125" Text="33N" FontSize="20" FontWeight="Bold" Foreground="{Binding ColorHex, ElementName=UtmBoundaryColorPicker}"/>
+                                                        </Canvas>
+                                                    </Canvas>
+                                                  </Grid>
+                                                </Viewbox>
+                                            </Grid>
+                                        </Border>
+                                        <TextBlock Grid.Column="1" Text="Preview of the selected grid colors and layers. Use automatic spacing to adapt the grid when zooming." Style="{StaticResource HintTextStyle}" VerticalAlignment="Center" Margin="12,0,0,0"/>
+                                    </Grid>
+                                </Border>
+                            </StackPanel>
+                        </Border>
                     </StackPanel>
                 </ScrollViewer>
             </TabItem>
         </TabControl>
 
         <!-- Action Buttons -->
-        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0">
-            <Button Content="Save Settings" Width="100" Height="28" Margin="0,0,8,0" IsDefault="True" Click="OnSaveClick"
-                    Background="{DynamicResource Brush.Accent}" Foreground="#ffffff" BorderThickness="0" FontWeight="SemiBold"/>
-            <Button Content="Cancel" Width="80" Height="28" IsCancel="True"
-                    Background="{DynamicResource Brush.Control.Background}" Foreground="{DynamicResource Brush.Text.Primary}"
-                    BorderBrush="{DynamicResource Brush.Control.Border}" BorderThickness="1"/>
-        </StackPanel>
+        <Border Grid.Row="2" Margin="0,12,0,0" Padding="14,10" CornerRadius="8"
+                Background="{DynamicResource Brush.Ribbon.Background}" BorderBrush="{DynamicResource Brush.Ribbon.Border}" BorderThickness="1">
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <TextBlock Text="Changes are applied after Save Settings. Terrain and Grid visibility remain controlled from the ribbon."
+                           Style="{StaticResource HintTextStyle}" VerticalAlignment="Center"/>
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button Content="Save Settings" Width="132" Style="{StaticResource PrimaryButtonStyle}" Margin="0,0,10,0"
+                            IsDefault="True" Click="OnSaveClick" AutomationProperties.AutomationId="ZE.Options.Save"/>
+                    <Button Content="Cancel" Width="92" Style="{StaticResource SecondaryButtonStyle}" IsCancel="True"
+                            AutomationProperties.AutomationId="ZE.Options.Cancel"/>
+                </StackPanel>
+            </Grid>
+        </Border>
     </Grid>
 </Window>
