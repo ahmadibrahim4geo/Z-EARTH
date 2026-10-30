@@ -67,6 +67,19 @@ public class ReferenceGridWaybackAcceptanceTests
     }
 
     [TestMethod]
+    public void WaybackConfig_DateOnlyReleaseLabel_RemainsCalendarDateInLocalTimezone()
+    {
+        var json = "{\"56102\":{\"releaseNum\":56102,\"releaseDateLabel\":\"2023-12-07\"," +
+            "\"itemURL\":\"https://wayback.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/56102/{level}/{row}/{col}\"}}";
+
+        var releases = WaybackService.ParseReleasesJson(json);
+        Assert.AreEqual(1, releases.Count);
+        var release = releases[0];
+        Assert.AreEqual(new DateTime(2023, 12, 7), release.Date);
+        Assert.AreEqual(TimeSpan.Zero, release.Date.TimeOfDay);
+    }
+
+    [TestMethod]
     public void WaybackConfig_RejectsUntrustedOriginAndDoesNotFabricateFallbackReleases()
     {
         var json = "{\"2023\":{\"releaseNum\":123,\"releaseDateLabel\":\"2023-12-07\"," +

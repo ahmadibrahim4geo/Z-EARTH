@@ -118,6 +118,35 @@ class StaticUIAuditTests(unittest.TestCase):
                 (Path(tmp) / name).write_text("<button id='open'>Open</button>", encoding="utf-8")
             self.assertEqual([], ui.audit_tree(tmp)["duplicate_declared_ids"])
 
+    def test_generated_build_directories_are_ignored(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "Views").mkdir()
+            (root / "bin" / "Release").mkdir(parents=True)
+            (root / "obj").mkdir()
+            (root / "Views" / "main.xaml").write_text(
+                '<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">'
+                '<Button Command="{Binding OpenCommand}"/></Window>', encoding="utf-8")
+            (root / "bin" / "Release" / "copy.xaml").write_text(
+                '<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">'
+                '<Button Command="{Binding StaleCommand}"/></Window>', encoding="utf-8")
+            (root / "obj" / "generated.xaml").write_text(
+                '<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">'
+                '<Button Command="{Binding GeneratedCommand}"/></Window>', encoding="utf-8")
+            report = ui.audit_tree(root)
+            self.assertEqual(1, report["files_scanned"])
+            self.assertEqual("{Binding OpenCommand}", report["entries"][0]["binding_target"])
+
+    def test_checkbox_state_binding_is_a_declared_binding(self):
+        source = (
+            '<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">'
+            '<CheckBox Content="Grid" IsChecked="{Binding ShowGrid, Mode=TwoWay}"/>'
+            '</Window>'
+        )
+        entries = ui.scan_xaml(source, "window.xaml")
+        self.assertEqual("DECLARED_BINDING", entries[0]["static_status"])
+        self.assertEqual("IsChecked", entries[0]["binding_kind"])
+
     def test_missing_relative_icon_is_detected_without_fetching(self):
         with tempfile.TemporaryDirectory() as tmp:
             (Path(tmp) / "panel.html").write_text(

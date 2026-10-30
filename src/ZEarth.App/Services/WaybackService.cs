@@ -113,7 +113,12 @@ public sealed class WaybackService
 
     private static bool TryParseDate(string? value, out DateTime date)
     {
-        if (DateTime.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out date)) return true;
+        // Esri's releaseDateLabel is a calendar date, not an instant. Parse that
+        // shape before timestamp parsing so a Windows local timezone never shifts
+        // 2023-12-07 to 02:00 (or to the previous/next calendar day).
+        if (DateTime.TryParseExact(value, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out date)) return true;
+        if (DateTime.TryParse(value, CultureInfo.InvariantCulture,
+                DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out date)) return true;
         var match = DatePattern.Match(value ?? string.Empty);
         return match.Success && DateTime.TryParseExact($"{match.Groups["y"].Value}-{match.Groups["m"].Value.PadLeft(2, '0')}-{match.Groups["d"].Value.PadLeft(2, '0')}", "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out date);
     }

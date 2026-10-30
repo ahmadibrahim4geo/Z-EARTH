@@ -1,6 +1,6 @@
 # Z EARTH desktop — user-reported UI and command-path audit
 
-**Reviewed:** 2026-10-25; source: GitHub `main` at start of review, improvements on PR #9. Uses project-local skills `zearth-google-earth-pro-workflows`, `zearth-globe-bridge`, `zearth-verification`, `gis-security-guardian`, `kml-kmz-engineering` and `gis-cartography-symbology`.
+**Reviewed:** 2026-10-25; source: GitHub `main` at start of review, improvements on PR #9. Current routing uses `gis-development` with `gis-ui-command-audit`, `gis-desktop-e2e-testing`, `gis-security-guardian`, `kml-kmz-engineering`, and `gis-cartography-symbology`; removed project-local skill paths are not active.
 
 ## T0–T4 evidence boundaries
 

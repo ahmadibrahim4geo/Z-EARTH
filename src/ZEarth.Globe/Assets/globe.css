@@ -1302,3 +1302,505 @@ body.light-theme .history-timeline{background:rgba(250,250,250,.98);color:#1e202
 body.light-theme .history-status,body.light-theme .history-period,body.light-theme .history-credit,body.light-theme .history-heading small{color:#555a5f}
 body.light-theme .history-button{background:#eeeff0;color:#202124;border-color:#acafb2}
 body.light-theme .history-controls input,body.light-theme .history-footer select{background:white;color:#202124;border-color:#acafb2}
+
+/* ==================== ENHANCED SUNLIGHT & SOLAR TIME STYLES ==================== */
+.sunlight-hud {
+  position: fixed;
+  top: 70px;
+  left: 20px;
+  background: rgba(22, 26, 34, 0.96);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  border-radius: 10px;
+  padding: 12px 14px;
+  width: 380px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.65), 0 0 1px 1px rgba(251, 191, 36, 0.15);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 1050;
+  pointer-events: auto !important;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: #f1f5f9;
+}
+
+.sunlight-header {
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sunlight-header:active {
+  cursor: grabbing;
+}
+
+.sunlight-grip {
+  color: #94a3b8;
+  font-size: 14px;
+  margin-right: 4px;
+  cursor: grab;
+}
+
+.sunlight-brand {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.sunlight-icon {
+  font-size: 16px;
+}
+
+.sunlight-title {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #fbbf24;
+  letter-spacing: 0.2px;
+}
+
+.sunlight-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sunlight-date-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.sunlight-date-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  padding: 2px 6px;
+}
+
+.sunlight-date-icon {
+  font-size: 12px;
+}
+
+.sunlight-date-input {
+  background: transparent;
+  border: none;
+  color: #e2e8f0;
+  font-size: 11px;
+  font-family: inherit;
+  outline: none;
+  cursor: pointer;
+}
+
+.sunlight-day-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #cbd5e1;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.sunlight-day-btn:hover {
+  background: rgba(251, 191, 36, 0.25);
+  color: #fbbf24;
+  border-color: #fbbf24;
+}
+
+.sunlight-phase-pill {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(251, 191, 36, 0.15);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  border-radius: 12px;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #fde68a;
+}
+
+.sunlight-clock-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  padding: 6px;
+}
+
+.sunlight-digital-time {
+  font-size: 15px;
+  font-weight: 700;
+  color: #38bdf8;
+  letter-spacing: 0.8px;
+  font-variant-numeric: tabular-nums;
+}
+
+.sunlight-slider-container {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sunlight-slider-track-bg {
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #090d16 0%, #1e3a8a 20%, #f59e0b 25%, #38bdf8 50%, #f59e0b 75%, #1e3a8a 80%, #090d16 100%);
+  margin-bottom: -10px;
+  pointer-events: none;
+}
+
+.sunlight-slider-ticks {
+  display: flex;
+  justify-content: space-between;
+  font-size: 9.5px;
+  color: #94a3b8;
+  padding: 0 2px;
+}
+
+.sunlight-speed-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.sunlight-speed-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #cbd5e1;
+  border-radius: 4px;
+  padding: 2px 7px;
+  font-size: 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.sunlight-speed-btn.active, .sunlight-speed-btn:hover {
+  background: #0284c7;
+  color: #ffffff;
+  border-color: #38bdf8;
+}
+
+/* ==================== GOOGLE EARTH PRO STYLE SAVE IMAGE ==================== */
+.save-image-hud {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1080;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Top toolbar */
+.save-image-toolbar {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(24, 28, 36, 0.94);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  border-radius: 8px;
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+  pointer-events: auto;
+  transition: opacity 0.2s ease;
+}
+
+.save-image-brand {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #38bdf8;
+  font-weight: 700;
+  font-size: 13px;
+  padding-right: 12px;
+  border-right: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.save-image-options {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 12px;
+  color: #e2e8f0;
+}
+
+.save-image-opt {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.save-image-opt input[type="checkbox"] {
+  accent-color: #0284c7;
+  cursor: pointer;
+}
+
+.save-image-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 12px;
+  border-left: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.save-image-btn {
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.15s ease;
+}
+
+.save-image-export-btn {
+  background: #0284c7;
+  color: #ffffff;
+  border-color: #38bdf8;
+}
+
+.save-image-export-btn:hover {
+  background: #0369a1;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+}
+
+.save-image-close-btn {
+  background: rgba(255, 255, 255, 0.08);
+  color: #cbd5e1;
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.save-image-close-btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  border-color: #ef4444;
+}
+
+/* In-Viewport Overlays */
+.save-image-overlays {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.save-overlay-card {
+  position: absolute;
+  background: rgba(22, 26, 34, 0.88);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  pointer-events: auto;
+  color: #f8fafc;
+}
+
+/* Top-Left Title Card */
+.save-title-card {
+  top: 70px;
+  left: 24px;
+  width: 320px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.save-title-input {
+  background: transparent;
+  border: none;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 700;
+  outline: none;
+  padding: 2px 0;
+  width: 100%;
+}
+
+.save-title-input:focus {
+  border-bottom-color: #38bdf8;
+}
+
+.save-desc-input {
+  background: transparent;
+  border: none;
+  color: #cbd5e1;
+  font-size: 11px;
+  outline: none;
+  resize: none;
+  width: 100%;
+  font-family: inherit;
+  line-height: 1.4;
+}
+
+.save-title-meta {
+  font-size: 10px;
+  color: #94a3b8;
+  margin-top: 2px;
+  padding-top: 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Top-Right Compass Card */
+.save-compass-card {
+  top: 70px;
+  right: 24px;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.compass-widget {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.compass-n-label {
+  font-size: 11px;
+  font-weight: 800;
+  color: #ef4444;
+}
+
+/* Bottom-Left Scale Card */
+.save-scale-card {
+  bottom: 28px;
+  left: 24px;
+  padding: 6px 12px;
+}
+
+.save-scale-segments {
+  display: flex;
+  width: 140px;
+  height: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 1px;
+  overflow: hidden;
+}
+
+.scale-seg {
+  flex: 1;
+}
+
+.scale-seg.black {
+  background: #0f172a;
+}
+
+.scale-seg.white {
+  background: #f8fafc;
+}
+
+.save-scale-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 9.5px;
+  font-weight: 600;
+  color: #e2e8f0;
+  margin-top: 3px;
+}
+
+/* Bottom-Right Legend Card */
+.save-legend-card {
+  bottom: 28px;
+  right: 24px;
+  width: 220px;
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.save-legend-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #38bdf8;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 4px;
+}
+
+.save-legend-items {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  color: #cbd5e1;
+}
+
+.save-legend-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend-swatch {
+  font-size: 12px;
+}
+
+/* Light Theme overrides */
+body.light-theme .save-image-toolbar {
+  background: rgba(255, 255, 255, 0.96);
+  border-color: rgba(2, 132, 199, 0.4);
+  color: #1e293b;
+}
+
+body.light-theme .save-image-options {
+  color: #334155;
+}
+
+body.light-theme .save-overlay-card {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(0, 0, 0, 0.15);
+  color: #1e293b;
+}
+
+body.light-theme .save-title-input {
+  color: #0f172a;
+  border-bottom-color: rgba(0, 0, 0, 0.2);
+}
+
+body.light-theme .save-desc-input {
+  color: #475569;
+}
+
+body.light-theme .save-title-meta {
+  color: #64748b;
+  border-top-color: rgba(0, 0, 0, 0.1);
+}
+
+body.light-theme .save-legend-items {
+  color: #334155;
+}

@@ -85,8 +85,11 @@ namespace ZEarth.App.Views
         {
             if (_samples.Count < 2)
             {
-                HoverInfoText.Text = "No valid elevation samples. Select a path with stored Z values. " +
-                    "The active DEM is not sampled by this viewer yet.";
+                ProfileTitleText.Text = "Elevation profile unavailable";
+                ProfileSourceText.Text = "No complete elevation sample set is available.";
+                StatDistanceText.Text = StatMinElevText.Text = StatMaxElevText.Text = "—";
+                StatDeltaZText.Text = StatAvgSlopeText.Text = StatMaxSlopeText.Text = "—";
+                HoverInfoText.Text = "No valid elevation samples. Check the active terrain source and selected path.";
                 return;
             }
 

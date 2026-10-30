@@ -524,6 +524,37 @@ namespace ZEarth.App
                         activeDialog = dlg;
                         await Task.Delay(800);
                     }
+                    else if (dialogArg == "snapping")
+                    {
+                        var dlg = new OptionsDialog(globeBridge, OptionsDialogTab.SpatialSnapping) { Owner = mainWindow, WindowStartupLocation = WindowStartupLocation.CenterOwner };
+                        dlg.Show();
+                        activeDialog = dlg;
+                        await Task.Delay(800);
+                    }
+                    else if (dialogArg is "basemap" or "display")
+                    {
+                        var dlg = new OptionsDialog(globeBridge, OptionsDialogTab.BasemapDisplay) { Owner = mainWindow, WindowStartupLocation = WindowStartupLocation.CenterOwner };
+                        dlg.Show();
+                        activeDialog = dlg;
+                        await Task.Delay(800);
+                    }
+                    else if (dialogArg == "grid")
+                    {
+                        // Opens the Map Grid tab directly so UI automation can capture
+                        // the real settings surface without simulated navigation.
+                        var dlg = new OptionsDialog(globeBridge, openGridTab: true) { Owner = mainWindow, WindowStartupLocation = WindowStartupLocation.CenterOwner };
+                        dlg.Show();
+                        activeDialog = dlg;
+                        await Task.Delay(1200);
+                    }
+                    else if (dialogArg == "terrain")
+                    {
+                        // Native acceptance can open the source-specific terrain workspace directly.
+                        var dlg = new OptionsDialog(globeBridge, OptionsDialogTab.TerrainModels) { Owner = mainWindow, WindowStartupLocation = WindowStartupLocation.CenterOwner };
+                        dlg.Show();
+                        activeDialog = dlg;
+                        await Task.Delay(1200);
+                    }
                     else if (dialogArg == "properties")
                     {
                         var samplePlace = mainViewModel.SelectedPlace ?? mainViewModel.MyPlaces.FirstOrDefault() ?? new PlaceItem("Cairo Citadel", PlaceItemType.Placemark, 30.0299, 31.2611, 150);

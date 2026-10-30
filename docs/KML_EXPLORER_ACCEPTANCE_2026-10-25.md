@@ -42,7 +42,7 @@ A passing CI workflow confirms **only completed T0–T2 checks**. No Cloud GitHu
 
 ## Skills and regression gates
 
-Load `.github/skills/prompt-intent-orchestrator/SKILL.md`, `agent-development-journal`, `gis-security-guardian`, project `zearth-kml-integrity`, `zearth-desktop-ux`, `zearth-globe-bridge` and `zearth-verification` only when relevant. Source changes are verified with:
+Load `.github/skills/prompt-intent-orchestrator/SKILL.md`, then route through `gis-development` to `kml-kmz-engineering`, `gis-desktop-application-development`, `gis-data-flow-diagnostics`, `gis-desktop-e2e-testing`, `completion-evidence`, `agent-development-journal`, and `gis-security-guardian` only when relevant. Source changes are verified with:
 
 ```powershell
 python scripts/validate-agent-skills.py

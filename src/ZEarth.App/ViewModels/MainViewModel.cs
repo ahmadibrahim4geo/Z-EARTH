@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Globalization;
@@ -94,8 +94,9 @@ namespace ZEarth.App.ViewModels
         private readonly IProjectService _projectService;
         private readonly GlobeBridge _globeBridge;
         private readonly SearchService _searchService = new();
-        private readonly TemporarySessionService _temporarySessionService = new();
+        private readonly TemporarySessionService _temporarySessionService;
         private readonly HashSet<PlaceItem> _pendingSessionItems = new();
+        private readonly List<(IList<PlaceItem> Parent, int Index, PlaceItem Item)> _closeRemovedItems = new();
         private readonly List<CameraState> _cameraHistory = new();
         private readonly List<CoordinatePoint> _lastMeasurementPoints = new();
         private int _historyIndex = -1;
@@ -154,6 +155,8 @@ namespace ZEarth.App.ViewModels
         private CursorPositionInfo? _pendingCursor;
         private MapCenterInfo? _lastKnownCenter;
         private int _warmedCrsEpsg = 4326;
+        private int _statusCrsEpsg = -1;
+        private static readonly Lazy<CrsRegistry> StatusCrsRegistry = new(() => new CrsRegistry());
 
         // Busy / status feedback (RC-3)
         private int _busyOperations;
@@ -173,7 +176,9 @@ namespace ZEarth.App.ViewModels
         private int _selectedSidebarTab = 0; // 0 = Places, 1 = Layers
 
         private bool _isBordersVisible = SettingsService.Instance.Settings.ShowBorders;
-        private bool _isGraticulesVisible = false;
+        // Single authoritative grid state, restored from persisted settings so the
+        // ribbon highlight matches what the Cesium engine receives at startup.
+        private bool _isGraticulesVisible = SettingsService.Instance.Settings.ShowGraticules;
         private bool _isRoadsVisible = false;
         private bool _isBuildingsVisible = false;
         private string _activeBasemap = "Esri World Imagery (Hybrid Labels)";
@@ -269,6 +274,7 @@ namespace ZEarth.App.ViewModels
                 if (SetProperty(ref _isGraticulesVisible, value))
                 {
                     OnPropertyChanged(nameof(GridToggleBrush));
+                    OnPropertyChanged(nameof(GridToggleBackground));
                     SettingsService.Instance.Settings.ShowGraticules = value;
                     SettingsService.Instance.Save();
                     // The ribbon command awaits the globe; no unobserved fire-and-forget state change.
@@ -279,6 +285,14 @@ namespace ZEarth.App.ViewModels
         public Brush GridToggleBrush => IsGraticulesVisible
             ? new SolidColorBrush(Color.FromRgb(74, 222, 128))
             : (Application.Current?.TryFindResource("Brush.Text.Secondary") as Brush ?? Brushes.Gray);
+
+        /// <summary>
+        /// Two-state ribbon highlight: a translucent green plate only when the
+        /// grid is genuinely enabled in the Cesium scene.
+        /// </summary>
+        public Brush GridToggleBackground => IsGraticulesVisible
+            ? new SolidColorBrush(Color.FromArgb(56, 74, 222, 128))
+            : Brushes.Transparent;
 
         public bool IsRoadsVisible
         {
@@ -361,10 +375,8 @@ namespace ZEarth.App.ViewModels
             get => _selectedBasemapId;
             set
             {
-                if (SetProperty(ref _selectedBasemapId, value))
-                {
+                if (!string.Equals(_selectedBasemapId, value, StringComparison.Ordinal))
                     ExecuteSelectBasemap(value);
-                }
             }
         }
 
@@ -389,8 +401,10 @@ namespace ZEarth.App.ViewModels
             {
                 if (SetProperty(ref _isSunlightEnabled, value))
                 {
-                    // Change appearance only when the engine echoed a state or an action was acknowledged.
                     OnPropertyChanged(nameof(SunlightIconBrush));
+                    OnPropertyChanged(nameof(SunlightButtonBackground));
+                    OnPropertyChanged(nameof(SunlightButtonBorderBrush));
+                    OnPropertyChanged(nameof(SunlightLabelForeground));
                 }
             }
         }
@@ -398,6 +412,30 @@ namespace ZEarth.App.ViewModels
         public Brush SunlightIconBrush => IsSunlightEnabled
             ? new SolidColorBrush(Color.FromRgb(251, 191, 36)) // #fbbf24 Warm amber / sun gold
             : (Application.Current?.TryFindResource("Brush.Text.Secondary") as Brush ?? Brushes.Gray);
+
+        public Brush SunlightButtonBackground => IsSunlightEnabled
+            ? new SolidColorBrush(Color.FromArgb(170, 88, 48, 10))
+            : Brushes.Transparent;
+
+        public Brush SunlightButtonBorderBrush => IsSunlightEnabled
+            ? new SolidColorBrush(Color.FromRgb(251, 191, 36))
+            : Brushes.Transparent;
+
+        public Brush SunlightLabelForeground => IsSunlightEnabled
+            ? new SolidColorBrush(Color.FromRgb(254, 240, 138))
+            : (Application.Current?.TryFindResource("Brush.Text.Primary") as Brush ?? Brushes.White);
+
+        public Brush AtmosphereButtonBackground => IsAtmosphereEnabled
+            ? new SolidColorBrush(Color.FromArgb(170, 20, 83, 45))
+            : Brushes.Transparent;
+
+        public Brush AtmosphereButtonBorderBrush => IsAtmosphereEnabled
+            ? new SolidColorBrush(Color.FromRgb(34, 197, 94))
+            : Brushes.Transparent;
+
+        public Brush AtmosphereLabelForeground => IsAtmosphereEnabled
+            ? new SolidColorBrush(Color.FromRgb(187, 247, 208))
+            : (Application.Current?.TryFindResource("Brush.Text.Primary") as Brush ?? Brushes.White);
 
         private bool _isAtmosphereEnabled = true;
         public bool IsAtmosphereEnabled
@@ -408,12 +446,15 @@ namespace ZEarth.App.ViewModels
                 if (SetProperty(ref _isAtmosphereEnabled, value))
                 {
                     OnPropertyChanged(nameof(AtmosphereIconBrush));
+                    OnPropertyChanged(nameof(AtmosphereButtonBackground));
+                    OnPropertyChanged(nameof(AtmosphereButtonBorderBrush));
+                    OnPropertyChanged(nameof(AtmosphereLabelForeground));
                 }
             }
         }
 
         public Brush AtmosphereIconBrush => IsAtmosphereEnabled
-            ? new SolidColorBrush(Color.FromRgb(56, 189, 248)) // #38bdf8 Atmospheric Sky
+            ? new SolidColorBrush(Color.FromRgb(74, 222, 128)) // #4ade80 Vibrant Green
             : (Application.Current?.TryFindResource("Brush.Text.Secondary") as Brush ?? Brushes.Gray);
 
         private bool _areCloudsEnabled;
@@ -423,7 +464,12 @@ namespace ZEarth.App.ViewModels
             set
             {
                 if (SetProperty(ref _areCloudsEnabled, value))
+                {
                     OnPropertyChanged(nameof(CloudsIconBrush));
+                    OnPropertyChanged(nameof(CloudsButtonBackground));
+                    OnPropertyChanged(nameof(CloudsButtonBorderBrush));
+                    OnPropertyChanged(nameof(CloudsLabelForeground));
+                }
             }
         }
 
@@ -438,6 +484,10 @@ namespace ZEarth.App.ViewModels
         public string FlightModeTooltip => LocalizationService.Instance.IsArabic
             ? "تشغيل الملاحة بالطيران ثلاثي الأبعاد. الأسهم للتحكم، Page Up/Down للسرعة، Esc للخروج."
             : "Basic 3D flight navigation: arrow keys steer, Page Up/Down throttle, Esc exits. Not an aircraft dynamics model.";
+        public string ScreenshotLabel => LocalizationService.Instance.IsArabic ? "حفظ كصورة" : "Save Image";
+        public string ScreenshotTooltip => LocalizationService.Instance.IsArabic
+            ? "حفظ منظر الخريطة الظاهر حاليًا كصورة PNG بدقة العرض الحالية."
+            : "Save the currently visible map viewport as PNG at the current on-screen resolution.";
 
         private bool _isGpsPlaybackEnabled;
         public bool IsGpsPlaybackEnabled
@@ -454,8 +504,52 @@ namespace ZEarth.App.ViewModels
             : "Toggle offline illustrative 3D clouds (not live weather). Hidden in 2D.";
 
         public Brush CloudsIconBrush => AreCloudsEnabled
-            ? new SolidColorBrush(Color.FromRgb(226, 232, 240))
+            ? new SolidColorBrush(Color.FromRgb(74, 222, 128)) // #4ade80 Vibrant Green
             : (Application.Current?.TryFindResource("Brush.Text.Secondary") as Brush ?? Brushes.Gray);
+
+        public Brush CloudsButtonBackground => AreCloudsEnabled
+            ? new SolidColorBrush(Color.FromArgb(170, 20, 83, 45))
+            : Brushes.Transparent;
+
+        public Brush CloudsButtonBorderBrush => AreCloudsEnabled
+            ? new SolidColorBrush(Color.FromRgb(34, 197, 94))
+            : Brushes.Transparent;
+
+        public Brush CloudsLabelForeground => AreCloudsEnabled
+            ? new SolidColorBrush(Color.FromRgb(187, 247, 208))
+            : (Application.Current?.TryFindResource("Brush.Text.Primary") as Brush ?? Brushes.White);
+
+        private bool _isSaveImageModeActive;
+        public bool IsSaveImageModeActive
+        {
+            get => _isSaveImageModeActive;
+            set
+            {
+                if (SetProperty(ref _isSaveImageModeActive, value))
+                {
+                    OnPropertyChanged(nameof(SaveImageButtonBackground));
+                    OnPropertyChanged(nameof(SaveImageButtonBorderBrush));
+                    OnPropertyChanged(nameof(SaveImageIconBrush));
+                    OnPropertyChanged(nameof(SaveImageLabelForeground));
+                }
+            }
+        }
+
+        public Brush SaveImageButtonBackground => IsSaveImageModeActive
+            ? new SolidColorBrush(Color.FromArgb(170, 3, 105, 161))
+            : Brushes.Transparent;
+
+        public Brush SaveImageButtonBorderBrush => IsSaveImageModeActive
+            ? new SolidColorBrush(Color.FromRgb(56, 189, 248))
+            : Brushes.Transparent;
+
+        public Brush SaveImageIconBrush => IsSaveImageModeActive
+            ? new SolidColorBrush(Color.FromRgb(56, 189, 248))
+            : new SolidColorBrush(Color.FromRgb(56, 189, 248));
+
+        public Brush SaveImageLabelForeground => IsSaveImageModeActive
+            ? new SolidColorBrush(Color.FromRgb(186, 230, 253))
+            : (Application.Current?.TryFindResource("Brush.Text.Primary") as Brush ?? Brushes.White);
 
         // UTC is unambiguous; Cesium's sun/terminator is geographic and varies by the
         // map location. Never invent a country's civil time zone from longitude.
@@ -953,6 +1047,7 @@ namespace ZEarth.App.ViewModels
         public ICommand ToggleCloudsCommand { get; }
         public ICommand ToggleFlightModeCommand { get; }
         public ICommand GridOptionsCommand { get; }
+        public ICommand TerrainOptionsCommand { get; }
         public ICommand ToggleTerrainCommand { get; }
         public ICommand SelectBasemapCommand { get; }
         public ICommand OpenBasemapGalleryCommand { get; }
@@ -979,14 +1074,17 @@ namespace ZEarth.App.ViewModels
 
         public string CurrentLanguageCode => LocalizationService.Instance.CurrentLanguage;
         public string CurrentLanguageText => LocalizationService.Instance.IsArabic ? "English (EN)" : "العربية (AR)";
+        public string MoveToFolderLabel => LocalizationService.Instance.IsArabic ? "نقل إلى مجلد..." : "Move to folder...";
 
         public ICommand AboutCommand { get; }
         public ICommand DiagnosticsCommand { get; }
 
-        public MainViewModel(IProjectService projectService, GlobeBridge globeBridge)
+        public MainViewModel(IProjectService projectService, GlobeBridge globeBridge, TemporarySessionService? temporarySessionService = null)
         {
             _projectService = projectService;
             _globeBridge = globeBridge;
+            _temporarySessionService = temporarySessionService ?? new TemporarySessionService();
+            UpdateStatusCrsFromActiveMap();
 
             var configuredBasemap = SettingsService.Instance.Settings.DefaultBasemap;
             if (!string.IsNullOrWhiteSpace(configuredBasemap) && _imageryRegistry.GetLayer(configuredBasemap) != null)
@@ -1074,6 +1172,7 @@ namespace ZEarth.App.ViewModels
                     var layer = _imageryRegistry.GetLayer(bmap);
                     if (layer != null)
                     {
+                        _imageryRegistry.SetBasemap(bmap);
                         ActiveBasemap = layer.Name;
                         ActiveAttribution = layer.Attribution;
                     }
@@ -1163,6 +1262,8 @@ namespace ZEarth.App.ViewModels
                     LoggerService.Instance.LogWarning("Unusable device location response: " + ex.Message);
                 }
             };
+            _globeBridge.SaveImageExportRequested += OnSaveImageExportRequested;
+            _globeBridge.SaveImageModeChanged += (s, active) => { IsSaveImageModeActive = active; };
             _globeBridge.TimeOfDayChanged += (s, time) =>
             {
                 Application.Current?.Dispatcher?.Invoke(() =>
@@ -1221,7 +1322,11 @@ namespace ZEarth.App.ViewModels
             {
                 AreCloudsEnabled = enabled;
             });
-            _globeBridge.FlightModeChanged += (s, enabled) => RunOnUi(() => IsFlightModeEnabled = enabled);
+            _globeBridge.FlightModeChanged += (s, enabled) => RunOnUi(() =>
+            {
+                IsFlightModeEnabled = enabled;
+                StatusMessage = GetFlightModeStatus(enabled);
+            });
             _globeBridge.GpsPlaybackChanged += (s, enabled) => RunOnUi(() => IsGpsPlaybackEnabled = enabled);
 
             // ActiveLayers strictly represents custom user overlay layers (WMS, WMTS, XYZ, GeoTIFF, etc.)
@@ -1251,12 +1356,15 @@ namespace ZEarth.App.ViewModels
                 {
                     OnPropertyChanged(nameof(CurrentLanguageCode));
                     OnPropertyChanged(nameof(CurrentLanguageText));
+                    OnPropertyChanged(nameof(MoveToFolderLabel));
                     OnPropertyChanged(nameof(CloudsLabel));
                     OnPropertyChanged(nameof(CloudsTooltip));
                     OnPropertyChanged(nameof(GpsImportLabel));
                     OnPropertyChanged(nameof(GpsImportTooltip));
                     OnPropertyChanged(nameof(FlightModeLabel));
                     OnPropertyChanged(nameof(FlightModeTooltip));
+                    OnPropertyChanged(nameof(ScreenshotLabel));
+                    OnPropertyChanged(nameof(ScreenshotTooltip));
                     UpdateWindowTitle();
                 });
             };
@@ -1405,6 +1513,11 @@ namespace ZEarth.App.ViewModels
             {
                 CurrentSceneMode = SceneMode.Scene2D;
                 await _globeBridge.SetSceneModeAsync(SceneMode.Scene2D);
+                var activeCrs = StatusCrsRegistry.Value.GetByEpsg(SettingsService.Instance.Settings.MapCrsEpsg);
+                if (activeCrs != null)
+                {
+                    await _globeBridge.SetMapCrsAsync(activeCrs.EpsgCode, activeCrs.Name, activeCrs.IsProjected, activeCrs.Unit, activeCrs.ProjectionMethod, activeCrs.Wkt);
+                }
             }, "Switch to 2D");
 
             SetCompassModeCommand = new RelayCommand(p =>
@@ -1430,8 +1543,8 @@ namespace ZEarth.App.ViewModels
             StopGpsTrackCommand = AsyncCommand(ExecuteStopGpsTrackAsync, "Stop GPS track replay");
             ToggleCoordinateFormatCommand = new RelayCommand(ExecuteToggleCoordinateFormat);
             SelectCrsCommand = new RelayCommand(ExecuteSelectCrs);
-            UndoCommand = new RelayCommand(() => { if (_undoRedo.Undo()) { _projectService.IsModified = true; UpdatePlacesOnGlobe(); } }, () => _undoRedo.CanUndo);
-            RedoCommand = new RelayCommand(() => { if (_undoRedo.Redo()) { _projectService.IsModified = true; UpdatePlacesOnGlobe(); } }, () => _undoRedo.CanRedo);
+            UndoCommand = new RelayCommand(() => ApplyHistoryAction(undo: true), () => _undoRedo.CanUndo);
+            RedoCommand = new RelayCommand(() => ApplyHistoryAction(undo: false), () => _undoRedo.CanRedo);
 
             // Places Commands (Sprint 3 & Sidebar Phase 01)
             SearchCommand = AsyncCommand(() => RunBusyAsync("Searching…", ExecuteSearchByNameAsync), "Search");
@@ -1556,7 +1669,12 @@ namespace ZEarth.App.ViewModels
                 }
             }, "Toggle coordinate grid");
             GridOptionsCommand = new RelayCommand(() => ExecuteShowOptions(true));
-            OpenBasemapGalleryCommand = AsyncCommand(ExecuteOpenBasemapGalleryAsync, "Open basemap gallery");
+            TerrainOptionsCommand = new RelayCommand(() => ExecuteShowOptions(Views.OptionsDialogTab.TerrainModels));
+            // View → Base Map and the Basemap ribbon tab share one canonical pane:
+            // Options → Basemap & Display. The old modal gallery is no longer the
+            // general selector, eliminating two divergent settings surfaces.
+            OpenBasemapGalleryCommand = new RelayCommand(() =>
+                ExecuteShowOptions(Views.OptionsDialogTab.BasemapDisplay));
             ToggleTerrainCommand = AsyncCommand(ExecuteToggleTerrainAsync, "Toggle terrain");
             SelectBasemapCommand = new RelayCommand(p =>
             {
@@ -1664,12 +1782,26 @@ namespace ZEarth.App.ViewModels
             if (await _globeBridge.SetFlightModeAsync(target))
             {
                 IsFlightModeEnabled = target;
-                StatusMessage = target
-                    ? "Basic flight navigation ON: click the globe, steer with arrows, Page Up/Down changes throttle, Esc exits."
-                    : "Flight navigation OFF; previous camera and regular mouse controls restored.";
+                StatusMessage = GetFlightModeStatus(target);
             }
             else
-                StatusMessage = "Flight navigation unavailable. Switch to 3D, allow the globe to finish loading, then retry.";
+                StatusMessage = LocalizationService.Instance.IsArabic
+                    ? "وضع الطيران غير متاح. انتقل إلى العرض ثلاثي الأبعاد وانتظر اكتمال تحميل الكرة ثم أعد المحاولة."
+                    : "Flight navigation unavailable. Switch to 3D, allow the globe to finish loading, then retry.";
+        }
+
+        private static string GetFlightModeStatus(bool enabled)
+        {
+            if (LocalizationService.Instance.IsArabic)
+            {
+                return enabled
+                    ? "وضع التنقل بالطيران يعمل: انقر الكرة، وجّه بالأسهم، وغيّر الدفع بـ Page Up/Down، واخرج بـ Esc."
+                    : "تم إيقاف التنقل بالطيران واستعادة الكاميرا وعناصر تحكم الفأرة المعتادة.";
+            }
+
+            return enabled
+                ? "Basic flight navigation ON: click the globe, steer with arrows, Page Up/Down changes throttle, Esc exits."
+                : "Flight navigation OFF; previous camera and regular mouse controls restored.";
         }
 
         private void ExecuteToggleTheme()
@@ -1868,16 +2000,16 @@ namespace ZEarth.App.ViewModels
                         }
                     }
 
-                    bool isTemp = _drawTargetTemporary || (SelectedPlace != null && FindParentList(TemporaryPlaces, SelectedPlace) != null);
+                    bool isTemp = _drawTargetTemporary;
                     if (!continueDrawing)
                     {
                         _drawTargetTemporary = false;
                     }
 
                     PlaceItem newItem;
-                    var targetList = (SelectedPlace != null && SelectedPlace.ItemType == PlaceItemType.Folder && !SelectedPlace.IsProtected)
-                        ? SelectedPlace.Children
-                        : (isTemp ? TemporaryPlaces : MyPlaces);
+                    // Normal drawing creates a session root. Explicit temporary drawing keeps
+                    // its dedicated target and does not depend on a previously selected folder.
+                    var targetList = isTemp ? TemporaryPlaces : MyPlaces;
 
                     int count = isTemp ? TemporaryPlaces.Count + 1 : MyPlaces.Count + 1;
 
@@ -1946,6 +2078,7 @@ namespace ZEarth.App.ViewModels
                     }
 
                     _undoRedo.ExecuteAction(new AddPlaceAction(targetList, newItem));
+                    if (!isTemp) _pendingSessionItems.Add(newItem);
                     SelectedPlace = newItem;
                     _projectService.IsModified = true;
                     if (isTemp)
@@ -2222,20 +2355,7 @@ namespace ZEarth.App.ViewModels
         private void UpdateTelemetryStrings()
         {
             StatusCoordinates = CoordinateFormatter.Format(CurrentCamera.Longitude, CurrentCamera.Latitude, SelectedCoordinateFormat);
-
-            if (SelectedCoordinateFormat == CoordinateDisplayFormat.Utm)
-            {
-                var utm = CoordinateTransformService.Wgs84ToUtm(CurrentCamera.Longitude, CurrentCamera.Latitude);
-                StatusCrs = $"WGS 84 / UTM {utm.Zone}{(utm.IsNorthernHemisphere ? "N" : "S")}";
-            }
-            else if (SelectedCoordinateFormat == CoordinateDisplayFormat.Mgrs)
-            {
-                StatusCrs = "WGS 84 / MGRS Grid";
-            }
-            else
-            {
-                StatusCrs = "EPSG:4326 (WGS 84)";
-            }
+            UpdateStatusCrsFromActiveMap();
 
             if (CurrentCamera.Altitude >= 1000)
             {
@@ -2251,8 +2371,21 @@ namespace ZEarth.App.ViewModels
             OnPropertyChanged(nameof(StatusViewMode));
         }
 
+        private void UpdateStatusCrsFromActiveMap()
+        {
+            var epsg = SettingsService.Instance.Settings.MapCrsEpsg;
+            if (_statusCrsEpsg == epsg) return;
+
+            var crs = StatusCrsRegistry.Value.GetByEpsg(epsg);
+            StatusCrs = crs != null
+                ? $"{crs.Name} ({crs.AuthorityCode})"
+                : $"EPSG:{epsg}";
+            _statusCrsEpsg = epsg;
+        }
+
         private void UpdateCenterCoordinates(MapCenterInfo? center)
         {
+            UpdateStatusCrsFromActiveMap();
             if (center == null || !center.IsValid)
             {
                 StatusCenterCoordinates = "Center: Outside globe";
@@ -2280,6 +2413,7 @@ namespace ZEarth.App.ViewModels
 
         private void UpdateCursorCoordinates(CursorPositionInfo? pos)
         {
+            UpdateStatusCrsFromActiveMap();
             if (pos == null || !pos.IsValid)
             {
                 StatusCursorCoordinates = "Cursor: Outside globe";
@@ -2306,9 +2440,11 @@ namespace ZEarth.App.ViewModels
                 StatusCursorCoordinates = $"Cursor: {CoordinateFormatter.Format(pos.Longitude, pos.Latitude, SelectedCoordinateFormat)}";
             }
 
-            StatusCursorElevation = pos.Altitude >= 1000
-                ? $"Elev: {(pos.Altitude / 1000.0):N1} km"
-                : $"Elev: {pos.Altitude:N0} m";
+            StatusCursorElevation = pos.Altitude is not double altitude || !double.IsFinite(altitude)
+                ? "Elev: —"
+                : altitude >= 1000
+                    ? $"Elev: {(altitude / 1000.0):N1} km"
+                    : $"Elev: {altitude:N0} m";
         }
 
         public void ExecuteToggleCoordinateFormat()
@@ -2334,6 +2470,7 @@ namespace ZEarth.App.ViewModels
                 var crs = dlg.SelectedCrs;
                 StatusCrs = $"{crs.Name} ({crs.AuthorityCode})";
                 SettingsService.Instance.Settings.MapCrsEpsg = crs.EpsgCode;
+                _statusCrsEpsg = crs.EpsgCode;
                 SettingsService.Instance.Save();
 
                 // Pre-build the projection transform so the first cursor sample is not slow (RC-2).
@@ -2343,7 +2480,7 @@ namespace ZEarth.App.ViewModels
                     CoordinateTransformService.Warmup(4326, crs.EpsgCode);
                 }
 
-                _ = _globeBridge.SetMapCrsAsync(crs.EpsgCode, crs.Name, crs.IsProjected, crs.Unit);
+                _ = _globeBridge.SetMapCrsAsync(crs.EpsgCode, crs.Name, crs.IsProjected, crs.Unit, crs.ProjectionMethod, crs.Wkt);
                 LoggerService.Instance.LogInfo($"Active Map CRS set to {crs.Name} ({crs.AuthorityCode})");
             }
         }
@@ -2649,7 +2786,7 @@ namespace ZEarth.App.ViewModels
                 }
                 if (target.ExtendedData.TryGetValue("basemapId", out var bmapId) && !string.IsNullOrEmpty(bmapId))
                 {
-                    if (!await _globeBridge.SetBasemapAsync(bmapId))
+                    if (!await ApplyBasemapAsync(bmapId))
                     {
                         StatusMessage = "Saved scene basemap could not be loaded.";
                         return;
@@ -2710,9 +2847,7 @@ namespace ZEarth.App.ViewModels
 
         private void ExecuteAddPlacemark()
         {
-            var targetList = (SelectedPlace != null && SelectedPlace.ItemType == PlaceItemType.Folder && !SelectedPlace.IsProtected)
-                ? SelectedPlace.Children
-                : MyPlaces;
+            var targetList = MyPlaces;
 
             var center = _globeBridge.CurrentCenter;
             var latitude = center.IsValid ? center.Latitude : CurrentCamera.Latitude;
@@ -2721,6 +2856,7 @@ namespace ZEarth.App.ViewModels
             var p = new PlaceItem($"Placemark {MyPlaces.Count + 1}", PlaceItemType.Placemark, latitude, longitude, altitude);
             p.ExtendedData["AltitudeMode"] = "ClampToGround";
             _undoRedo.ExecuteAction(new AddPlaceAction(targetList, p));
+            _pendingSessionItems.Add(p);
             SelectedPlace = p;
             _projectService.IsModified = true;
             UpdatePlacesOnGlobe();
@@ -2728,12 +2864,11 @@ namespace ZEarth.App.ViewModels
 
         private void ExecuteAddFolder()
         {
-            var targetList = (SelectedPlace != null && SelectedPlace.ItemType == PlaceItemType.Folder && !SelectedPlace.IsProtected)
-                ? SelectedPlace.Children
-                : MyPlaces;
+            var targetList = MyPlaces;
 
             var f = new PlaceItem($"Folder {MyPlaces.Count + 1}", PlaceItemType.Folder);
             _undoRedo.ExecuteAction(new AddPlaceAction(targetList, f));
+            _pendingSessionItems.Add(f);
             SelectedPlace = f;
             _projectService.IsModified = true;
         }
@@ -2747,6 +2882,25 @@ namespace ZEarth.App.ViewModels
                 if (found != null) return found;
             }
             return null;
+        }
+
+        private void ApplyHistoryAction(bool undo)
+        {
+            var before = JsonSerializer.Serialize(TemporaryPlaces);
+            bool changed = undo ? _undoRedo.Undo() : _undoRedo.Redo();
+            if (!changed) return;
+            if (before != JsonSerializer.Serialize(TemporaryPlaces) &&
+                !_temporarySessionService.TrySaveSession(TemporaryPlaces))
+            {
+                if (undo) _undoRedo.Redo(); else _undoRedo.Undo();
+                StatusMessage = LocalizationService.Instance.IsArabic
+                    ? "تعذر حفظ الأماكن المؤقتة؛ لم يُطبق التراجع أو الإعادة."
+                    : "Could not save Temporary Places; undo or redo was not applied.";
+                return;
+            }
+            CurrentProject.SyncSavedScenes();
+            _projectService.IsModified = true;
+            UpdatePlacesOnGlobe();
         }
 
         private void ExecuteDeletePlace()
@@ -2784,15 +2938,8 @@ namespace ZEarth.App.ViewModels
         private void ExecuteSaveToMyPlaces()
         {
             if (SelectedPlace == null) return;
-            if (TemporaryPlaces.Contains(SelectedPlace))
-            {
-                _undoRedo.ExecuteAction(new MoveToMyPlacesAction(TemporaryPlaces, MyPlaces, SelectedPlace));
-                _temporarySessionService.SaveSession(TemporaryPlaces);
-                _projectService.IsModified = true;
-                UpdatePlacesOnGlobe();
-                OnPropertyChanged(nameof(MyPlaces));
-                OnPropertyChanged(nameof(TemporaryPlaces));
-            }
+            if (FindParentList(TemporaryPlaces, SelectedPlace) != null)
+                MovePlaceToFolder(SelectedPlace, null);
         }
 
         private void ExecuteAddSavedScene()
@@ -2890,19 +3037,9 @@ namespace ZEarth.App.ViewModels
             if (scenesFolder.Children.Count > 0)
             {
                 var startScene = scenesFolder.Children[0];
-                if (startScene.Camera != null)
-                {
-                    await _globeBridge.FlyToAsync(startScene.Camera, 1.2);
-                }
-                if (startScene.ExtendedData.TryGetValue("sceneMode", out var modeStr) &&
-                    Enum.TryParse<SceneMode>(modeStr, out var sm))
-                {
-                    await _globeBridge.SetSceneModeAsync(sm);
-                }
-                if (startScene.ExtendedData.TryGetValue("basemapId", out var bId) && !string.IsNullOrEmpty(bId))
-                {
-                    SelectedBasemapId = bId;
-                }
+                // Use the same ordered mode → basemap → camera path as an explicit scene
+                // selection. A failed acknowledgement stops the remaining scene restore.
+                await ExecuteFlyToPlaceAsync(startScene);
             }
             else
             {
@@ -2975,7 +3112,7 @@ namespace ZEarth.App.ViewModels
 
         private void ExecuteImportKmlToTemporary()
         {
-            ExecuteImportKml();
+            ExecuteImportKml(null, intoTemporary: true);
         }
 
         private void ExecuteKeepInTemporary()
@@ -3000,34 +3137,57 @@ namespace ZEarth.App.ViewModels
         {
             var target = item ?? SelectedPlace;
             if (target == null || target.IsProtected) return;
-
-            var parent = FindParentList(TemporaryPlaces, target);
-            if (parent != null)
-            {
-                _undoRedo.ExecuteAction(new MoveToMyPlacesAction(parent, MyPlaces, target));
-                _temporarySessionService.SaveSession(TemporaryPlaces);
-                _projectService.IsModified = true;
-                UpdatePlacesOnGlobe();
-                OnPropertyChanged(nameof(MyPlaces));
-                OnPropertyChanged(nameof(TemporaryPlaces));
-            }
+            if (FindParentList(TemporaryPlaces, target) != null) MovePlaceToFolder(target, null);
         }
 
         private void ExecuteMoveToTemporaryPlaces(PlaceItem? item)
         {
             var target = item ?? SelectedPlace;
             if (target == null || target.IsProtected) return;
+            MovePlaceToFolder(target, TemporaryPlacesFolder);
+        }
 
-            var parent = FindParentList(MyPlaces, target);
-            if (parent != null)
+        /// <summary>Move an existing item to the Explorer root or a chosen folder without copying it.</summary>
+        public bool MovePlaceToFolder(PlaceItem item, PlaceItem? destination)
+        {
+            if (item == null || item.IsProtected || destination == item) return false;
+            var source = FindParentList(MyPlaces, item);
+            if (source == null) return false;
+            if (destination != null && (destination.ItemType != PlaceItemType.Folder ||
+                FindParentList(MyPlaces, destination) == null || FindParentList(item.Children, destination) != null))
+                return false;
+
+            var scenes = CurrentProject.EnsureSavedScenesFolder();
+            if (destination != null && (destination == scenes || FindParentList(scenes.Children, destination) != null) &&
+                item.ItemType != PlaceItemType.SavedScene) return false;
+            var target = destination?.Children ?? MyPlaces;
+            if (ReferenceEquals(source, target)) return false;
+
+            bool touchesTemporary = FindParentList(TemporaryPlaces, item) != null ||
+                destination == TemporaryPlacesFolder ||
+                (destination != null && FindParentList(TemporaryPlaces, destination) != null);
+            int oldIndex = source.IndexOf(item);
+            source.RemoveAt(oldIndex);
+            target.Add(item);
+            bool saved = !touchesTemporary || _temporarySessionService.TrySaveSession(TemporaryPlaces);
+            target.Remove(item);
+            source.Insert(oldIndex, item);
+            if (!saved)
             {
-                _undoRedo.ExecuteAction(new MoveToMyPlacesAction(parent, TemporaryPlaces, target));
-                _temporarySessionService.SaveSession(TemporaryPlaces);
-                _projectService.IsModified = true;
-                UpdatePlacesOnGlobe();
-                OnPropertyChanged(nameof(MyPlaces));
-                OnPropertyChanged(nameof(TemporaryPlaces));
+                StatusMessage = LocalizationService.Instance.IsArabic
+                    ? "تعذر حفظ الأماكن المؤقتة؛ لم يُنقل العنصر."
+                    : "Could not save Temporary Places; the item was not moved.";
+                return false;
             }
+
+            _undoRedo.ExecuteAction(new MoveToMyPlacesAction(source, target, item));
+            _projectService.IsModified = true;
+            CurrentProject.SyncSavedScenes();
+            UpdatePlacesOnGlobe();
+            OnPropertyChanged(nameof(MyPlaces));
+            OnPropertyChanged(nameof(TemporaryPlaces));
+            OnPropertyChanged(nameof(SavedScenes));
+            return true;
         }
 
         private static bool CanExportPortableKml(PlaceItem root, string filePath)
@@ -3163,6 +3323,7 @@ namespace ZEarth.App.ViewModels
         public void UpdatePlacesOnGlobe()
         {
             var flat = new List<object>();
+            var models = new List<object>();
             void Gather(IEnumerable<PlaceItem> items, IReadOnlyDictionary<string, string>? inheritedAssets = null)
             {
                 foreach (var item in items)
@@ -3208,7 +3369,32 @@ namespace ZEarth.App.ViewModels
                         string symbolShape = item.ExtendedData.TryGetValue("SymbolShape", out var symbolShapeValue)
                             ? symbolShapeValue : "Circle";
 
-                        if (item.ItemType == PlaceItemType.Polygon && item.Coordinates.Count >= 3)
+                        if (item.ExtendedData.TryGetValue("ModelGlbBase64", out var storedGlb))
+                        {
+                            var fileName = item.ExtendedData.TryGetValue("ModelFileName", out var storedFileName)
+                                ? storedFileName : $"{item.Name}.glb";
+                            var sha256 = item.ExtendedData.TryGetValue("ModelSha256", out var storedSha256)
+                                ? storedSha256 : string.Empty;
+                            var byteLength = item.ExtendedData.TryGetValue("ModelByteLength", out var storedLength) &&
+                                             int.TryParse(storedLength, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsedLength)
+                                ? parsedLength : 0;
+                            if (GlbModelImportService.TryRestore(fileName, storedGlb, sha256, byteLength,
+                                    out var restoredModel, out _) && restoredModel != null &&
+                                item.Latitude.HasValue && item.Longitude.HasValue)
+                            {
+                                models.Add(new
+                                {
+                                    id = item.Id,
+                                    name = item.Name,
+                                    dataUri = restoredModel.DataUri,
+                                    longitude = item.Longitude.Value,
+                                    latitude = item.Latitude.Value,
+                                    altitude = item.Altitude.GetValueOrDefault(0),
+                                    scale = 1.0
+                                });
+                            }
+                        }
+                        else if (item.ItemType == PlaceItemType.Polygon && item.Coordinates.Count >= 3)
                         {
                             flat.Add(new
                             {
@@ -3325,6 +3511,7 @@ namespace ZEarth.App.ViewModels
             }
             Gather(MyPlaces);
             _ = _globeBridge.SetPlacemarksAsync(flat);
+            _ = _globeBridge.SetModelsAsync(models);
         }
 
         public void ClearActiveSession()
@@ -3333,34 +3520,58 @@ namespace ZEarth.App.ViewModels
         }
 
         /// <summary>
-        /// Resolves root items imported during this run. Imported data is intentionally shown
-        /// beside the system folders while the application is open. Only an explicit Yes at
-        /// shutdown moves it under Temporary Places and writes the durable session cache.
+        /// Resolves unsaved session roots created or imported during this run.
         /// </summary>
         public bool ResolvePendingPlacesOnClose()
         {
             var pending = _pendingSessionItems
-                .Where(item => FindParentList(MyPlaces, item) != null && FindParentList(TemporaryPlaces, item) == null)
+                .Where(item => MyPlaces.Contains(item))
                 .ToList();
 
             if (pending.Count == 0)
             {
-                _pendingSessionItems.Clear();
                 return true;
             }
 
+            var arabic = LocalizationService.Instance.IsArabic;
             var result = MessageBox.Show(
-                $"You imported {pending.Count} item(s) during this session.\n\n" +
-                "Save them inside the Temporary Places folder for the next launch?\n\n" +
-                "Yes: move them to Temporary Places and keep them.\n" +
-                "No: close without keeping these imported items.\n" +
-                "Cancel: return to Z EARTH.",
-                "Save imported places?",
+                arabic
+                    ? $"لديك {pending.Count} من العناصر المستوردة أو المرسومة في هذه الجلسة.\n\nهل تريد حفظها في الأماكن المؤقتة للجلسة القادمة؟\n\nنعم: احفظها. لا: أغلق دون الاحتفاظ بها. إلغاء: ارجع إلى البرنامج."
+                    : $"You created or imported {pending.Count} item(s) during this session.\n\n" +
+                      "Save them inside Temporary Places for the next launch?\n\n" +
+                      "Yes: keep them. No: close without keeping them. Cancel: return to Z EARTH.",
+                arabic ? "حفظ عناصر الجلسة؟" : "Save session places?",
                 MessageBoxButton.YesNoCancel,
                 MessageBoxImage.Question);
 
+            var resolved = ResolvePendingPlacesOnClose(result);
+            if (!resolved && result == MessageBoxResult.Yes)
+                MessageBox.Show(StatusMessage, arabic ? "تعذر الحفظ" : "Save failed", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return resolved;
+        }
+
+        // The decision overload also allows deterministic tests without opening a modal dialog.
+        public bool ResolvePendingPlacesOnClose(MessageBoxResult result)
+        {
+            var pending = _pendingSessionItems
+                .Where(item => MyPlaces.Contains(item))
+                .ToList();
+
             if (result == MessageBoxResult.Cancel)
             {
+                return false;
+            }
+
+            if (result != MessageBoxResult.Yes && result != MessageBoxResult.No) return false;
+
+            // Publish a full replacement before changing the in-memory tree. A failed write
+            // must leave both the old session file and the current items intact.
+            if (result == MessageBoxResult.Yes &&
+                !_temporarySessionService.TrySaveSession(TemporaryPlaces.Concat(pending)))
+            {
+                StatusMessage = LocalizationService.Instance.IsArabic
+                    ? "تعذر حفظ الأماكن المؤقتة. لم تُحذف العناصر؛ راجع سجل الأخطاء."
+                    : "Could not save Temporary Places. Items were retained; check the log.";
                 return false;
             }
 
@@ -3369,16 +3580,13 @@ namespace ZEarth.App.ViewModels
                 var parent = FindParentList(MyPlaces, item);
                 if (parent == null) continue;
 
+                if (result == MessageBoxResult.No)
+                    _closeRemovedItems.Add((parent, parent.IndexOf(item), item));
                 parent.Remove(item);
                 if (result == MessageBoxResult.Yes)
                 {
                     TemporaryPlaces.Add(item);
                 }
-            }
-
-            if (result == MessageBoxResult.Yes)
-            {
-                _temporarySessionService.SaveSession(TemporaryPlaces);
             }
 
             _pendingSessionItems.Clear();
@@ -3389,7 +3597,38 @@ namespace ZEarth.App.ViewModels
             return true;
         }
 
-        public Task<bool> SaveProjectCommandDirectAsync() => _projectService.SaveAsync();
+        /// <summary>Cancel shutdown without losing items tentatively discarded in its first prompt.</summary>
+        public void RestoreDiscardedPendingOnClose()
+        {
+            for (int i = _closeRemovedItems.Count - 1; i >= 0; i--)
+            {
+                var entry = _closeRemovedItems[i];
+                entry.Parent.Insert(Math.Min(entry.Index, entry.Parent.Count), entry.Item);
+                _pendingSessionItems.Add(entry.Item);
+            }
+            _closeRemovedItems.Clear();
+            OnPropertyChanged(nameof(MyPlaces));
+            UpdatePlacesOnGlobe();
+        }
+
+        public async Task<bool> SaveProjectCommandDirectAsync()
+        {
+            var path = _projectService.CurrentFilePath;
+            if (string.IsNullOrEmpty(path))
+            {
+                var dialog = new SaveFileDialog
+                {
+                    Filter = "Z EARTH Project (*.zearth)|*.zearth",
+                    DefaultExt = ".zearth",
+                    Title = "Save Z EARTH Project As"
+                };
+                if (dialog.ShowDialog() != true) return false;
+                path = dialog.FileName;
+            }
+            _projectService.CurrentProject.Camera = CurrentCamera.Clone();
+            _projectService.CurrentProject.SceneMode = CurrentSceneMode;
+            return await _projectService.SaveAsync(path);
+        }
 
         private void NotifyPlannedFeature(string featureName)
         {
@@ -3492,8 +3731,8 @@ namespace ZEarth.App.ViewModels
             {
                 var imported = GpxService.ImportFile(filePath);
                 imported.Name = Path.GetFileName(filePath);
-                _undoRedo.ExecuteAction(new AddPlaceAction(TemporaryPlaces, imported));
-                _temporarySessionService.SaveSession(TemporaryPlaces);
+                _undoRedo.ExecuteAction(new AddPlaceAction(MyPlaces, imported));
+                _pendingSessionItems.Add(imported);
                 _projectService.IsModified = true;
                 SelectedPlace = imported;
                 UpdatePlacesOnGlobe();
@@ -3509,7 +3748,7 @@ namespace ZEarth.App.ViewModels
             }
         }
 
-        public void ExecuteImportKml(string? directFilePath = null)
+        public void ExecuteImportKml(string? directFilePath = null, bool intoTemporary = false)
         {
             string? filePath = directFilePath;
             if (string.IsNullOrEmpty(filePath))
@@ -3517,7 +3756,7 @@ namespace ZEarth.App.ViewModels
                 var dlg = new OpenFileDialog
                 {
                     Filter = "KML / KMZ Geographic Files (*.kml;*.kmz)|*.kml;*.kmz|Keyhole Markup Language (*.kml)|*.kml|Zipped KML (*.kmz)|*.kmz|All Files (*.*)|*.*",
-                    Title = "Import KML / KMZ into Temporary Places"
+                    Title = intoTemporary ? "Import KML / KMZ into Temporary Places" : "Import KML / KMZ into Explorer"
                 };
 
                 if (dlg.ShowDialog() == true)
@@ -3544,11 +3783,9 @@ namespace ZEarth.App.ViewModels
 
                     importedTree.Name = Path.GetFileName(filePath);
 
-                    // Like Google Earth Pro: imports first appear in Temporary Places.
-                    // Explicit "Save to My Places" promotes them; the project/session can
-                    // retain Temporary Places without silently committing them permanently.
-                    _undoRedo.ExecuteAction(new AddPlaceAction(TemporaryPlaces, importedTree));
-                    _temporarySessionService.SaveSession(TemporaryPlaces);
+                    _undoRedo.ExecuteAction(new AddPlaceAction(intoTemporary ? TemporaryPlaces : MyPlaces, importedTree));
+                    if (intoTemporary) _temporarySessionService.SaveSession(TemporaryPlaces);
+                    else _pendingSessionItems.Add(importedTree);
                     _projectService.IsModified = true;
                     SelectedPlace = importedTree;
                     UpdatePlacesOnGlobe();
@@ -3587,7 +3824,10 @@ namespace ZEarth.App.ViewModels
 
                     if (string.IsNullOrEmpty(directFilePath))
                     {
-                        MessageBox.Show($"File '{Path.GetFileName(filePath)}' was imported into Temporary Places.\nRoot: {importedTree.Name} ({importedTree.Children.Count} children)\n\nChoose Save to My Places to make it permanent.", "KML Import", MessageBoxButton.OK, MessageBoxImage.Information);
+                        MessageBox.Show(intoTemporary
+                            ? $"File '{Path.GetFileName(filePath)}' was imported into Temporary Places."
+                            : $"File '{Path.GetFileName(filePath)}' was added as an Explorer root. Move it to a folder or keep it in Temporary Places when closing.",
+                            "KML Import", MessageBoxButton.OK, MessageBoxImage.Information);
                     }
                 }
                 catch (Exception ex)
@@ -3608,7 +3848,7 @@ namespace ZEarth.App.ViewModels
                 var dlg = new OpenFileDialog
                 {
                     Filter = "GIS Vector Files (*.geojson;*.json;*.shp;*.gpkg)|*.geojson;*.json;*.shp;*.gpkg|GeoJSON (*.geojson;*.json)|*.geojson;*.json|ESRI Shapefile (*.shp)|*.shp|OGC GeoPackage (*.gpkg)|*.gpkg|All Files (*.*)|*.*",
-                    Title = "Import GIS Vector Layer into Temporary Places"
+                    Title = "Import GIS Vector Layer into Explorer"
                 };
 
                 if (dlg.ShowDialog() == true)
@@ -3650,11 +3890,8 @@ namespace ZEarth.App.ViewModels
                             importFolder.Children.Add(feat);
                         }
 
-                        // Import all external datasets into the same Temporary Places
-                        // folder used for KML/KMZ; retain source CRS metadata and
-                        // allow deliberate promotion to My Places.
-                        TemporaryPlaces.Add(importFolder);
-                        _temporarySessionService.SaveSession(TemporaryPlaces);
+                        _undoRedo.ExecuteAction(new AddPlaceAction(MyPlaces, importFolder));
+                        _pendingSessionItems.Add(importFolder);
                         _projectService.IsModified = true;
                         SelectedPlace = importFolder;
                         UpdatePlacesOnGlobe();
@@ -3678,7 +3915,7 @@ namespace ZEarth.App.ViewModels
 
                         if (string.IsNullOrEmpty(directFilePath))
                         {
-                            MessageBox.Show($"Vector dataset '{Path.GetFileName(filePath)}' ({result.Features.Count} features) was imported into My Places.\nSource CRS: {result.SourceCrs}\n\nYou can keep it in Temporary Places when you close Z EARTH.", "Vector Import", MessageBoxButton.OK, MessageBoxImage.Information);
+                            MessageBox.Show($"Vector dataset '{Path.GetFileName(filePath)}' ({result.Features.Count} features) was added as an Explorer root.\nSource CRS: {result.SourceCrs}\n\nYou can keep it in Temporary Places when you close Z EARTH.", "Vector Import", MessageBoxButton.OK, MessageBoxImage.Information);
                         }
                     }
                     else if (!result.Success && string.IsNullOrEmpty(directFilePath))
@@ -3724,21 +3961,61 @@ namespace ZEarth.App.ViewModels
         {
             try
             {
-                if (Application.Current?.MainWindow is not Views.MainWindow window)
-                    throw new InvalidOperationException("Map window is unavailable.");
-                var directory = SettingsService.Instance.Settings.ScreenshotDirectory;
-                if (string.IsNullOrWhiteSpace(directory))
-                    directory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyPictures), "ZEarth");
-                Directory.CreateDirectory(directory);
-                var filePath = Path.Combine(directory, $"ZEarth_Capture_{DateTime.Now:yyyyMMdd_HHmmss_fff}.png");
-                await window.CaptureMapScreenshotAsync(filePath);
-                StatusMessage = "Map screenshot captured.";
-                ShowToast("Map screenshot saved ✓");
+                // Toggle Google Earth Pro style Save Image design mode (Title, Legend, Compass, Scale)
+                IsSaveImageModeActive = !IsSaveImageModeActive;
+                await _globeBridge.ToggleSaveImageAsync(IsSaveImageModeActive);
+
+                StatusMessage = LocalizationService.Instance.IsArabic
+                    ? (IsSaveImageModeActive ? "تم تفعيل نمط حفظ الخريطة (Google Earth Pro). قم بتعديل العنوان والوصف ثم اضغط حفظ الصورة." : "تم إغلاق نمط حفظ الخريطة.")
+                    : (IsSaveImageModeActive ? "Save Image mode active (Google Earth Pro). Customize Title and Legend then click Save Image." : "Save Image mode closed.");
             }
             catch (Exception ex)
             {
-                StatusMessage = "Screenshot failed: " + ex.Message;
-                ShowToast("Screenshot failed — see status bar");
+                StatusMessage = "Save Image: " + ex.Message;
+            }
+        }
+
+        private async void OnSaveImageExportRequested(object? sender, EventArgs e)
+        {
+            await PromptAndSaveMapImageAsync();
+        }
+
+        public async Task PromptAndSaveMapImageAsync()
+        {
+            try
+            {
+                if (Application.Current?.MainWindow is not Views.MainWindow window)
+                    throw new InvalidOperationException("Map window is unavailable.");
+
+                var defaultDir = SettingsService.Instance.Settings.ScreenshotDirectory;
+                if (string.IsNullOrWhiteSpace(defaultDir))
+                    defaultDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyPictures), "ZEarth");
+                Directory.CreateDirectory(defaultDir);
+
+                var dlg = new SaveFileDialog
+                {
+                    Title = LocalizationService.Instance.IsArabic ? "حفظ صورة الخريطة" : "Save Map Image",
+                    Filter = "PNG Image (*.png)|*.png|JPEG Image (*.jpg;*.jpeg)|*.jpg;*.jpeg|All Files (*.*)|*.*",
+                    InitialDirectory = defaultDir,
+                    FileName = $"ZEarth_Map_{DateTime.Now:yyyyMMdd_HHmmss}.png"
+                };
+
+                if (dlg.ShowDialog() == true)
+                {
+                    var filePath = dlg.FileName;
+                    await window.CaptureMapScreenshotAsync(filePath);
+                    StatusMessage = LocalizationService.Instance.IsArabic
+                        ? $"تم حفظ صورة الخريطة بنجاح في: {Path.GetFileName(filePath)}"
+                        : $"Map image saved successfully to: {Path.GetFileName(filePath)}";
+                    ShowToast(LocalizationService.Instance.IsArabic
+                        ? "تم حفظ صورة الخريطة بنجاح ✓"
+                        : "Map image saved successfully ✓");
+                }
+            }
+            catch (Exception ex)
+            {
+                StatusMessage = (LocalizationService.Instance.IsArabic ? "فشل حفظ صورة الخريطة: " : "Screenshot failed: ") + ex.Message;
+                ShowToast(LocalizationService.Instance.IsArabic ? "فشل حفظ الصورة — راجع شريط الحالة" : "Screenshot failed — see status bar");
             }
         }
 
@@ -3807,21 +4084,41 @@ namespace ZEarth.App.ViewModels
             }
         }
 
-        public void ExecuteModel3D()
+        public async void ExecuteModel3D()
         {
             var dlg = new OpenFileDialog
             {
-                Filter = "3D Model Files (*.gltf;*.glb;*.dae;*.obj)|*.gltf;*.glb;*.dae;*.obj|glTF Binary (*.glb)|*.glb|glTF (*.gltf)|*.gltf|Collada (*.dae)|*.dae|Wavefront OBJ (*.obj)|*.obj|All Files (*.*)|*.*",
-                Title = "Import 3D Model into Scene"
+                Filter = "Self-contained glTF 2.0 Binary (*.glb)|*.glb",
+                Title = "Import Self-contained GLB Model"
             };
             if (dlg.ShowDialog() == true)
             {
-                var item = new PlaceItem(Path.GetFileNameWithoutExtension(dlg.FileName), PlaceItemType.Placemark, CurrentCamera.Latitude, CurrentCamera.Longitude, CurrentCamera.Altitude);
-                item.ExtendedData["ModelPath"] = dlg.FileName;
+                if (!GlbModelImportService.TryLoad(dlg.FileName, out var model, out var validationError) || model == null)
+                {
+                    MessageBox.Show(validationError, "3D Model Not Imported", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                var latitude = _lastKnownCenter?.IsValid == true ? _lastKnownCenter.Latitude : CurrentCamera.Latitude;
+                var longitude = _lastKnownCenter?.IsValid == true ? _lastKnownCenter.Longitude : CurrentCamera.Longitude;
+                var item = new PlaceItem(Path.GetFileNameWithoutExtension(model.FileName), PlaceItemType.Placemark, latitude, longitude, 0);
+                var loaded = await _globeBridge.AddModelAsync(item.Id, item.Name, model.DataUri, longitude, latitude, 0);
+                if (!loaded)
+                {
+                    MessageBox.Show("Cesium could not load the selected GLB model. The project was not changed.",
+                        "3D Model Not Imported", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                item.ExtendedData["ModelFileName"] = model.FileName;
+                item.ExtendedData["ModelGlbBase64"] = model.Base64;
+                item.ExtendedData["ModelSha256"] = model.Sha256;
+                item.ExtendedData["ModelByteLength"] = model.ByteLength.ToString(CultureInfo.InvariantCulture);
                 MyPlaces.Add(item);
                 _projectService.IsModified = true;
-                UpdatePlacesOnGlobe();
-                MessageBox.Show($"3D Model '{Path.GetFileName(dlg.FileName)}' anchored at current coordinate position ({CurrentCamera.Latitude:F4}°, {CurrentCamera.Longitude:F4}°).", "3D Model Imported", MessageBoxButton.OK, MessageBoxImage.Information);
+                UpdateWindowTitle();
+                MessageBox.Show($"GLB model '{model.FileName}' was loaded by Cesium at ({latitude:F4}°, {longitude:F4}°) and embedded in the project.",
+                    "3D Model Imported", MessageBoxButton.OK, MessageBoxImage.Information);
             }
         }
 
@@ -3876,25 +4173,30 @@ namespace ZEarth.App.ViewModels
                 }
                 else
                 {
-                    StatusMessage = "DEM samples unavailable/incomplete. Displaying stored vertex Z only, NOT terrain elevations.";
-                    dlg = new Views.ElevationProfileDialog(vertices);
+                    // CoordinatePoint currently cannot distinguish absent source Z from
+                    // a genuine zero. Do not chart those values as stored elevations.
+                    StatusMessage = "DEM samples unavailable or incomplete. No elevation profile was generated.";
+                    dlg = new Views.ElevationProfileDialog();
                 }
             }
             else
             {
                 StatusMessage = "Selected path geometry cannot produce a valid terrain profile.";
-                dlg = new Views.ElevationProfileDialog(vertices);
+                dlg = new Views.ElevationProfileDialog();
             }
             dlg.Owner = Application.Current?.MainWindow;
             dlg.ShowDialog();
         }
 
-        public void ExecuteShowOptions() => ExecuteShowOptions(false);
+        public void ExecuteShowOptions() => ExecuteShowOptions(Views.OptionsDialogTab.MeasurementUnits);
 
-        private void ExecuteShowOptions(bool openGridTab)
+        private void ExecuteShowOptions(bool openGridTab) =>
+            ExecuteShowOptions(openGridTab ? Views.OptionsDialogTab.MapGrid : Views.OptionsDialogTab.MeasurementUnits);
+
+        private void ExecuteShowOptions(Views.OptionsDialogTab initialTab)
         {
             var wasTerrainEnabled = IsTerrainEnabled;
-            var dlg = new Views.OptionsDialog(_globeBridge, openGridTab)
+            var dlg = new Views.OptionsDialog(_globeBridge, initialTab)
             {
                 Owner = Application.Current?.MainWindow
             };
@@ -4006,11 +4308,31 @@ namespace ZEarth.App.ViewModels
                     break;
                 case "worldTerrain":
                     _terrainConfig.Type = TerrainType.CesiumWorldTerrain;
-                    _terrainConfig.Name = "Cesium World Terrain / Copernicus GLO-30";
+                    _terrainConfig.Name = "Cesium World Terrain (ion asset 1)";
                     break;
                 case "worldBathymetry":
                     _terrainConfig.Type = TerrainType.CesiumWorldTerrain;
                     _terrainConfig.Name = "Cesium World Bathymetry / GEBCO 2023";
+                    break;
+                case "copernicusGlo30":
+                    _terrainConfig.Type = TerrainType.LocalDem;
+                    _terrainConfig.Name = "Copernicus DEM GLO-30 (CDSE API)";
+                    break;
+                case "srtm30":
+                    _terrainConfig.Type = TerrainType.LocalDem;
+                    _terrainConfig.Name = "SRTM-backed AWS Terrain Tiles";
+                    break;
+                case "aw3d30":
+                    _terrainConfig.Type = TerrainType.LocalDem;
+                    _terrainConfig.Name = "JAXA AW3D30 (JAXA Earth API)";
+                    break;
+                case "gebco2026":
+                    _terrainConfig.Type = TerrainType.LocalDem;
+                    _terrainConfig.Name = "GEBCO 2026 Grid (Australian Antarctic Division / Source Cooperative)";
+                    break;
+                case "localDem":
+                    _terrainConfig.Type = TerrainType.LocalDem;
+                    _terrainConfig.Name = "Local Numeric Elevation Raster";
                     break;
                 case "custom":
                     _terrainConfig.Type = TerrainType.Custom;
@@ -4042,6 +4364,23 @@ namespace ZEarth.App.ViewModels
             var settings = SettingsService.Instance.Settings;
             var providerId = settings.TerrainProviderId;
 
+            if (string.Equals(providerId, "localDem", StringComparison.OrdinalIgnoreCase))
+            {
+                try
+                {
+                    var path = settings.LocalTerrainRasterPath ?? string.Empty;
+                    var unit = settings.LocalTerrainVerticalUnit;
+                    await Task.Run(() => LocalTerrainRasterService.Instance.Configure(path, unit));
+                }
+                catch (Exception ex)
+                {
+                    IsTerrainEnabled = false;
+                    StatusMessage = "Local terrain is not valid: " + ex.Message;
+                    SyncTerrainSettingsDisplay(updateEnabledState: false);
+                    return;
+                }
+            }
+
             if (string.Equals(providerId, "ellipsoid", StringComparison.OrdinalIgnoreCase))
             {
                 await _globeBridge.SetTerrainProviderAsync("ellipsoid");
@@ -4052,7 +4391,9 @@ namespace ZEarth.App.ViewModels
                 IsTerrainEnabled = await _globeBridge.SetTerrainProviderAsync(
                     providerId,
                     settings.CustomTerrainUrl,
-                    settings.CesiumIonToken);
+                    string.Equals(providerId, "copernicusGlo30", StringComparison.OrdinalIgnoreCase)
+                        ? settings.CopernicusAccessToken
+                        : settings.CesiumIonToken);
             }
 
             SyncTerrainSettingsDisplay(updateEnabledState: false);
@@ -4092,9 +4433,17 @@ namespace ZEarth.App.ViewModels
             }
 
             await ActivateConfiguredTerrainAsync();
-            StatusMessage = IsTerrainEnabled
-                ? $"Terrain active: {_terrainConfig.Name}"
-                : $"Terrain unavailable: {_terrainConfig.Name}. Check the provider connection, URL or Cesium ion token.";
+            if (IsTerrainEnabled)
+            {
+                if (StatusMessage == "Loading selected elevation model…")
+                    StatusMessage = $"Terrain active: {_terrainConfig.Name}";
+            }
+            else if (StatusMessage == "Loading selected elevation model…")
+            {
+                // Preserve any more specific fallback or local-raster error reported
+                // during activation; only use the generic message when none arrived.
+                StatusMessage = $"Terrain unavailable: {_terrainConfig.Name}. Check the provider connection and credentials.";
+            }
             }
             finally { _terrainRequestInProgress = false; }
         }
@@ -4189,20 +4538,33 @@ namespace ZEarth.App.ViewModels
             _ = _globeBridge.SetLayerOpacityAsync(vm.Id, vm.Opacity);
         }
 
-        public void ExecuteSelectBasemap(string basemapId)
+        private int _basemapRequestRevision;
+        public void ExecuteSelectBasemap(string basemapId) => _ = ApplyBasemapAsync(basemapId);
+
+        public async Task<bool> ApplyBasemapAsync(string basemapId)
         {
-            if (string.IsNullOrEmpty(basemapId)) return;
+            if (string.IsNullOrWhiteSpace(basemapId)) return false;
+            var revision = ++_basemapRequestRevision;
+            var layer = _imageryRegistry.GetLayer(basemapId);
+            if (layer == null || !layer.IsBaseLayer)
+            {
+                StatusMessage = "Unknown basemap; the current map was not changed.";
+                return false;
+            }
+            if (!await _globeBridge.SetBasemapAsync(basemapId))
+            {
+                if (revision == _basemapRequestRevision)
+                    StatusMessage = $"Could not activate basemap: {layer.Name}.";
+                return false;
+            }
+            if (revision != _basemapRequestRevision) return true;
             _selectedBasemapId = basemapId;
             OnPropertyChanged(nameof(SelectedBasemapId));
-            var layer = _imageryRegistry.GetLayer(basemapId);
-            if (layer != null)
-            {
-                _imageryRegistry.SetBasemap(basemapId);
-                ActiveBasemap = layer.Name;
-            }
-            _ = _globeBridge.SetBasemapAsync(basemapId);
+            _imageryRegistry.SetBasemap(basemapId);
+            ActiveBasemap = layer.Name;
             ActiveAttribution = _imageryRegistry.GetCombinedAttribution();
             OnPropertyChanged(nameof(StatusEngineInfo));
+            return true;
         }
 
         public void ExecuteAddImageryLayer()

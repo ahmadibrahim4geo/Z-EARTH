@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using ZEarth.App.Services;
 using ZEarth.App.ViewModels;
@@ -229,23 +230,37 @@ public class Sprint7LayersAndTerrainTests
     }
 
     [TestMethod]
-    public void MainViewModel_SelectBasemap_UpdatesActiveBasemapAndAttribution()
+    public async Task MainViewModel_SelectBasemap_UpdatesOnlyAfterEngineAcknowledges()
     {
         var bridge = new GlobeBridge();
+        FakeGlobeEngine.Attach(bridge);
         var projectService = new ProjectService();
         var vm = new MainViewModel(projectService, bridge);
 
         Assert.IsNotNull(vm.SelectedBasemapId);
 
         // Select Offline Vector
-        vm.ExecuteSelectBasemap(ImageryRegistry.ProviderNaturalEarth);
+        Assert.IsTrue(await vm.ApplyBasemapAsync(ImageryRegistry.ProviderNaturalEarth));
         Assert.AreEqual(ImageryRegistry.ProviderNaturalEarth, vm.SelectedBasemapId);
         StringAssert.Contains(vm.ActiveBasemap, "Natural Earth");
 
         // Select OpenTopo
-        vm.ExecuteSelectBasemap(ImageryRegistry.ProviderOpenTopoMap);
+        Assert.IsTrue(await vm.ApplyBasemapAsync(ImageryRegistry.ProviderOpenTopoMap));
         Assert.AreEqual(ImageryRegistry.ProviderOpenTopoMap, vm.SelectedBasemapId);
         StringAssert.Contains(vm.ActiveBasemap, "OpenTopoMap");
+    }
+
+    [TestMethod]
+    public async Task MainViewModel_FailedBasemapRequest_PreservesPreviousSelection()
+    {
+        var bridge = new GlobeBridge(); // No sender: engine unavailable.
+        var vm = new MainViewModel(new ProjectService(), bridge);
+        var previousId = vm.SelectedBasemapId;
+        var previousName = vm.ActiveBasemap;
+        Assert.IsFalse(await vm.ApplyBasemapAsync(ImageryRegistry.ProviderNaturalEarth));
+        Assert.AreEqual(previousId, vm.SelectedBasemapId);
+        Assert.AreEqual(previousName, vm.ActiveBasemap);
+        StringAssert.Contains(vm.StatusMessage, "Could not activate basemap");
     }
 
     [TestMethod]

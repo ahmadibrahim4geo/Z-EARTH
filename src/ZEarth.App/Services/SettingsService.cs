@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Text.Json;
+using ZEarth.Domain.Imagery;
 using ZEarth.Domain.Settings;
 using ZEarth.Domain.Units;
 
@@ -11,25 +12,40 @@ public class AppSettingsModel
     public string Theme { get; set; } = "dark";
     public string Language { get; set; } = "en";
     public string SceneMode { get; set; } = "3D";
-    public string BasemapId { get; set; } = "offline-vector";
+    public string BasemapId { get; set; } = ImageryRegistry.ProviderEsriHybrid;
     public string TerrainProviderId { get; set; } = "demTerrain";
+    public string? LocalTerrainRasterPath { get; set; } = null;
+    // Numeric elevation rasters are normalized to metres before Cesium sees them.
+    // Keep the explicit unit instead of guessing from a filename or provider label.
+    public string LocalTerrainVerticalUnit { get; set; } = "Meters";
     public string ScreenshotDirectory { get; set; } = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyPictures), "ZEarth");
     // Session credentials must never be serialized to plaintext settings.json.
     [System.Text.Json.Serialization.JsonIgnore]
     public string? CesiumIonToken { get; set; } = null;
+    [System.Text.Json.Serialization.JsonIgnore]
+    public string? CopernicusAccessToken { get; set; } = null;
     public string? CustomTerrainUrl { get; set; } = null;
     // Procedural visual clouds are optional and offline, not live meteorological data.
     public bool ShowClouds { get; set; } = false;
     public bool ShowGraticules { get; set; } = false;
+    // Retained for settings-file compatibility. The Map Grid UI no longer exposes
+    // a general label switch: labels follow each enabled grid component.
     public bool ShowGraticuleLabels { get; set; } = true;
-    public string GridLabelFormat { get; set; } = "DMS";
-    public bool ShowKeyParallels { get; set; } = true;
-    public bool ShowLongitudeLines { get; set; } = true;
-    public bool ShowLatitudeLines { get; set; } = true;
-    public double LongitudeIntervalDegrees { get; set; } = 0.0;
-    public double LatitudeIntervalDegrees { get; set; } = 0.0;
-    public bool ShowUtmZones { get; set; } = false;
-    public string UtmLabelMode { get; set; } = "Both";
+    public string GridLabelFormat { get; set; } = GridSettingsDefaults.GridLabelFormat;
+    public bool ShowKeyParallels { get; set; } = GridSettingsDefaults.ShowKeyParallels;
+    public bool ShowLongitudeLines { get; set; } = GridSettingsDefaults.ShowLongitudeLines;
+    public bool ShowLatitudeLines { get; set; } = GridSettingsDefaults.ShowLatitudeLines;
+    public double LongitudeIntervalDegrees { get; set; } = GridSettingsDefaults.LongitudeIntervalDegrees;
+    public double LatitudeIntervalDegrees { get; set; } = GridSettingsDefaults.LatitudeIntervalDegrees;
+    public bool ShowUtmZones { get; set; } = GridSettingsDefaults.ShowUtmZones;
+    public string UtmLabelMode { get; set; } = GridSettingsDefaults.UtmLabelMode;
+    public string UtmLabelPlacement { get; set; } = GridSettingsDefaults.UtmLabelPlacement;
+    public string GridLabelSize { get; set; } = GridSettingsDefaults.GridLabelSize;
+    public string GridMajorColor { get; set; } = GridSettingsDefaults.GridMajorColor;
+    public string GridLongitudeColor { get; set; } = GridSettingsDefaults.GridLongitudeColor;
+    public string GridLatitudeColor { get; set; } = GridSettingsDefaults.GridLatitudeColor;
+    public string GridLabelColor { get; set; } = GridSettingsDefaults.GridLabelColor;
+    public string GridUtmColor { get; set; } = GridSettingsDefaults.GridUtmColor;
     // Offline-first: enabling Esri hosted borders is an explicit user choice.
     public bool ShowBorders { get; set; } = false;
 
@@ -96,7 +112,13 @@ public sealed class SettingsService
 
     private SettingsService()
     {
-        var dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ZEarth");
+        // Automated/native test hosts may opt into a process-scoped settings directory.
+        // Production keeps the established LocalApplicationData location. This prevents
+        // test runs from reading or overwriting a real user's preferences.
+        var configuredDir = Environment.GetEnvironmentVariable("ZEARTH_SETTINGS_DIRECTORY");
+        var dir = string.IsNullOrWhiteSpace(configuredDir)
+            ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ZEarth")
+            : Path.GetFullPath(configuredDir);
         Directory.CreateDirectory(dir);
         _settingsPath = Path.Combine(dir, "settings.json");
         Settings = LoadSettings();
@@ -115,7 +137,10 @@ public sealed class SettingsService
                 {
                     // Ignore insecure tokens left by older settings versions.
                     model.CesiumIonToken = Environment.GetEnvironmentVariable("ZEARTH_CESIUM_ION_TOKEN");
+                    model.CopernicusAccessToken = Environment.GetEnvironmentVariable("ZEARTH_COPERNICUS_ACCESS_TOKEN");
                     model.EsriApiKey = Environment.GetEnvironmentVariable("ZEARTH_ESRI_API_KEY");
+                    NormalizeBasemap(model);
+                    GridSettingsDefaults.Normalize(model);
                     return model;
                 }
             }
@@ -124,11 +149,23 @@ public sealed class SettingsService
         {
             LoggerService.Instance.LogWarning($"Failed to read settings from {_settingsPath}: {ex.Message}");
         }
-        return new AppSettingsModel
+        var defaults = new AppSettingsModel
         {
             CesiumIonToken = Environment.GetEnvironmentVariable("ZEARTH_CESIUM_ION_TOKEN"),
+            CopernicusAccessToken = Environment.GetEnvironmentVariable("ZEARTH_COPERNICUS_ACCESS_TOKEN"),
             EsriApiKey = Environment.GetEnvironmentVariable("ZEARTH_ESRI_API_KEY")
         };
+        NormalizeBasemap(defaults);
+        return defaults;
+    }
+
+    private static void NormalizeBasemap(AppSettingsModel model)
+    {
+        var configured = model.BasemapId?.Trim();
+        model.BasemapId = ImageryRegistry.Providers.Any(provider =>
+                string.Equals(provider.Id, configured, StringComparison.OrdinalIgnoreCase))
+            ? configured!
+            : ImageryRegistry.ProviderEsriHybrid;
     }
 
     public void SaveSettings()

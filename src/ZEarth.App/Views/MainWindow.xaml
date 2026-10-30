@@ -121,7 +121,7 @@
                 </Grid.ColumnDefinitions>
 
                 <!-- Approved Branding Header -->
-                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="2,0,14,0">
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="2,0,14,0" FlowDirection="LeftToRight">
                     <Image Source="/Assets/zearth_approved_icon.png" Width="20" Height="20" Margin="0,0,8,0"
                            RenderOptions.BitmapScalingMode="HighQuality"/>
                     <TextBlock Text="Z" FontWeight="Bold" FontSize="14" Foreground="#009bff"/>
@@ -307,7 +307,7 @@
                                     <RowDefinition Height="Auto"/>
                                 </Grid.RowDefinitions>
                                 <StackPanel Grid.Row="0" Orientation="Horizontal">
-                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding ImportKmlCommand}" ToolTip="Import KML / KMZ into My Places" AutomationProperties.AutomationId="ZE.Main.021.ImportKmlCommand" AutomationProperties.Name="Import KML / KMZ into My Places">
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding ImportKmlCommand}" ToolTip="Import KML / KMZ as an Explorer root" AutomationProperties.AutomationId="ZE.Main.021.ImportKmlCommand" AutomationProperties.Name="Import KML / KMZ as an Explorer root">
                                         <StackPanel HorizontalAlignment="Center">
                                             <Path Data="{StaticResource Icon.KmlImport}" Style="{StaticResource RibbonLargeIconStyle}" Fill="{DynamicResource Brush.Accent}"/>
                                             <TextBlock Text="Import KML" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
@@ -593,7 +593,7 @@
                             <Grid>
                                 <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                                 <StackPanel Grid.Row="0" Orientation="Horizontal">
-                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding ToggleGraticulesCommand}" ToolTip="Show or hide the adaptive coordinate grid" AutomationProperties.AutomationId="ZE.Main.043.ToggleGraticulesCommand" AutomationProperties.Name="Show or hide the adaptive coordinate grid">
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding ToggleGraticulesCommand}" Background="{Binding GridToggleBackground}" ToolTip="Show or hide the adaptive coordinate grid" AutomationProperties.AutomationId="ZE.Main.043.ToggleGraticulesCommand" AutomationProperties.Name="Show or hide the adaptive coordinate grid">
                                         <StackPanel HorizontalAlignment="Center">
                                             <TextBlock Text="▦" FontSize="22" Foreground="{Binding GridToggleBrush}" HorizontalAlignment="Center"/>
                                             <TextBlock Text="Show Grid" FontSize="11" Foreground="{Binding GridToggleBrush}" Margin="0,3,0,0"/>
@@ -618,10 +618,13 @@
                                     <RowDefinition Height="Auto"/>
                                 </Grid.RowDefinitions>
                                 <StackPanel Grid.Row="0" Orientation="Horizontal">
-                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding ToggleSunlightCommand}" ToolTip="Show sunlight across the landscape. Use the time slider to set the time of day." AutomationProperties.AutomationId="ZE.Main.045.ToggleSunlightCommand" AutomationProperties.Name="Show sunlight across the landscape. Use the time slider to set the time of day.">
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}"
+                                            Background="{Binding SunlightButtonBackground}"
+                                            BorderBrush="{Binding SunlightButtonBorderBrush}"
+                                            Command="{Binding ToggleSunlightCommand}" ToolTip="Show sunlight across the landscape. Use the time slider to set the time of day." AutomationProperties.AutomationId="ZE.Main.045.ToggleSunlightCommand" AutomationProperties.Name="Show sunlight across the landscape. Use the time slider to set the time of day.">
                                         <StackPanel HorizontalAlignment="Center">
                                             <Path Data="{StaticResource Icon.Sunlight}" Style="{StaticResource RibbonLargeIconStyle}" Fill="{Binding SunlightIconBrush}"/>
-                                            <TextBlock Text="Sunlight" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                            <TextBlock Text="Sunlight" FontSize="11" Foreground="{Binding SunlightLabelForeground}" HorizontalAlignment="Center" Margin="0,3,0,0"/>
                                         </StackPanel>
                                     </Button>
 
@@ -644,16 +647,22 @@
                                                     Height="25" FontSize="10" Margin="0,2,0,0"
                                                     ToolTip="Choose UTC calendar date. Sun angle follows the map location; UTC is not the country's civil time."/>
                                     </StackPanel>
-                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding ToggleCloudsCommand}" ToolTip="{Binding CloudsTooltip}" AutomationProperties.AutomationId="ZE.Main.046a.ToggleCloudsCommand" AutomationProperties.Name="{Binding CloudsLabel}">
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}"
+                                            Background="{Binding CloudsButtonBackground}"
+                                            BorderBrush="{Binding CloudsButtonBorderBrush}"
+                                            Command="{Binding ToggleCloudsCommand}" ToolTip="{Binding CloudsTooltip}" AutomationProperties.AutomationId="ZE.Main.046a.ToggleCloudsCommand" AutomationProperties.Name="{Binding CloudsLabel}">
                                         <StackPanel HorizontalAlignment="Center">
                                             <TextBlock Text="☁" FontSize="25" Foreground="{Binding CloudsIconBrush}" HorizontalAlignment="Center"/>
-                                            <TextBlock Text="{Binding CloudsLabel}" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                            <TextBlock Text="{Binding CloudsLabel}" FontSize="11" Foreground="{Binding CloudsLabelForeground}" HorizontalAlignment="Center" Margin="0,3,0,0"/>
                                         </StackPanel>
                                     </Button>
-                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding ToggleAtmosphereCommand}" ToolTip="Show or hide the atmospheric glow and ground haze." AutomationProperties.AutomationId="ZE.Main.046.ToggleAtmosphereCommand" AutomationProperties.Name="Show or hide the atmospheric glow and ground haze.">
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}"
+                                            Background="{Binding AtmosphereButtonBackground}"
+                                            BorderBrush="{Binding AtmosphereButtonBorderBrush}"
+                                            Command="{Binding ToggleAtmosphereCommand}" ToolTip="Show or hide the atmospheric glow and ground haze." AutomationProperties.AutomationId="ZE.Main.046.ToggleAtmosphereCommand" AutomationProperties.Name="Show or hide the atmospheric glow and ground haze.">
                                         <StackPanel HorizontalAlignment="Center">
                                             <Path Data="{StaticResource Icon.Atmosphere}" Style="{StaticResource RibbonLargeIconStyle}" Fill="{Binding AtmosphereIconBrush}"/>
-                                            <TextBlock Text="Atmosphere" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                            <TextBlock Text="Atmosphere" FontSize="11" Foreground="{Binding AtmosphereLabelForeground}" HorizontalAlignment="Center" Margin="0,3,0,0"/>
                                         </StackPanel>
                                     </Button>
                                 </StackPanel>
@@ -783,7 +792,7 @@
                                             <TextBlock Text="Overlay" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
                                         </StackPanel>
                                     </Button>
-                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding Model3DCommand}" ToolTip="Import 3D model [glTF / Collada]" AutomationProperties.AutomationId="ZE.Main.058.Model3DCommand" AutomationProperties.Name="Import 3D model [glTF / Collada]">
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding Model3DCommand}" ToolTip="Import a self-contained glTF 2.0 Binary model (.glb, up to 8 MB)" AutomationProperties.AutomationId="ZE.Main.058.Model3DCommand" AutomationProperties.Name="Import a self-contained GLB 3D model">
                                         <StackPanel HorizontalAlignment="Center">
                                             <Path Data="{StaticResource Icon.Model3D}" Style="{StaticResource RibbonLargeIconStyle}" Fill="#38bdf8"/>
                                             <TextBlock Text="3D Model" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
@@ -1008,6 +1017,15 @@
                                         <TextBlock Text="Selected Elevation Model:" FontSize="10" Foreground="{DynamicResource Brush.Text.Secondary}"/>
                                         <TextBlock Text="{Binding TerrainProviderType}" FontSize="11" FontWeight="SemiBold" Foreground="{Binding TerrainIconBrush}" MaxWidth="160" TextWrapping="Wrap"/>
                                     </StackPanel>
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding TerrainOptionsCommand}"
+                                            ToolTip="Configure terrain sources, credentials and custom quantized-mesh services"
+                                            AutomationProperties.AutomationId="ZE.Main.066A.TerrainOptionsCommand"
+                                            AutomationProperties.Name="Configure terrain sources and credentials">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <TextBlock Text="⚙" FontSize="20" Foreground="{DynamicResource Brush.Text.Secondary}" HorizontalAlignment="Center"/>
+                                            <TextBlock Text="Terrain Options" FontSize="10" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Button>
                                 </StackPanel>
                                 <TextBlock Grid.Row="1" Text="Elevation Model" Style="{StaticResource RibbonGroupHeaderStyle}"/>
                             </Grid>
@@ -1076,10 +1094,13 @@
                                             <TextBlock Text="Coord Conv" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
                                         </StackPanel>
                                     </Button>
-                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding TakeScreenshotCommand}" ToolTip="Export high-resolution map snapshot to file" AutomationProperties.AutomationId="ZE.Main.075.TakeScreenshotCommand" AutomationProperties.Name="Export high-resolution map snapshot to file">
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}"
+                                            Background="{Binding SaveImageButtonBackground}"
+                                            BorderBrush="{Binding SaveImageButtonBorderBrush}"
+                                            Command="{Binding TakeScreenshotCommand}" ToolTip="{Binding ScreenshotTooltip}" AutomationProperties.AutomationId="ZE.Main.075.TakeScreenshotCommand" AutomationProperties.Name="{Binding ScreenshotTooltip}">
                                         <StackPanel HorizontalAlignment="Center">
-                                            <Path Data="{StaticResource Icon.CameraSnapshot}" Style="{StaticResource RibbonLargeIconStyle}" Fill="#38bdf8"/>
-                                            <TextBlock Text="Snapshot" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                            <Path Data="{StaticResource Icon.CameraSnapshot}" Style="{StaticResource RibbonLargeIconStyle}" Fill="{Binding SaveImageIconBrush}"/>
+                                            <TextBlock Text="{Binding ScreenshotLabel}" FontSize="11" Foreground="{Binding SaveImageLabelForeground}" HorizontalAlignment="Center" Margin="0,3,0,0"/>
                                         </StackPanel>
                                     </Button>
                                     <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding DiagnosticsCommand}" ToolTip="Display runtime diagnostics and memory logs" AutomationProperties.AutomationId="ZE.Main.076.DiagnosticsCommand" AutomationProperties.Name="Display runtime diagnostics and memory logs">
@@ -1398,8 +1419,8 @@
                                 <Expander.Header>
                                     <DockPanel LastChildFill="True">
                                         <TextBlock Text="📁 " FontSize="12"/>
-                                        <TextBlock Text="My Places" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource Brush.Text.Primary}"/>
-                                        <TextBlock Text="[Persistent]" FontSize="10" Foreground="{DynamicResource Brush.Text.Muted}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                        <TextBlock Text="Explorer Places" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource Brush.Text.Primary}"/>
+                                        <TextBlock Text="[Saved and session]" FontSize="10" Foreground="{DynamicResource Brush.Text.Muted}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                                     </DockPanel>
                                 </Expander.Header>
 
@@ -1468,6 +1489,7 @@
                                                 <ContextMenu>
                                                     <MenuItem Header="✈ Fly To / Zoom to Extent" Command="{Binding FlyToPlaceCommand}"/>
                                                     <MenuItem Header="⚙ Properties..." Command="{Binding OpenPropertiesCommand}"/>
+                                                    <MenuItem Header="{Binding MoveToFolderLabel}" Click="MovePlaceToFolder_Click"/>
                                                     <MenuItem Header="★ Set as Startup Scene" Command="{Binding SetAsStartupSceneCommand}"/>
                                                     <MenuItem Header="↑ Move Saved Scene Up" Command="{Binding MoveSavedSceneUpCommand}"/>
                                                     <MenuItem Header="↓ Move Saved Scene Down" Command="{Binding MoveSavedSceneDownCommand}"/>
@@ -1529,7 +1551,7 @@
         </Border>
 
         <!-- ==================== ROW 3: TWO-ROW STATUS BAR (P0 - CRS-01..08) ==================== -->
-        <Border Grid.Row="3" Background="{DynamicResource Brush.StatusBar.Background}"
+        <Border Grid.Row="3" Background="{DynamicResource Brush.StatusBar.Background}" FlowDirection="LeftToRight"
                 BorderBrush="{DynamicResource Brush.StatusBar.Border}" BorderThickness="0,1,0,0" Padding="8,3">
             <Grid>
                 <Grid.RowDefinitions>

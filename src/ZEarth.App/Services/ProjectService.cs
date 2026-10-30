@@ -70,7 +70,11 @@ namespace ZEarth.App.Services
 
         public ProjectService()
         {
-            _recoveryDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ZEarth", "recovery");
+            var overrideDirectory = Environment.GetEnvironmentVariable("ZEARTH_PROFILE_DIRECTORY");
+            var profileDirectory = string.IsNullOrWhiteSpace(overrideDirectory)
+                ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ZEarth")
+                : Path.GetFullPath(overrideDirectory);
+            _recoveryDir = Path.Combine(profileDirectory, "recovery");
             Directory.CreateDirectory(_recoveryDir);
             _autoSavePath = Path.Combine(_recoveryDir, "autosave.zearth");
             _sessionActivePath = Path.Combine(_recoveryDir, "session.active");

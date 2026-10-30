@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
@@ -101,6 +101,8 @@ namespace ZEarth.Globe
         public event EventHandler<bool>? FlightModeChanged;
         public event EventHandler<bool>? GpsPlaybackChanged;
         public event EventHandler<string>? DeviceLocationReceived;
+        public event EventHandler<EventArgs>? SaveImageExportRequested;
+        public event EventHandler<bool>? SaveImageModeChanged;
 
         /// <summary>Raised when a correlated request fails, is cancelled or times out (RC-3).</summary>
         public event EventHandler<BridgeFailureInfo>? RequestFailed;
@@ -455,6 +457,18 @@ namespace ZEarth.Globe
                         CloudsChanged?.Invoke(this, cProp.GetBoolean());
                     return;
                 }
+                if (ev == "saveImage.triggerExport")
+                {
+                    SaveImageExportRequested?.Invoke(this, EventArgs.Empty);
+                    return;
+                }
+                if (ev == "saveImage.changed")
+                {
+                    if (root.TryGetProperty("visible", out var vProp) &&
+                        vProp.ValueKind is JsonValueKind.True or JsonValueKind.False)
+                        SaveImageModeChanged?.Invoke(this, vProp.GetBoolean());
+                    return;
+                }
                 if (ev == "flight.changed")
                 {
                     if (root.TryGetProperty("enabled", out var activeProp) &&
@@ -786,6 +800,13 @@ namespace ZEarth.Globe
 
         public Task<bool> SetPlacemarksAsync(object placemarks) => SendRequestAsync("placemarks.set", placemarks);
 
+        public Task<bool> AddModelAsync(string id, string name, string dataUri,
+            double longitude, double latitude, double altitude = 0, double scale = 1) =>
+            SendRequestAsync("models.add", new { id, name, dataUri, longitude, latitude, altitude, scale }, timeoutMs: 30000);
+
+        public Task<bool> SetModelsAsync(object models) =>
+            SendRequestAsync("models.set", models, timeoutMs: 45000);
+
         public Task<bool> StartDrawingAsync(string type, object? style = null) => SendRequestAsync("draw.start", new { type, style });
         public Task<bool> FinishDrawingAsync() => SendRequestAsync("draw.finish");
         public Task<bool> CancelDrawingAsync() => SendRequestAsync("draw.cancel");
@@ -828,8 +849,18 @@ namespace ZEarth.Globe
         public Task<bool> SetBordersVisibleAsync(bool visible) => SendRequestAsync("layers.setBorders", new { visible });
         public Task<bool> SetGraticulesVisibleAsync(bool visible) => SendRequestAsync("layers.setGraticules", new { visible });
         public Task<bool> SetGraticulesConfigAsync(bool visible, bool showLabels = true, bool showKeyParallels = true, bool showUtmZones = false,
-            bool showLongitudeLines = true, bool showLatitudeLines = true, double longitudeIntervalDegrees = 0.0, double latitudeIntervalDegrees = 0.0, string gridLabelFormat = "DMS", string utmLabelMode = "Both") =>
-            SendRequestAsync("layers.setGraticulesConfig", new { visible, showLabels, showKeyParallels, showUtmZones, showLongitudeLines, showLatitudeLines, longitudeIntervalDegrees, latitudeIntervalDegrees, gridLabelFormat, utmLabelMode });
+            bool showLongitudeLines = true, bool showLatitudeLines = true, double longitudeIntervalDegrees = 0.0, double latitudeIntervalDegrees = 0.0,
+            string gridLabelFormat = "DD", string utmLabelMode = "GridZone",
+            string gridMajorColor = "#FF5252", string gridLongitudeColor = "#3BA9FF", string gridLatitudeColor = "#3AD17B",
+            string gridLabelColor = "#E8E8E8", string gridUtmColor = "#FFC107",
+            string gridLabelSize = "Large", string utmLabelPlacement = "Center") =>
+            SendRequestAsync("layers.setGraticulesConfig", new
+            {
+                visible, showLabels, showKeyParallels, showUtmZones, showLongitudeLines, showLatitudeLines,
+                longitudeIntervalDegrees, latitudeIntervalDegrees, gridLabelFormat, utmLabelMode,
+                gridMajorColor, gridLongitudeColor, gridLatitudeColor, gridLabelColor, gridUtmColor,
+                gridLabelSize, utmLabelPlacement
+            });
         public Task<bool> SetCreditsConfigAsync(string mode, bool showOptionalLogos) =>
             SendRequestAsync("credits.setConfig", new { mode, showOptionalLogos });
         public Task<bool> SetZoomSensitivityAsync(double factor) =>
@@ -865,6 +896,15 @@ namespace ZEarth.Globe
         public Task<bool> SetCloudsAsync(bool enabled) =>
             SendRequestAsync("environment.setClouds", new { enabled });
 
+        public Task<bool> ToggleSaveImageAsync(bool? show = null) =>
+            SendRequestAsync("saveImage.toggle", new { show });
+
+        public Task<bool> ShowSaveImageAsync() =>
+            SendRequestAsync("saveImage.show", new { });
+
+        public Task<bool> HideSaveImageAsync() =>
+            SendRequestAsync("saveImage.hide", new { });
+
         public Task<bool> SetFlightModeAsync(bool enabled) =>
             SendRequestAsync("flight.setActive", new { enabled });
 
@@ -886,8 +926,8 @@ namespace ZEarth.Globe
         public Task<bool> SetTimeOfDayAsync(double timeHours, string? dateUtc = null) =>
             SendRequestAsync("environment.setTimeOfDay", new { timeHours, dateUtc });
 
-        public Task<bool> SetMapCrsAsync(int epsgCode, string name, bool isProjected, string unit) =>
-            SendRequestAsync("crs.setMapCrs", new { epsg = epsgCode, name, isProjected, unit });
+        public Task<bool> SetMapCrsAsync(int epsgCode, string name, bool isProjected, string unit, string? projectionMethod = null, string? wkt = null) =>
+            SendRequestAsync("crs.setMapCrs", new { epsg = epsgCode, name, isProjected, unit, projectionMethod, wkt });
 
         public void SimulateCameraMoveEnd(CameraState state)
         {

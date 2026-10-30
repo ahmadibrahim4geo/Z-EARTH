@@ -62,5 +62,15 @@ test('all failing mutations return actual failed bridge responses', () => {
 
 test('saved scenes await globe mode and basemap acknowledgements', () => {
   assert.match(vm, /if \(!await _globeBridge\.SetSceneModeAsync\(sm\)\)/);
-  assert.match(vm, /if \(!await _globeBridge\.SetBasemapAsync\(bmapId\)\)/);
+  assert.match(vm, /if \(!await ApplyBasemapAsync\(bmapId\)\)/);
+});
+
+test('3D model import is a confirmed GLB-only Cesium pipeline, not a placemark false success', () => {
+  assert.match(vm, /GlbModelImportService\.TryLoad/);
+  assert.match(vm, /await _globeBridge\.AddModelAsync/);
+  assert.doesNotMatch(vm, /ExtendedData\["ModelPath"\]/);
+  assert.match(bridge, /SendRequestAsync\("models\.add"/);
+  assert.match(js, /case 'models\.add':/);
+  assert.match(js, /Cesium\.Model\.fromGltfAsync/);
+  assert.match(js, /respondAccepted\(\{ loading: true, id:/);
 });
