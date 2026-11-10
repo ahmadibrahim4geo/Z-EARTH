@@ -132,4 +132,68 @@ public class ExplorerSessionWorkflowTests
         Assert.IsFalse(actions.Contains("camera.flyTo"));
         Assert.IsTrue(vm.StatusMessage.Contains("could not", StringComparison.OrdinalIgnoreCase));
     }
+
+    [TestMethod]
+    public void PlaceClipboard_CopyAndPaste_DuplicatesItem()
+    {
+        var (vm, _, _, _) = Create();
+        int initialCount = vm.MyPlaces.Count;
+        var item = new PlaceItem("Sample Pin", PlaceItemType.Placemark, 30.0, 31.0);
+        vm.MyPlaces.Add(item);
+        vm.SelectedPlace = item;
+
+        Assert.IsTrue(vm.CopyPlaceCommand.CanExecute(null));
+        vm.CopyPlaceCommand.Execute(null);
+
+        Assert.IsTrue(vm.PastePlaceCommand.CanExecute(null));
+        vm.PastePlaceCommand.Execute(null);
+
+        Assert.AreEqual(initialCount + 2, vm.MyPlaces.Count);
+        Assert.IsTrue(vm.MyPlaces.Any(p => p.Name == "Sample Pin" && p.Id != item.Id));
+    }
+
+    [TestMethod]
+    public void PlaceClipboard_CutAndPaste_MovesItem()
+    {
+        var (vm, _, _, _) = Create();
+        int initialCount = vm.MyPlaces.Count;
+        var item = new PlaceItem("Cut Pin", PlaceItemType.Placemark, 30.0, 31.0);
+        var folder = new PlaceItem("Target Folder", PlaceItemType.Folder);
+        vm.MyPlaces.Add(item);
+        vm.MyPlaces.Add(folder);
+        vm.SelectedPlace = item;
+
+        Assert.IsTrue(vm.CutPlaceCommand.CanExecute(null));
+        vm.CutPlaceCommand.Execute(null);
+
+        vm.SelectedPlace = folder;
+        Assert.IsTrue(vm.PastePlaceCommand.CanExecute(null));
+        vm.PastePlaceCommand.Execute(null);
+
+        Assert.AreEqual(initialCount + 1, vm.MyPlaces.Count);
+        Assert.IsFalse(vm.MyPlaces.Contains(item));
+        Assert.AreEqual(1, folder.Children.Count);
+        Assert.AreEqual("Cut Pin", folder.Children[0].Name);
+    }
+
+    [TestMethod]
+    public void DirectionsAndSnapshot_ExecuteSuccessfully()
+    {
+        var (vm, _, _, _) = Create();
+        var item = new PlaceItem("Cairo Citadel", PlaceItemType.Placemark, 30.0299, 31.2611);
+        vm.MyPlaces.Add(item);
+        vm.SelectedPlace = item;
+
+        Assert.IsTrue(vm.DirectionsFromHereCommand.CanExecute(null));
+        vm.DirectionsFromHereCommand.Execute(null);
+        StringAssert.Contains(vm.StatusMessage, "30.02990");
+
+        Assert.IsTrue(vm.DirectionsToHereCommand.CanExecute(null));
+        vm.DirectionsToHereCommand.Execute(null);
+        StringAssert.Contains(vm.StatusMessage, "31.26110");
+
+        Assert.IsTrue(vm.SnapshotViewCommand.CanExecute(null));
+        vm.SnapshotViewCommand.Execute(null);
+        StringAssert.Contains(vm.StatusMessage, "Cairo Citadel");
+    }
 }

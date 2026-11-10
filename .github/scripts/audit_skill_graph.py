@@ -17,6 +17,7 @@ SHARED = {
     "agent-development-journal": "journal",
 }
 COMMAND_DATA = {
+    "gis-architecture-visualization": "architecture and command/data explanation (conditional)",
     "gis-ui-command-audit": "command inventory (conditional)",
     "gis-data-flow-diagnostics": "import-to-readback lineage (conditional)",
     "gis-desktop-e2e-testing": "native UI (conditional)",

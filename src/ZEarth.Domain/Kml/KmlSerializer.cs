@@ -233,7 +233,7 @@ namespace ZEarth.Domain.Kml
                     new XElement(KmlNs + "tessellate", "1"),
                     new XElement(KmlNs + "coordinates", coordsStr)));
             }
-            else if (placemark.ItemType == PlaceItemType.Polygon && placemark.Coordinates.Count > 0)
+            else if ((placemark.ItemType == PlaceItemType.Polygon || placemark.ItemType == PlaceItemType.Circle || placemark.ItemType == PlaceItemType.Ellipse) && placemark.Coordinates.Count > 0)
             {
                 var polyElem = new XElement(KmlNs + "Polygon");
 

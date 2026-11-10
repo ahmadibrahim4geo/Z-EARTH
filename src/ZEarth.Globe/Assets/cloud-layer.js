@@ -7,7 +7,8 @@
     let enabled = false;
     let collection = null;
     let lastAnchor = '';
-    const cloudCount = 64;
+    const localCloudCount = 64;
+    const globalCloudCount = 180;
     const scene = viewer.scene;
     const camera = viewer.camera;
 
@@ -32,34 +33,45 @@
       const isHighAltitude = camHeight > 250000;
       const centerLat = Math.max(-78, Math.min(78, Math.round(lat * 2) / 2));
       const centerLon = Math.round(lon * 2) / 2;
-      const anchor = `${centerLon}:${centerLat}:${isHighAltitude ? "high" : "low"}`;
+      const anchor = isHighAltitude ? 'global' : `${centerLon}:${centerLat}:low`;
 
       if (force || lastAnchor !== anchor) {
         collection.removeAll();
         const GOLDEN_ANGLE = 2.399963229728653;
-        const maxRadiusDeg = isHighAltitude ? 22.0 : 4.5;
-        const baseWidth = isHighAltitude ? 35000 : 12000;
-        const baseAltitude = isHighAltitude ? 6000 : 2800;
+        const maxRadiusDeg = 4.5;
+        // From orbital distances, realistic cloud clusters span 1,000-1,800 km and hover in upper troposphere (15-22 km).
+        // This forms a continuous, majestic 3D cloud envelope wrapping the Earth, inspired by Google Earth Pro.
+        const baseWidth = isHighAltitude ? 1400000 : 38000;
+        const baseAltitude = isHighAltitude ? 18000 : 3200;
+        const cloudCount = isHighAltitude ? globalCloudCount : localCloudCount;
 
         for (let i = 0; i < cloudCount; i++) {
           const t = (i + 1) / cloudCount;
           const bearing = i * GOLDEN_ANGLE;
           const ring = Math.sqrt(t) * maxRadiusDeg + 0.15;
           const cosLat = Math.max(0.18, Math.cos(centerLat * Math.PI / 180));
-          const latitude = Math.max(-85, Math.min(85, centerLat + Math.sin(bearing) * ring));
-          const longitude = ((centerLon + (Math.cos(bearing) * ring) / cosLat + 540) % 360) - 180;
+          const latitude = isHighAltitude
+            ? Math.asin(1 - 2 * t) * 180 / Math.PI
+            : Math.max(-85, Math.min(85, centerLat + Math.sin(bearing) * ring));
+          const longitude = isHighAltitude
+            ? ((bearing * 180 / Math.PI + 180) % 360 + 360) % 360 - 180
+            : ((centerLon + (Math.cos(bearing) * ring) / cosLat + 540) % 360) - 180;
 
-          const sizeVariation = 0.7 + 0.6 * ((i * 7) % 11) / 10;
+          const sizeVariation = 0.75 + 0.55 * ((i * 7) % 11) / 10;
           const width = baseWidth * sizeVariation;
-          const heightOffset = (i % 7) * 450;
+          const heightOffset = isHighAltitude ? ((i % 5) * 1200) : ((i % 7) * 350);
           const altitude = baseAltitude + heightOffset;
+
+          // Aspect ratio: flat, wispy atmospheric formations rather than bulky spheres
+          const heightRatio = isHighAltitude ? 0.22 : 0.28;
+          const depthRatio = isHighAltitude ? 0.18 : 0.20;
 
           collection.add({
             position: Cesium.Cartesian3.fromDegrees(longitude, latitude, altitude),
-            scale: new Cesium.Cartesian2(width, width * 0.58),
-            maximumSize: new Cesium.Cartesian3(width, width * 0.58, width * 0.42),
-            brightness: 0.90 + (i % 5) * 0.02,
-            slice: -1.0 + ((i % 4) * 0.15)
+            scale: new Cesium.Cartesian2(width, width * heightRatio),
+            maximumSize: new Cesium.Cartesian3(width, width * heightRatio, width * depthRatio),
+            brightness: 0.82 + (i % 5) * 0.02,
+            slice: 0.30 + ((i % 5) * 0.08)
           });
         }
         lastAnchor = anchor;

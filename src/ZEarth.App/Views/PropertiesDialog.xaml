@@ -1,18 +1,42 @@
 <Window x:Class="ZEarth.App.Views.PropertiesDialog"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:views="clr-namespace:ZEarth.App.Views"
         Title="Feature Properties — Z EARTH Desktop"
-        Width="760" Height="620"
+        Width="780" Height="640"
         WindowStartupLocation="CenterOwner"
+        Loaded="PropertiesDialog_Loaded"
         Background="{DynamicResource Brush.Window.Background}"
         Foreground="{DynamicResource Brush.Text.Primary}">
 
     <Window.Resources>
-        <Style TargetType="TabItem">
-            <Setter Property="FontSize" Value="13"/>
+        <Style TargetType="TabItem" BasedOn="{StaticResource {x:Type TabItem}}">
+            <Setter Property="FontSize" Value="12"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Padding" Value="14,8"/>
+        </Style>
+        <Style TargetType="DataGridRow">
+            <Setter Property="Background" Value="{DynamicResource Brush.Control.Background}"/>
             <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}"/>
+        </Style>
+        <Style TargetType="DataGridCell">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="5,3"/>
+            <Style.Triggers>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource Brush.Accent}"/>
+                    <Setter Property="Foreground" Value="White"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+        <Style TargetType="DataGridColumnHeader">
+            <Setter Property="Background" Value="{DynamicResource Brush.Ribbon.Background}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}"/>
+            <Setter Property="Padding" Value="6,5"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource Brush.Control.Border}"/>
+            <Setter Property="BorderThickness" Value="0,0,1,1"/>
         </Style>
     </Window.Resources>
 
@@ -30,7 +54,7 @@
 
         <!-- Header -->
         <DockPanel Grid.Row="0" Margin="0,0,0,12">
-            <TextBlock Text="🏷 Feature Properties" FontSize="16" FontWeight="Bold" Foreground="{DynamicResource Brush.Accent}"/>
+            <TextBlock x:Name="TitleTextBlock" Text="Feature Properties" FontSize="16" FontWeight="Bold" Foreground="{DynamicResource Brush.Accent}"/>
             <TextBlock x:Name="FeatureTypeBadge" Text="[Placemark]" FontSize="11" Foreground="{DynamicResource Brush.Text.Muted}"
                        VerticalAlignment="Center" Margin="10,0,0,0"/>
         </DockPanel>
@@ -41,7 +65,7 @@
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
-            <TextBlock Text="Name:" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,10,0"/>
+            <TextBlock x:Name="NameLabelText" Text="Name:" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,10,0"/>
             <TextBox Grid.Column="1" x:Name="NameTextBox" Height="28" Padding="6,4"
                      Background="{DynamicResource Brush.Control.Background}"
                      Foreground="{DynamicResource Brush.Text.Primary}"
@@ -54,7 +78,7 @@
                     BorderBrush="{DynamicResource Brush.Control.Border}">
 
             <!-- TAB 1: Description / HTML -->
-            <TabItem Header="📄 Description / HTML">
+            <TabItem x:Name="TabDescription" Header="Description">
                 <Grid Margin="10">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -65,17 +89,17 @@
 
                     <!-- Rendered Sanitized Preview Header -->
                     <DockPanel Grid.Row="0" Margin="0,0,0,6">
-                        <TextBlock Text="Rendered HTML (Sanitized Preview):" FontWeight="SemiBold" FontSize="11" Foreground="{DynamicResource Brush.Accent}"/>
-                        <TextBlock Text="Scripts &amp; unsafe tags stripped" FontSize="10" Foreground="{DynamicResource Brush.Text.Muted}" HorizontalAlignment="Right"/>
+                        <TextBlock x:Name="RenderedDescriptionHeader" Text="Rendered Description:" FontWeight="SemiBold" FontSize="11" Foreground="{DynamicResource Brush.Accent}"/>
+                        <TextBlock Text="Safe preview" FontSize="10" Foreground="{DynamicResource Brush.Text.Muted}" HorizontalAlignment="Right"/>
                     </DockPanel>
 
                     <!-- Safe WebBrowser Preview -->
-                    <Border Grid.Row="1" BorderBrush="{DynamicResource Brush.Control.Border}" BorderThickness="1" CornerRadius="4" Margin="0,0,0,10">
+                    <Border Grid.Row="1" Background="#1E222B" BorderBrush="{DynamicResource Brush.Control.Border}" BorderThickness="1" CornerRadius="4" Margin="0,0,0,10">
                         <WebBrowser x:Name="DescriptionWebBrowser"/>
                     </Border>
 
                     <!-- Raw/Editable Description Text -->
-                    <TextBlock Grid.Row="2" Text="Description Source / Text:" FontWeight="SemiBold" FontSize="11" Foreground="{DynamicResource Brush.Text.Secondary}" Margin="0,0,0,4"/>
+                    <TextBlock Grid.Row="2" x:Name="RawDescriptionHeader" Text="Description Source / Text:" FontWeight="SemiBold" FontSize="11" Foreground="{DynamicResource Brush.Text.Secondary}" Margin="0,0,0,4"/>
                     <TextBox Grid.Row="3" x:Name="RawDescriptionTextBox" AcceptsReturn="True" TextWrapping="Wrap"
                              VerticalScrollBarVisibility="Auto" Padding="6"
                              Background="{DynamicResource Brush.Control.Background}"
@@ -87,7 +111,7 @@
             </TabItem>
 
             <!-- TAB 2: Attributes -->
-            <TabItem Header="📊 Attributes">
+            <TabItem x:Name="TabAttributes" Header="Attributes">
                 <Grid Margin="10">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -96,12 +120,18 @@
                     </Grid.RowDefinitions>
 
                     <DockPanel Grid.Row="0" Margin="0,0,0,8">
-                        <TextBlock Text="Structured Attributes &amp; ExtendedData:" FontWeight="SemiBold" FontSize="11" Foreground="{DynamicResource Brush.Accent}"/>
-                        <Button DockPanel.Dock="Right" Content="➕ Add Attribute" Click="AddAttribute_Click"
-                                Padding="8,2" FontSize="11"
-                                Background="{DynamicResource Brush.Control.Background}"
-                                Foreground="{DynamicResource Brush.Text.Primary}"
-                                BorderBrush="{DynamicResource Brush.Control.Border}"/>
+                        <TextBlock Text="Structured Attributes &amp; ExtendedData:" FontWeight="SemiBold" FontSize="11" Foreground="{DynamicResource Brush.Accent}" VerticalAlignment="Center"/>
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                            <TextBox x:Name="AttributeFilterTextBox" Width="180" Height="24" Padding="4,2" Margin="0,0,8,0"
+                                     Background="{DynamicResource Brush.Control.Background}" Foreground="{DynamicResource Brush.Text.Primary}"
+                                     BorderBrush="{DynamicResource Brush.Control.Border}" ToolTip="Filter by attribute name or value"
+                                     TextChanged="AttributeFilterTextBox_TextChanged"/>
+                            <Button Content="➕ Add Attribute" Click="AddAttribute_Click"
+                                    Padding="8,2" FontSize="11"
+                                    Background="{DynamicResource Brush.Control.Background}"
+                                    Foreground="{DynamicResource Brush.Text.Primary}"
+                                    BorderBrush="{DynamicResource Brush.Control.Border}"/>
+                        </StackPanel>
                     </DockPanel>
 
                     <DataGrid Grid.Row="1" x:Name="AttributesDataGrid" AutoGenerateColumns="False"
@@ -110,10 +140,12 @@
                               Background="{DynamicResource Brush.Control.Background}"
                               Foreground="{DynamicResource Brush.Text.Primary}"
                               BorderBrush="{DynamicResource Brush.Control.Border}"
-                              BorderThickness="1" GridLinesVisibility="Horizontal"
+                              BorderThickness="1" GridLinesVisibility="Horizontal" HeadersVisibility="Column"
+                              AlternatingRowBackground="{DynamicResource Brush.Sidebar.Background}"
+                              RowBackground="{DynamicResource Brush.Control.Background}"
                               HorizontalGridLinesBrush="{DynamicResource Brush.Control.Border}">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="Attribute Name" Binding="{Binding Name}" Width="180"/>
+                            <DataGridTextColumn Header="Attribute Name" Binding="{Binding Name}" Width="200"/>
                             <DataGridTextColumn Header="Value" Binding="{Binding Value}" Width="*"/>
                             <DataGridTextColumn Header="Category" Binding="{Binding Category}" Width="120" IsReadOnly="True"/>
                         </DataGrid.Columns>
@@ -125,7 +157,7 @@
             </TabItem>
 
             <!-- TAB 3: Style / Symbology -->
-            <TabItem Header="🎨 Style &amp; Altitude">
+            <TabItem x:Name="TabStyle" Header="Style &amp; Altitude">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <Grid Margin="14">
                         <Grid.ColumnDefinitions>
@@ -133,50 +165,108 @@
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
                         <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
 
-                        <TextBlock Grid.Row="0" Text="Feature color (hex):" Margin="0,6" VerticalAlignment="Center"/>
-                        <TextBox Grid.Row="0" Grid.Column="1" x:Name="ColorHexTextBox" Height="28" Padding="6,3"
-                                 Background="{DynamicResource Brush.Control.Background}" Foreground="{DynamicResource Brush.Text.Primary}"
-                                 BorderBrush="{DynamicResource Brush.Control.Border}"/>
+                        <!-- Feature Color with ColorPickerButton -->
+                        <TextBlock Grid.Row="0" x:Name="FeatureColorRowLabel" Text="Feature color:" Margin="0,8" VerticalAlignment="Center"/>
+                        <StackPanel Grid.Row="0" Grid.Column="1" x:Name="FeatureColorStack" Orientation="Horizontal" Margin="0,6">
+                            <views:ColorPickerButton x:Name="ColorPickerButtonControl" Margin="0,0,10,0"/>
+                            <TextBox x:Name="ColorHexTextBox" Width="100" Height="26" Padding="6,2" VerticalContentAlignment="Center"
+                                     Background="{DynamicResource Brush.Control.Background}" Foreground="{DynamicResource Brush.Text.Primary}"
+                                     BorderBrush="{DynamicResource Brush.Control.Border}"/>
+                        </StackPanel>
 
-                        <TextBlock Grid.Row="1" Text="Point symbol:" Margin="0,6" VerticalAlignment="Center"/>
-                        <ComboBox Grid.Row="1" Grid.Column="1" x:Name="SymbolShapeComboBox" Height="28" SelectedIndex="0"
-                                  Background="{DynamicResource Brush.Control.Background}" Foreground="{DynamicResource Brush.Text.Primary}">
-                            <ComboBoxItem Content="Circle"/><ComboBoxItem Content="Pin"/><ComboBoxItem Content="Square"/>
-                            <ComboBoxItem Content="Triangle"/><ComboBoxItem Content="Star"/>
-                        </ComboBox>
+                        <!-- Point Symbol with Visual Icon Picker Dialog -->
+                        <TextBlock Grid.Row="1" x:Name="PointSymbolRowLabel" Text="Point symbol:" Margin="0,8" VerticalAlignment="Center"/>
+                        <StackPanel Grid.Row="1" Grid.Column="1" x:Name="PointSymbolStack" Orientation="Horizontal" Margin="0,6">
+                            <Border x:Name="CurrentSymbolPreviewBorder" Width="32" Height="32" CornerRadius="4"
+                                     Background="#1E293B" BorderBrush="{DynamicResource Brush.Accent}" BorderThickness="1.5"
+                                     Margin="0,0,10,0" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <TextBlock x:Name="CurrentSymbolGlyph" Text="📍" FontSize="18"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <Button Content="Choose Icon..." Height="28" Padding="12,3" FontWeight="SemiBold"
+                                    Background="{DynamicResource Brush.Control.Background}"
+                                    Foreground="{DynamicResource Brush.Text.Primary}"
+                                    BorderBrush="{DynamicResource Brush.Control.Border}"
+                                    Click="ChooseIcon_Click"/>
+                        </StackPanel>
 
-                        <TextBlock Grid.Row="2" Text="Line / outline width:" Margin="0,6" VerticalAlignment="Center"/>
-                        <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal">
+                        <!-- Line / Outline Pattern -->
+                        <TextBlock Grid.Row="2" x:Name="LinePatternRowLabel" Text="Line pattern:" Margin="0,8" VerticalAlignment="Center"/>
+                        <StackPanel Grid.Row="2" Grid.Column="1" x:Name="LinePatternStack" Orientation="Horizontal" Margin="0,6">
+                            <ComboBox x:Name="LinePatternComboBox" Width="200" Height="28" SelectedIndex="0"
+                                      Background="{DynamicResource Brush.Control.Background}" Foreground="{DynamicResource Brush.Text.Primary}">
+                                <ComboBoxItem Content="Solid" Tag="Solid"/>
+                                <ComboBoxItem Content="Dashed" Tag="Dashed"/>
+                                <ComboBoxItem Content="Dotted" Tag="Dotted"/>
+                                <ComboBoxItem Content="DashDot" Tag="DashDot"/>
+                            </ComboBox>
+                        </StackPanel>
+
+                        <!-- Line Width -->
+                        <TextBlock Grid.Row="3" x:Name="LineWidthRowLabel" Text="Line / outline width:" Margin="0,6" VerticalAlignment="Center"/>
+                        <StackPanel Grid.Row="3" Grid.Column="1" x:Name="LineWidthStack" Orientation="Horizontal">
                             <Slider x:Name="LineWidthSlider" Minimum="1" Maximum="12" Value="3" TickFrequency="1" IsSnapToTickEnabled="True" Width="280"/>
                             <TextBlock Text="{Binding ElementName=LineWidthSlider, Path=Value, StringFormat={}{0:F0}px}" Margin="10,0" VerticalAlignment="Center"/>
                         </StackPanel>
 
-                        <TextBlock Grid.Row="3" Text="Fill opacity:" Margin="0,6" VerticalAlignment="Center"/>
-                        <StackPanel Grid.Row="3" Grid.Column="1" Orientation="Horizontal">
+                        <!-- Polygon Fill Mode -->
+                        <TextBlock Grid.Row="4" x:Name="FillModeRowLabel" Text="Fill mode:" Margin="0,8" VerticalAlignment="Center"/>
+                        <StackPanel Grid.Row="4" Grid.Column="1" x:Name="FillModeStack" Orientation="Horizontal" Margin="0,6">
+                            <ComboBox x:Name="FillModeComboBox" Width="220" Height="28" SelectedIndex="0"
+                                      Background="{DynamicResource Brush.Control.Background}" Foreground="{DynamicResource Brush.Text.Primary}">
+                                <ComboBoxItem Content="Filled &amp; Outlined" Tag="Both"/>
+                                <ComboBoxItem Content="Filled Only" Tag="FillOnly"/>
+                                <ComboBoxItem Content="Outlined Only" Tag="OutlineOnly"/>
+                            </ComboBox>
+                        </StackPanel>
+
+                        <!-- Fill Color -->
+                        <TextBlock Grid.Row="5" x:Name="FillColorRowLabel" Text="Fill color:" Margin="0,8" VerticalAlignment="Center"/>
+                        <StackPanel Grid.Row="5" Grid.Column="1" x:Name="FillColorStack" Orientation="Horizontal" Margin="0,6">
+                            <views:ColorPickerButton x:Name="FillColorPickerButtonControl" Margin="0,0,10,0"/>
+                            <TextBox x:Name="FillColorHexTextBox" Width="100" Height="26" Padding="6,2" VerticalContentAlignment="Center"
+                                     Background="{DynamicResource Brush.Control.Background}" Foreground="{DynamicResource Brush.Text.Primary}"
+                                     BorderBrush="{DynamicResource Brush.Control.Border}"/>
+                        </StackPanel>
+
+                        <!-- Fill Opacity -->
+                        <TextBlock Grid.Row="6" x:Name="FillOpacityRowLabel" Text="Fill opacity:" Margin="0,6" VerticalAlignment="Center"/>
+                        <StackPanel Grid.Row="6" Grid.Column="1" x:Name="FillOpacityStack" Orientation="Horizontal">
                             <Slider x:Name="FillOpacitySlider" Minimum="0" Maximum="1" Value="0.4" TickFrequency="0.1" Width="280"/>
                             <TextBlock Text="{Binding ElementName=FillOpacitySlider, Path=Value, StringFormat={}{0:P0}}" Margin="10,0" VerticalAlignment="Center"/>
                         </StackPanel>
 
-                        <TextBlock Grid.Row="4" Text="Label size:" Margin="0,6" VerticalAlignment="Center"/>
-                        <StackPanel Grid.Row="4" Grid.Column="1" Orientation="Horizontal">
+                        <!-- Label Size -->
+                        <TextBlock Grid.Row="7" Text="Label size:" Margin="0,6" VerticalAlignment="Center"/>
+                        <StackPanel Grid.Row="7" Grid.Column="1" Orientation="Horizontal">
                             <Slider x:Name="LabelSizeSlider" Minimum="8" Maximum="32" Value="12" TickFrequency="1" IsSnapToTickEnabled="True" Width="280"/>
                             <TextBlock Text="{Binding ElementName=LabelSizeSlider, Path=Value, StringFormat={}{0:F0}px}" Margin="10,0" VerticalAlignment="Center"/>
                         </StackPanel>
 
-                        <TextBlock Grid.Row="5" Text="Altitude mode:" Margin="0,6" VerticalAlignment="Center"/>
-                        <ComboBox Grid.Row="5" Grid.Column="1" x:Name="AltitudeModeComboBox" Height="28" SelectedIndex="0"
+                        <!-- Altitude Mode -->
+                        <TextBlock Grid.Row="8" Text="Altitude mode:" Margin="0,6" VerticalAlignment="Center"/>
+                        <ComboBox Grid.Row="8" Grid.Column="1" x:Name="AltitudeModeComboBox" Height="28" SelectedIndex="0"
                                   Background="{DynamicResource Brush.Control.Background}" Foreground="{DynamicResource Brush.Text.Primary}">
-                            <ComboBoxItem Content="ClampToGround"/><ComboBoxItem Content="RelativeToGround"/><ComboBoxItem Content="Absolute"/>
+                            <ComboBoxItem Content="ClampToGround" Tag="ClampToGround"/>
+                            <ComboBoxItem Content="RelativeToGround" Tag="RelativeToGround"/>
+                            <ComboBoxItem Content="Absolute" Tag="Absolute"/>
                         </ComboBox>
 
-                        <CheckBox Grid.Row="6" Grid.Column="1" x:Name="ShowLabelCheckBox" Content="Show feature label" IsChecked="True" Margin="0,10"/>
-                        <TextBlock Grid.Row="7" Grid.ColumnSpan="2" Margin="0,12,0,0" TextWrapping="Wrap"
+                        <CheckBox Grid.Row="9" Grid.Column="1" x:Name="ShowLabelCheckBox" Content="Show feature label" IsChecked="True" Margin="0,10"/>
+                        <TextBlock Grid.Row="10" Grid.ColumnSpan="2" Margin="0,12,0,0" TextWrapping="Wrap"
                                    Foreground="{DynamicResource Brush.Text.Muted}"
                                    Text="ClampToGround is the safe default. Absolute altitude should only be used for features with a verified height reference."/>
                     </Grid>
@@ -186,14 +276,13 @@
 
         <!-- Footer Buttons -->
         <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0">
-            <Button Content="Save &amp; Apply" Width="100" Height="28" FontWeight="SemiBold"
+            <Button Content="Save &amp; Apply" Width="110" Height="28" FontWeight="SemiBold"
                     Background="{DynamicResource Brush.Accent}" Foreground="#FFFFFF"
                     BorderThickness="0" Margin="0,0,8,0" Click="SaveButton_Click"/>
             <Button Content="Cancel" Width="80" Height="28"
                     Background="{DynamicResource Brush.Control.Background}"
                     Foreground="{DynamicResource Brush.Text.Primary}"
-                    BorderBrush="{DynamicResource Brush.Control.Border}"
-                    BorderThickness="1" Click="CancelButton_Click"/>
+                    BorderBrush="{DynamicResource Brush.Control.Border}" Click="CancelButton_Click"/>
         </StackPanel>
     </Grid>
 </Window>

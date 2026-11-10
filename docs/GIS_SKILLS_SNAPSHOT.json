@@ -1,18 +1,18 @@
 {
   "schema_version": 2,
   "source_repository": "ahmadibrahim4geo/GIS-Development-Skills",
-  "source_commit": "222699fb04a8d6ea2583f13e5e37dbfc6a0f55cd",
+  "source_commit": "e0c4880922a70ccf5975ad5174eb34d5fb23838f",
   "source_ref": "main",
   "source_review_status_at_pin": "upstream main",
-  "pinned_on": "2026-10-26",
+  "pinned_on": "2026-10-28",
   "source_license": "Original GIS Development Skills guidance is MIT; third-party sources retain their licenses",
   "scope": "Source-matched general GIS skills and references; upstream-generated source manifest excluded; Z EARTH and CesiumJS project skills remain independent",
-  "skill_count": 30,
-  "reference_count": 76,
+  "skill_count": 34,
+  "reference_count": 81,
   "files": [
     {
       "path": ".github/references/agent-decision-tree.md",
-      "git_blob_sha": "ed226ce93249dffd2a6a4520214cfb81331ecbe0"
+      "git_blob_sha": "0e2c921ce96c091ac83cc1ad6032b803255300d3"
     },
     {
       "path": ".github/references/agent-development-journal-guide.md",
@@ -37,6 +37,10 @@
     {
       "path": ".github/references/arcgis-pro.md",
       "git_blob_sha": "68d858ccc32997809618633422ceae6546405820"
+    },
+    {
+      "path": ".github/references/archify-integration.md",
+      "git_blob_sha": "789f0e76c94586ded32cf4e4f04831ef23ffa274"
     },
     {
       "path": ".github/references/arcmap-legacy.md",
@@ -100,7 +104,7 @@
     },
     {
       "path": ".github/references/free-first-policy.md",
-      "git_blob_sha": "888e6a22969dceaa133cad7e55b9942df9cac89b"
+      "git_blob_sha": "54d32eef66030f13225922083d8e699d364154b7"
     },
     {
       "path": ".github/references/free-geospatial-apis.json",
@@ -215,6 +219,14 @@
       "git_blob_sha": "588da17fc64dfe7a57d9bba87be638e8b0196be3"
     },
     {
+      "path": ".github/references/mcp-capability-registry.json",
+      "git_blob_sha": "e62ae385d059cd4d2be7e5fe8cef4f89309bea60"
+    },
+    {
+      "path": ".github/references/mcp-integration-workflow.md",
+      "git_blob_sha": "630b3f6a82de9c5737ac6ee766d73ff845e90846"
+    },
+    {
       "path": ".github/references/mobile-gis-architecture.md",
       "git_blob_sha": "7934f73c797d63975f96435e28b3e0057c323836"
     },
@@ -260,7 +272,7 @@
     },
     {
       "path": ".github/references/repository-wide-skill-orchestration.md",
-      "git_blob_sha": "a65d4d5054ac7182316ebbad72b4f77d2cfc968d"
+      "git_blob_sha": "089e01c60444c49b092d7a69415817f9de0e2494"
     },
     {
       "path": ".github/references/rustgis-and-geolibre-r.md",
@@ -311,6 +323,14 @@
       "git_blob_sha": "e8849c6571ad75a711f5dc0121b6ad9f98532580"
     },
     {
+      "path": ".github/references/visual-asset-sources.md",
+      "git_blob_sha": "08240cdf761e314ac40ff1043f018a3f8d49ed7b"
+    },
+    {
+      "path": ".github/references/visual-asset-workflow.md",
+      "git_blob_sha": "5473419baad1f7832d2f61e63b46b304b6ee6859"
+    },
+    {
       "path": ".github/references/world-gazetteer-reference-layer.md",
       "git_blob_sha": "eb2a3d32967d8eb62f1e7b423b6da6a379dad458"
     },
@@ -323,6 +343,10 @@
       "git_blob_sha": "a1ddd9d33ac99d28db104464f08aa7e3f0a4a0af"
     },
     {
+      "path": ".github/skills/clean-room-reference-implementation/SKILL.md",
+      "git_blob_sha": "7228f3098bc6fe5d013161fa0fcd412e2497be41"
+    },
+    {
       "path": ".github/skills/completion-evidence/SKILL.md",
       "git_blob_sha": "e0e754026180a03f486a4bb216f6cd3ddb4214aa"
     },
@@ -332,7 +356,7 @@
     },
     {
       "path": ".github/skills/geospatial-ai-agents/SKILL.md",
-      "git_blob_sha": "d1cc610351eef10441cbe89cc4f05f53ccd37f5f"
+      "git_blob_sha": "e6304fad75622bee75b11944f2ac619e43d8ede7"
     },
     {
       "path": ".github/skills/geospatial-api-integration/SKILL.md",
@@ -352,7 +376,11 @@
     },
     {
       "path": ".github/skills/geospatial-web-mapping/SKILL.md",
-      "git_blob_sha": "0d74ab53b70c1fc2f69ca9cf1b3a9693b6183e9c"
+      "git_blob_sha": "1ad5f23a301c576550f0a46088a1085b26165eea"
+    },
+    {
+      "path": ".github/skills/gis-architecture-visualization/SKILL.md",
+      "git_blob_sha": "f6a8b655799971d94a2666dbb798bd913ac11c65"
     },
     {
       "path": ".github/skills/gis-cartography-symbology/SKILL.md",
@@ -360,11 +388,11 @@
     },
     {
       "path": ".github/skills/gis-data-flow-diagnostics/SKILL.md",
-      "git_blob_sha": "d285c7afb4a4a950abfbd2f692264e868656b46c"
+      "git_blob_sha": "02ae8250edcf4d7446f1f5e953a5f1aadedc19b0"
     },
     {
       "path": ".github/skills/gis-desktop-application-development/SKILL.md",
-      "git_blob_sha": "2f09db20492ba7b48a18f989581d76e9a4dcec58"
+      "git_blob_sha": "d8ed535baae03a1230387246bafe465930e0b148"
     },
     {
       "path": ".github/skills/gis-desktop-e2e-testing/SKILL.md",
@@ -372,7 +400,7 @@
     },
     {
       "path": ".github/skills/gis-development/SKILL.md",
-      "git_blob_sha": "c8fa57d927e210266fc07d864abb46f3f80fabb7"
+      "git_blob_sha": "a7522f72a4df34f7a806891e41f58baea6ac2f55"
     },
     {
       "path": ".github/skills/gis-device-context/SKILL.md",
@@ -384,11 +412,11 @@
     },
     {
       "path": ".github/skills/gis-mobile-application-development/SKILL.md",
-      "git_blob_sha": "fc85ab3c8d902ba4ec079b4b0f1743d3068daccc"
+      "git_blob_sha": "471777ec86f2edc8964da349f26025195d18256e"
     },
     {
       "path": ".github/skills/gis-security-guardian/SKILL.md",
-      "git_blob_sha": "2fa88b5caa81e2a7978fc7f24bd734a7a4858578"
+      "git_blob_sha": "976bb622abc0d9e634ae2371b09aec72b0709dac"
     },
     {
       "path": ".github/skills/gis-ui-command-audit/SKILL.md",
@@ -396,7 +424,7 @@
     },
     {
       "path": ".github/skills/gis-ui-ux-design-testing/SKILL.md",
-      "git_blob_sha": "f9d5d490a5b086704c9bc552920a93e51e340530"
+      "git_blob_sha": "6ccb8c5cae5dfe2cbc873fc0667cea188c2b855b"
     },
     {
       "path": ".github/skills/global-mapper-development/SKILL.md",
@@ -407,8 +435,12 @@
       "git_blob_sha": "ecb399f6a759461733b0150adf9ca5706090b69e"
     },
     {
+      "path": ".github/skills/mcp-integration-and-tool-orchestration/SKILL.md",
+      "git_blob_sha": "08874f7d169fc735f09897b56eb73d7444104476"
+    },
+    {
       "path": ".github/skills/prompt-intent-orchestrator/SKILL.md",
-      "git_blob_sha": "2cd89c578ff4986b210563cdbb4e63af163e0a61"
+      "git_blob_sha": "5e8eae0fdc28882afaa575e5b14a989301a72671"
     },
     {
       "path": ".github/skills/qgis-engine-integration/SKILL.md",
@@ -433,6 +465,10 @@
     {
       "path": ".github/skills/terrain-hydrology-lidar/SKILL.md",
       "git_blob_sha": "6d8e5a26cb0192f562bdea067442dab7457e81d3"
+    },
+    {
+      "path": ".github/skills/visual-asset-discovery-integration/SKILL.md",
+      "git_blob_sha": "8ac255a1a2a401ec410093cfd74903aa168e82ee"
     }
   ]
 }

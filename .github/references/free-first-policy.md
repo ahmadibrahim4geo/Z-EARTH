@@ -11,11 +11,13 @@
 5. A model-running agent must have deterministic local actions without purchasing a hosted LLM. Local/GPU computation and data transfer can still incur practical expenses. Earth Engine and hosted cloud datasets may require eligible accounts or quotas.
 6. If a free solution is not equivalent in accuracy/outputs to a paid GIS feature, state the limitation; do not invent feature parity.
 
-## All 30 specialists
+## All 33 specialists
 
 | Specialist | Free independent path | Optional dependency or limitation |
 | --- | --- | --- |
 | `gis-development` | Free decision router, offline fixtures and Python examples | Optional commercial hosts only by explicit request |
+| `gis-architecture-visualization` | Local Archify interactive HTML with editable JSON; no paid renderer/API key; offline route/plan validation | External Archify runtime (reviewed Apache-2.0 source), Node.js and a usable browser for browser checks; host setup permissions, source privacy and incomplete upstream Arabic RTL support remain explicit |
+| `clean-room-reference-implementation` | Free read-only reference-file metadata observation, independently authored open-source implementations, deterministic local audit scripts and public KML/OGC standards | Proprietary program binaries/shaders/imagery remain restricted; native Windows tests, authorized agents and external services require separate verification; no mandatory paid provider |
 | `completion-evidence` | Free Python standard-library report consistency checker; no API key or hosted AI required | Host permissions, real command execution, provider receipts and native T2–T4 checks are not performed by this offline validator |
 | `agent-development-journal` | Free local Python 3 standard-library numbered project logs, hash checks, repair and test suite | Requires only project file permissions; host/GIS runtime and secure storage remain separate |
 | `prompt-intent-orchestrator` | Offline structured-task planning, standard-library JSON validation and user-review workflow; optional locally hosted language model | Actual AI model, agent tool access, authenticated approvals and proprietary GIS execution depend on the host and may require separate permissions or costs |
@@ -35,7 +37,9 @@
 | `geospatial-data-catalogs` | Offline Python source directory search | A directory is not a free scientific data download |
 | `geospatial-api-integration` | Locally served endpoints and verified conditional free-tier sources | Trial/billed providers not default |
 | `geospatial-ai-agents` | Deterministic PyQGIS/CLI agent, optional permitted local models | Commercial LLM tokens/cloud/GPU cost not mandatory |
+| `mcp-integration-and-tool-orchestration` | Free stdlib offline MCP/native candidate router and open protocol references; native tool fallback when authorized | Actual MCP servers, host integration, credentials, network access, operating systems, GIS licenses and T3/T4 runs are separate |
 | `gis-cartography-symbology` | QGIS/PyQGIS, MapLibre Style JSON, custom palettes and fully licensed upstream open style sources | ArcMap/Pro require host licenses; original Esri/USGS/BGS fonts/styles retain per-asset rights |
+| `visual-asset-discovery-integration` | Existing project assets, official provider media, Openverse/Commons discovery, local Pillow preparation and optional host design tools | Review each asset license and brand terms; source/code license does not license all imagery. Actual network/generation tools and target UI must be available; no default paid provider |
 | `system-capabilities-and-permissions` | Native browser/OS capability APIs and free local date/time adapters; optional open-source Python/Qt/.NET capability wrappers after license check | Hardware, sensor location, notifications, WebView origins, provider quotas and OS user consent must be verified; no default paid API or implicit permissions |
 | `gis-device-context` | Offline UTC/IANA timezone parsing with explicit coordinates; consented native/browser location API if supported | Precise geolocation needs permissions and hardware/services; Sunlight rendering needs real engine |
 | `gis-internationalization-arabic` | UTF-8/RTL/BiDi localization, open-source Unicode/ICU tooling, native GIS Arabic-label fixtures | Verify Arabic fonts, shaping and host-specific GeoPackage/ArcGIS/QGIS exports; commercial host licensing remains independent |

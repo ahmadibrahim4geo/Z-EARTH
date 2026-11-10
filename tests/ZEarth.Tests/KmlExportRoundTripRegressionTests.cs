@@ -301,4 +301,35 @@ public sealed class KmlExportRoundTripRegressionTests
         finally { Directory.Delete(folder, true); }
     }
 
+
+    [TestMethod]
+    public void ExportSelectedEllipseAndCircle_ExportsAsKmlPolygonWithSampledCoordinates()
+    {
+        var circle = new PlaceItem("Precision Circle", PlaceItemType.Circle, 30.04, 31.23, 10.0);
+        circle.ExtendedData["RadiusMeters"] = "500.0";
+        for (int i = 0; i < 64; i++)
+        {
+            circle.Coordinates.Add(new CoordinatePoint(31.23 + (i * 0.0001), 30.04 + (i * 0.0001), 10.0));
+        }
+
+        var kmlCircle = KmlSerializer.SerializeToString(circle);
+        var xmlCircle = XDocument.Parse(kmlCircle);
+        Assert.AreEqual(1, xmlCircle.Descendants().Count(e => e.Name.LocalName == "Polygon"));
+        Assert.AreEqual(1, xmlCircle.Descendants().Count(e => e.Name.LocalName == "LinearRing"));
+
+        var ellipse = new PlaceItem("Precision Ellipse", PlaceItemType.Ellipse, 30.04, 31.23, 25.0);
+        ellipse.ExtendedData["shapeKind"] = "ellipse";
+        ellipse.ExtendedData["SemiMajorAxis"] = "1200.0";
+        ellipse.ExtendedData["SemiMinorAxis"] = "600.0";
+        ellipse.ExtendedData["BearingDegrees"] = "30.0";
+        for (int i = 0; i < 64; i++)
+        {
+            ellipse.Coordinates.Add(new CoordinatePoint(31.23 + (i * 0.0002), 30.04 + (i * 0.0001), 25.0));
+        }
+
+        var kmlEllipse = KmlSerializer.SerializeToString(ellipse);
+        var xmlEllipse = XDocument.Parse(kmlEllipse);
+        Assert.AreEqual(1, xmlEllipse.Descendants().Count(e => e.Name.LocalName == "Polygon"));
+        Assert.AreEqual(1, xmlEllipse.Descendants().Count(e => e.Name.LocalName == "LinearRing"));
+    }
 }

@@ -24,4 +24,6 @@ compatibility: Offline trace format and validator use Python standard library; r
 
 ## Evidence and risks
 
+For a user-requested diagram or a cross-component failure that benefits from visual explanation, return reviewed boundaries and actual trace evidence to [Architecture & Workflow Visualization](../gis-architecture-visualization/SKILL.md). Keep diagnostic ownership here; label code-derived, proposed and observed paths distinctly and use the [Archify handoff](../../references/archify-integration.md). A diagram or path highlight does not replace independent GIS readback.
+
 Output an anonymized lineage graph/table, input/output metadata diff, actual trace spans, errors and timings, output readback report, impacted command IDs, and tests by T0–T4. Never claim a data flow works from logs alone. Logs can be incomplete; trace ingestion must fail on malformed/untrusted JSON and apply size/retention policies. The host must approve instrumentation or modifications to the app, and all original data must remain unchanged unless the user's reviewed task authorizes otherwise.

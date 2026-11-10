@@ -54,3 +54,7 @@ Review [Earth View](../../references/earth-view-architecture.md) for typed base/
 ## Browser and WebView device permissions
 
 For browser geolocation, notifications, file picking, camera/microphone, WebUSB/serial/BLE or embedded host access, consult [System Capabilities & Permissions](../system-capabilities-and-permissions/SKILL.md) and Security Guardian. Enforce HTTPS/secure contexts, origin and Permissions Policy, real user gestures and restricted WebView/Electron/Tauri bridges. Keep map scene/camera position distinct from user's physical GPS location via [GIS Device Context](../gis-device-context/SKILL.md).
+
+## Visual assets (conditional)
+
+When the reviewed project needs thumbnails, official logos, photographs, illustrations or screenshots, compose [Visual Asset Discovery & Integration](../visual-asset-discovery-integration/SKILL.md). It owns internet/source discovery, asset suitability, source credits and prepared local variants; keep layout, target resource binding, packaging and actual UI acceptance with this platform/UX owner. Do not silently replace requested images with generic icons or claim a source URL proves local integration.

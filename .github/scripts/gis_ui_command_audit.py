@@ -21,18 +21,6 @@ XAML_TAGS = {
 HTML_TAGS = {"button", "input", "a"}
 MAX_FILES = 2000
 MAX_BYTES = 1_000_000
-IGNORED_DIRECTORY_NAMES = {
-    ".git", ".agent-development-log", ".test-temp", "bin", "obj",
-    "node_modules", "__pycache__",
-}
-
-
-def configure_utf8_console():
-    """Keep Unicode labels printable on legacy Windows console code pages."""
-    for stream in (sys.stdout, sys.stderr):
-        reconfigure = getattr(stream, "reconfigure", None)
-        if callable(reconfigure):
-            reconfigure(encoding="utf-8", errors="backslashreplace")
 
 
 def local_name(value):
@@ -129,20 +117,12 @@ def scan_xaml(text, path):
             continue
         attributes = element.attrib
         ident = attr(attributes, "AutomationId") or attr(attributes, "Name")
-        checked_binding = attr(attributes, "IsChecked")
         handler = attr(attributes, "Command") or attr(attributes, "Click")
-        if not handler and checked_binding.startswith("{Binding"):
-            handler = checked_binding
         # A submenu container with no action is structural UI, not a command.
         if tag == "MenuItem" and not handler and any(
                 local_name(child.tag) == "MenuItem" for child in element):
             continue
-        binding_kind = (
-            "Command" if attr(attributes, "Command")
-            else "Click" if attr(attributes, "Click")
-            else "IsChecked" if handler == checked_binding and handler
-            else ""
-        )
+        binding_kind = "Command" if attr(attributes, "Command") else "Click" if attr(attributes, "Click") else ""
         label = attr(attributes, "Name") if tag in {"CheckBox", "RadioButton"} else ""
         label = attr(attributes, "Content") or attr(attributes, "Header") or attr(attributes, "ToolTip") or label
         icon = attr(attributes, "Icon")
@@ -181,16 +161,8 @@ def audit_tree(directory):
         raise ValueError("Target root is not a directory")
     results, errors, scanned = [], [], 0
     # Sorted for deterministic stable fixture results. Ignore symlinked files.
-    files = sorted(
-        p for p in directory.rglob("*")
-        if p.is_file()
-        and not p.is_symlink()
-        and p.suffix.lower() in {".html", ".htm", ".xaml"}
-        and not any(
-            part.casefold() in IGNORED_DIRECTORY_NAMES
-            for part in p.relative_to(directory).parts[:-1]
-        )
-    )
+    files = sorted(p for p in directory.rglob("*") if p.is_file() and not p.is_symlink()
+                   and p.suffix.lower() in {".html", ".htm", ".xaml"})
     if len(files) > MAX_FILES:
         raise ValueError(f"More than {MAX_FILES} UI sources; narrow scan root")
     for file in files:
@@ -235,33 +207,24 @@ def audit_tree(directory):
 
 
 def main(argv=None):
-    configure_utf8_console()
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--root", required=True, help="Folder of local HTML/XAML UI sources")
     p.add_argument("--format", choices=("json", "text"), default="json")
-    p.add_argument("--output", help="Optional UTF-8 report path; stdout is used when omitted")
     args = p.parse_args(argv)
     try:
         report = audit_tree(args.root)
     except ValueError as exc:
         p.error(str(exc))
     if args.format == "json":
-        rendered = json.dumps(report, ensure_ascii=False, indent=2) + "\n"
+        print(json.dumps(report, ensure_ascii=False, indent=2))
     else:
-        lines = [f"Scanned {report['files_scanned']} files; found {report['controls_found']} declared UI controls"]
+        print(f"Scanned {report['files_scanned']} files; found {report['controls_found']} declared UI controls")
         for name, count in report["status_counts"].items():
-            lines.append(f"  {name}: {count}")
+            print(f"  {name}: {count}")
         for entry in report["entries"]:
-            lines.append(f"  {entry['source_file']} / {entry['command_id']} : {entry['static_status']}")
+            print(f"  {entry['source_file']} / {entry['command_id']} : {entry['static_status']}")
         for issue in report["errors"]:
-            lines.append(f"  ERROR {issue['source_file']}: {issue['error']}")
-        rendered = "\n".join(lines) + "\n"
-    if args.output:
-        output = Path(args.output)
-        output.parent.mkdir(parents=True, exist_ok=True)
-        output.write_text(rendered, encoding="utf-8", newline="\n")
-    else:
-        print(rendered, end="")
+            print(f"  ERROR {issue['source_file']}: {issue['error']}", file=sys.stderr)
     return 1 if report["errors"] or report["duplicate_declared_ids"] or report["missing_icon_assets"] else 0
 
 

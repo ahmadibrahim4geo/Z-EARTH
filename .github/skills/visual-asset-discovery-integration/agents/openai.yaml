@@ -1,0 +1,5 @@
+interface:
+  display_name: "Visual Asset Discovery & Integration"
+  short_description: "Find and integrate images, thumbnails and official logos."
+  default_prompt: "Use $visual-asset-discovery-integration to find, inspect, prepare and integrate suitable visual assets with source credits, local files and verified target-size previews."
+

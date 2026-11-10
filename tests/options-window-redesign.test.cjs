@@ -12,11 +12,12 @@ test('Options workspace uses one five-tab card design with stable automation ids
     'Spatial Snapping',
     'Basemap &amp; Display',
     'Terrain Models',
-    'Map Grid'
+    'Map Grid',
+    'Cesium Ion'
   ]);
   assert.match(xaml, /x:Key="SettingsCardStyle"/);
   assert.match(xaml, /x:Key="SectionTitleStyle"/);
-  for (const id of ['Units', 'Snapping', 'Display', 'Terrain', 'Grid']) {
+  for (const id of ['Units', 'Snapping', 'Display', 'Terrain', 'Grid', 'Cesium']) {
     assert.match(xaml, new RegExp(`AutomationProperties.AutomationId="ZE\\.Options\\.Tab\\.${id}"`));
   }
   assert.match(xaml, /Height="760" Width="1180"/);

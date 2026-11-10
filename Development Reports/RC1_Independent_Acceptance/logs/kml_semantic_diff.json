@@ -1,0 +1,31 @@
+{
+  "TestFixture": "cairo_heritage_5levels.kmz",
+  "SourceDocument": "\u0645\u0634\u0631\u0648\u0639 \u0627\u0644\u0642\u0627\u0647\u0631\u0629 \u0627\u0644\u0623\u062B\u0631\u064A - Cairo Heritage",
+  "HierarchyDepth": 5,
+  "FoldersVerified": [
+    "\u0627\u0644\u0645\u0633\u062A\u0648\u0649 1: \u0645\u0635\u0631 - Level 1 Egypt",
+    "\u0627\u0644\u0645\u0633\u062A\u0648\u0649 2: \u0645\u062D\u0627\u0641\u0638\u0629 \u0627\u0644\u0642\u0627\u0647\u0631\u0629",
+    "\u0627\u0644\u0645\u0633\u062A\u0648\u0649 3: \u0627\u0644\u0645\u0646\u0637\u0642\u0629 \u0627\u0644\u062A\u0627\u0631\u064A\u062E\u064A\u0629",
+    "\u0627\u0644\u0645\u0633\u062A\u0648\u0649 4: \u0645\u062C\u0645\u0639 \u0627\u0644\u0642\u0644\u0639\u0629",
+    "\u0627\u0644\u0645\u0633\u062A\u0648\u0649 5: \u062C\u0627\u0645\u0639 \u0645\u062D\u0645\u062F \u0639\u0644\u064A"
+  ],
+  "PlacemarkName": "\u0641\u0646\u0627\u0621 \u0627\u0644\u062C\u0627\u0645\u0639 \u0630\u0648 \u0627\u0644\u0641\u062A\u062D\u0629 - Courtyard with Hole",
+  "PlacemarkType": "Polygon",
+  "StyleUrl": "#custom-cairo-style",
+  "ExtendedData": {
+    "Builder": "Mohamed Ali Pasha",
+    "YearAH": "1265",
+    "FillOpacity": "0.498",
+    "LineWidth": "3",
+    "KmlIconHref": "icons/landmark.png"
+  },
+  "OuterCoordinatesCount": 5,
+  "InnerRingsCount": 1,
+  "InnerCoordinatesCount": 5,
+  "HasExtractedIcon": true,
+  "ExtractedIconBytes": 238,
+  "SemanticDifferencesCount": 0,
+  "SemanticDifferences": [],
+  "RoundtripStatus": "PASS",
+  "Timestamp": "2026-11-10T14:38:56.2623435Z"
+}

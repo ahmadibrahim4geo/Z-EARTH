@@ -135,6 +135,10 @@ namespace ZEarth.App
                 else if (arg == "--search-query" && i + 1 < e.Args.Length) searchQueryArg = e.Args[++i];
                 else if (arg == "--search-coords" && i + 1 < e.Args.Length) searchCoordsArg = e.Args[++i];
                 else if (arg == "--kml" && i + 1 < e.Args.Length) kmlArg = ReadMultiWordArg(e.Args, ref i);
+                else if (arg.EndsWith(".kml") || arg.EndsWith(".kmz") || e.Args[i].EndsWith(".kml", StringComparison.OrdinalIgnoreCase) || e.Args[i].EndsWith(".kmz", StringComparison.OrdinalIgnoreCase))
+                {
+                    kmlArg = e.Args[i].Trim('"', '\'');
+                }
                 else if (arg == "--sunlight" && i + 1 < e.Args.Length && bool.TryParse(e.Args[++i], out var sl)) sunlightArg = sl;
                 else if (arg == "--time" && i + 1 < e.Args.Length && double.TryParse(e.Args[++i], out var tod)) timeOfDayArg = tod;
                 else if (arg == "--atmosphere" && i + 1 < e.Args.Length && bool.TryParse(e.Args[++i], out var atm)) atmosphereArg = atm;
@@ -145,6 +149,7 @@ namespace ZEarth.App
             }
 
             LoggerService.Instance.LogInfo("=== Z EARTH Desktop GIS Starting ===");
+            try { FileAssociationService.RegisterKmlKmzAssociation(); } catch { }
 
             // Prevent premature shutdown while transitioning between splash and main window
             ShutdownMode = ShutdownMode.OnExplicitShutdown;

@@ -22,6 +22,46 @@ public class AppSettingsModel
     // Session credentials must never be serialized to plaintext settings.json.
     [System.Text.Json.Serialization.JsonIgnore]
     public string? CesiumIonToken { get; set; } = null;
+    public string? CesiumIonEncryptedToken { get; set; } = null;
+
+    public string? GetDecryptedCesiumIonToken()
+    {
+        if (!string.IsNullOrEmpty(CesiumIonToken)) return CesiumIonToken;
+        if (string.IsNullOrWhiteSpace(CesiumIonEncryptedToken)) return null;
+        try
+        {
+            var bytes = Convert.FromBase64String(CesiumIonEncryptedToken);
+            var decrypted = System.Security.Cryptography.ProtectedData.Unprotect(
+                bytes, null, System.Security.Cryptography.DataProtectionScope.CurrentUser);
+            CesiumIonToken = System.Text.Encoding.UTF8.GetString(decrypted);
+            return CesiumIonToken;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    public void SetAndEncryptCesiumIonToken(string? token)
+    {
+        CesiumIonToken = token;
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            CesiumIonEncryptedToken = null;
+            return;
+        }
+        try
+        {
+            var bytes = System.Text.Encoding.UTF8.GetBytes(token.Trim());
+            var encrypted = System.Security.Cryptography.ProtectedData.Protect(
+                bytes, null, System.Security.Cryptography.DataProtectionScope.CurrentUser);
+            CesiumIonEncryptedToken = Convert.ToBase64String(encrypted);
+        }
+        catch
+        {
+            CesiumIonEncryptedToken = null;
+        }
+    }
     [System.Text.Json.Serialization.JsonIgnore]
     public string? CopernicusAccessToken { get; set; } = null;
     public string? CustomTerrainUrl { get; set; } = null;
@@ -56,6 +96,18 @@ public class AppSettingsModel
     public int CoordinatePrecision { get; set; } = 4;
     public string EyeAltitudeUnit { get; set; } = "AutoMetric";
     public bool ShowCenterCrosshair { get; set; } = false;
+    public bool ShowCenterReticle { get; set; } = true;
+    public bool Enable3DMeasurement { get; set; } = true;
+    public string DefaultDrawingLineColor { get; set; } = "#EF4444";
+    public string DefaultDrawingFillColor { get; set; } = "#3BA9FF";
+    public double DefaultDrawingFillOpacity { get; set; } = 0.35;
+    public string DefaultMeasurementLineColor { get; set; } = "#FACC15";
+    public string DefaultMeasurementFillColor { get; set; } = "#22D3EE";
+    public string DefaultPointPinStyle { get; set; } = "Pin";
+    public bool SmoothCameraAnimations { get; set; } = true;
+    public string StartupViewMode { get; set; } = "World";
+    public string FlightSteeringMode { get; set; } = "Keyboard";
+    public int FlightMaxSpeedKmH { get; set; } = 1200;
 
     // Scenes & Credits (Addendum 02)
     public bool ShowSceneLocationsOnMap { get; set; } = false;
@@ -135,8 +187,9 @@ public sealed class SettingsService
                 var model = JsonSerializer.Deserialize<AppSettingsModel>(json);
                 if (model != null)
                 {
-                    // Ignore insecure tokens left by older settings versions.
-                    model.CesiumIonToken = Environment.GetEnvironmentVariable("ZEARTH_CESIUM_ION_TOKEN");
+                    // Ignore insecure tokens left by older settings versions; decrypt DPAPI token if present.
+                    model.CesiumIonToken = Environment.GetEnvironmentVariable("ZEARTH_CESIUM_ION_TOKEN")
+                        ?? model.GetDecryptedCesiumIonToken();
                     model.CopernicusAccessToken = Environment.GetEnvironmentVariable("ZEARTH_COPERNICUS_ACCESS_TOKEN");
                     model.EsriApiKey = Environment.GetEnvironmentVariable("ZEARTH_ESRI_API_KEY");
                     NormalizeBasemap(model);
@@ -172,6 +225,7 @@ public sealed class SettingsService
     {
         try
         {
+            Settings.SetAndEncryptCesiumIonToken(Settings.CesiumIonToken);
             // Settings is the authoritative edited model. Implicit domain synchronization used
             // to overwrite freshly selected Options values with stale singleton state.
             // Domain-origin changes must explicitly synchronize into the model at their source.

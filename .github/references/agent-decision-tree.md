@@ -41,3 +41,11 @@ The [quality coordination contract](gis-ui-quality-coordination.md) owns the com
 ## Shared non-GIS system integrations
 
 Device time, permission-controlled GPS, OS files, notifications, serial/BLE, cameras, microphones, screen capture, hardware diagnostics and external adapters: route [System Capabilities & Permissions](../skills/system-capabilities-and-permissions/SKILL.md) + target platform + Security Guardian. Add Device Context for GIS location/time/solar only. Do not load every adapter or claim working sensor/permission from documentation.
+
+## Visual assets across project types
+
+For thumbnails, source/brand logos, illustrations, photographs, covers, backgrounds or screenshots, select [Visual Asset Discovery & Integration](../skills/visual-asset-discovery-integration/SKILL.md) through the main router and add only the needed UI/UX, platform or scientific data owner. Use official sources and wider internet search through actual host tools; consult the [workflow](visual-asset-workflow.md) and [source/skill guide](visual-asset-sources.md). A terrain selector is one example, not a domain restriction. A genuine command icon remains with its existing UI/cartographic owner.
+
+## Conditional architecture and workflow visualization
+
+The [GIS Architecture & Workflow Visualization specialist](../skills/gis-architecture-visualization/SKILL.md) is shared support for explicit diagram explanations, reviewed multi-component feature designs, cross-component diagnostics and structural changes. The GIS router decides whether it helps; the domain specialist retains implementation/testing ownership. Follow the [Archify integration handoff](archify-integration.md), declare proposed/source-reviewed/runtime-observed evidence, and record actual renderer/browser availability. Skip simple isolated edits and honor text-only requests. Editable JSON and interactive HTML are explanatory artifacts, not execution permissions or native GIS test evidence.

@@ -39,6 +39,9 @@ namespace ZEarth.Domain
         [JsonPropertyName("roll")]
         public double Roll { get; set; }
 
+        [JsonPropertyName("zoomLevel")]
+        public double ZoomLevel { get; set; } = 3.0;
+
         public CameraState()
         {
             Latitude = DefaultLatitude;
@@ -47,9 +50,10 @@ namespace ZEarth.Domain
             Heading = 0.0;
             Pitch = -90.0;
             Roll = 0.0;
+            ZoomLevel = 3.0;
         }
 
-        public CameraState(double latitude, double longitude, double altitude, double heading = 0.0, double pitch = -90.0, double roll = 0.0)
+        public CameraState(double latitude, double longitude, double altitude, double heading = 0.0, double pitch = -90.0, double roll = 0.0, double zoomLevel = 3.0)
         {
             Latitude = latitude;
             Longitude = longitude;
@@ -57,6 +61,7 @@ namespace ZEarth.Domain
             Heading = heading;
             Pitch = pitch;
             Roll = roll;
+            ZoomLevel = zoomLevel;
             Sanitize();
         }
 
@@ -138,16 +143,18 @@ namespace ZEarth.Domain
             Heading = ((Heading % 360.0) + 360.0) % 360.0;
             Pitch = Math.Clamp(Pitch, -90.0, -5.0);
             Roll = Math.Clamp(Roll, -45.0, 45.0);
+            if (double.IsNaN(ZoomLevel) || double.IsInfinity(ZoomLevel)) ZoomLevel = 3.0;
+            ZoomLevel = Math.Clamp(ZoomLevel, 0.0, 24.0);
         }
 
         public CameraState Clone()
         {
-            return new CameraState(Latitude, Longitude, Altitude, Heading, Pitch, Roll);
+            return new CameraState(Latitude, Longitude, Altitude, Heading, Pitch, Roll, ZoomLevel);
         }
 
         public override string ToString()
         {
-            return $"Lat: {Latitude:F4}°, Lon: {Longitude:F4}°, Alt: {Altitude:N0}m, Head: {Heading:F1}°, Pitch: {Pitch:F1}°";
+            return $"Lat: {Latitude:F4}°, Lon: {Longitude:F4}°, Alt: {Altitude:N0}m, Z: {ZoomLevel:F1}, Head: {Heading:F1}°, Pitch: {Pitch:F1}°";
         }
     }
 }

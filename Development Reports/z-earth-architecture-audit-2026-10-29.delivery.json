@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "72e592d4-9df6-4d58-b3ff-bb6dc0788aaa",
+  "status": "current",
+  "command": "deliver",
+  "type": "explainer",
+  "input": "C:\\Users\\ahmad\\.codex\\visualizations\\2026\\10\\28\\01a182e2-adde-7f33-a85b-4f0b4f92835b\\zearth-audit.archify.md",
+  "output": "D:\\My Software\\Z EARTH\\canonical-main\\Development Reports\\Z-EARTH-Architecture-Audit-2026-10-29.html",
+  "specification": {
+    "sha256": "1c03ed49bfe76dd6934ad6cdfb8a2681a4b0397d5b6effe69ac25ba67946cb04",
+    "bytes": 55554
+  },
+  "artifact": {
+    "sha256": "a8dd2aae2dc6aff49371eab10aaa19fceb6c7b84441407068ee8084fc43c12a7",
+    "bytes": 1042565
+  },
+  "explainer": {
+    "preparedSha256": "37b7108eb6dfc0a24523d3eaf8c87e63c29915e59ef158fcefa7f0658bb38a4d",
+    "dependencies": [
+      {
+        "kind": "diagram-spec",
+        "id": "system-map",
+        "inline": true,
+        "sha256": "bb02046ca96bae581f71ed9f6d09c83c9954812cfa78aed2f2ae3e63f18b883f",
+        "bytes": 1734
+      }
+    ]
+  }
+}

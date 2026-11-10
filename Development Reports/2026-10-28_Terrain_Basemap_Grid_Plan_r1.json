@@ -1,0 +1,240 @@
+{
+  "schema_version": "1.0",
+  "request_id": "ZEARTH-TBG-20261028",
+  "revision": "r1",
+  "original_request": "بص يا ريس، لدي عدة تعديلات، تمام؟ النموذج بتاع شركة أو من المصدر اللي هو جيبكو 20-6-20 متري، هو ليه ما بيشتغلش، مع إنه هو المفروض يعني يكون نموذج مجاني. ثانياً، فين النموذج بتاع اللي هو دقته 30 متر، اللي هو من الموقع الاتحاد الأوروبي تقريباً؟ وفيه نماذج تانية بدقة بتدينا نماذج مجانية نقدر نستخدمها كترين، نعرف منها المبالغ الرأسية وناخد منها منسوب يعني. فواخد بالك إنت، وكمان إنت رابط النموذج جيبكو بشركة جيبكو بنموذج سيزيام، فلما بيقول لي روح احصل على ION Token، طب المفروض ده نموذج مختلف عن نموذج سيزيام، تمام؟ ثانياً، البيز ماب، السيٹنگ بتاعت البيز ماب يعتبر المفروض هي تكون نفس السيٹنگ بتاع التاب، يعني أنا المفروض بضغط على التاب اللي اسمها بيز ماب وأقول له All Biz Map، المفروض التاب اللي تطلع لي يكون فيها بقى نفس الـ... يعني يكون البيز ماب بتاعها يتم تحسينه، زي اللي عملناها في الأوبشنز قبل كده، يعني يكون ليها same pane نفس الـ same pane اللي موجود وهكذا، ما تبقاش مختلفة بقى، فاهمني؟ والصورة دي تتحسن نفس النافذة بتاعت الإعدادات، واخد بالك إنت؟ دي شوية إعدادات لازم نحسنها. كذلك بقى الإحداثيات، شبكة الإحداثيات بقى في الآخر، شوف جوجل إيرث هو بيعملها إزاي وعملهالنا إزاي بقى في الـlabels بتاعتها كمان. وهنا الإحداثيات بتاعتنا للأسف، يعني الإحداثيات بتاعتنا بتبقى إيه، زي يعني بتظهر وبتختفي، مش كلها ظاهرة، أجزاء تظهر وأجزاء تختفي، الـlabels بتاعتها مش زي جوجل إيرث، تمام؟ وعايز أقولك حاجة، البيز ماب اللي هي بتاعت إزري، اللي هي الـhybrid، اللي هي مع الإحداثيات، المفروض دي تكون هي الـdefault، فأحيان كتير ما بتبقاش هي الـdefault، خد بالك، تمام؟ المفروض دي هي تكون الـdefault وهي دي اللي بيفتح لها البرنامج على طول. حول بقى الكلام اللي أنا قلته ده لـprompt، وشوف المهارات هتساعدك إزاي، وشوف التقرير اللي اتعمل خاص بجوجل إيرث، هاستفيد منه برضه.",
+  "language": "ar",
+  "status": "approved",
+  "approval": {
+    "approved_by_user": true,
+    "approved_revision": "r1",
+    "high_risk_approved": false
+  },
+  "goal": "إصلاح بنية وواجهة التضاريس والخرائط الأساسية وشبكة الإحداثيات في Z EARTH مع مصادر ارتفاع مجانية مستقلة، قيم منسوب حقيقية، وواجهة موحدة مثبتة باختبارات Windows/WebView2.",
+  "target": "Z EARTH Windows WPF/.NET + CesiumJS WebView2 in D:\\My Software\\Z EARTH\\canonical-main",
+  "desired_outcomes": [
+    "فصل GEBCO 2026 وCopernicus DEM GLO-30 ومسارات DEM المحلية عن مزودي Cesium ion ومتطلبات token",
+    "كتالوج مصادر تضاريس مجاني وصادق مع provenance وresolution وvertical datum والترخيص وحالة الجاهزية",
+    "Basemap Browse All يفتح نفس Basemap & Display pane داخل Options مع تجربة موحدة",
+    "Esri Hybrid هو fresh default المتسق مع احترام اختيار المستخدم وfallback صادق عند الفشل",
+    "شبكة إحداثيات وتسميات deterministic ومستقرة أثناء حركة الكاميرا ومثبتة باختبارات حقيقية",
+    "المنسوب والقطاع الطولي يأتيان من DEM نشط والمبالغة الرأسية لا تغير البيانات العلمية"
+  ],
+  "success_criteria": [
+    "GEBCO/Copernicus local workflows never request a Cesium ion token and never report active without valid prepared numeric terrain",
+    "Basemap commands open one unified Options pane and fresh settings consistently select esri-hybrid with labels",
+    "Grid lines and labels remain deterministic through pan, zoom, tilt, rotation, 2D/3D and restart while respecting horizon and collision rules",
+    "A real terrain sample and elevation profile report source, units and vertical reference where known; exaggeration changes rendering only",
+    "Build, unit/contract tests and Windows WebView2 acceptance are reported separately with honest T0-T4 status"
+  ],
+  "constraints": [
+    "Preserve Z EARTH name, ZEarth namespaces, dark-gray style, English default, complete Arabic UI and one canonical Preview folder",
+    "Do not fabricate terrain elevations or call ellipsoid/shaded-relief imagery a numeric DEM",
+    "Do not automatically download the full GEBCO grid or store provider tokens in settings, logs or source",
+    "Google Earth material is behavior reference only; do not copy Google code, binaries, imagery or visual assets",
+    "Preserve current user changes and do not create a release before required verification gates pass"
+  ],
+  "non_goals": [
+    "Replacing CesiumJS or the WPF shell",
+    "Bundling paid tokens or promising unrestricted third-party service usage",
+    "Treating every downloadable DEM as an immediately streamable terrain service",
+    "Pixel-for-pixel copying of Google Earth UI"
+  ],
+  "assumptions": [
+    "The requested European 30 m model is Copernicus DEM GLO-30",
+    "Esri Hybrid is the fresh-install default, while an explicit valid saved user default remains respected",
+    "GEBCO 2026 is intended mainly for global land/ocean elevation and bathymetry, not as a 20 m source"
+  ],
+  "open_questions": [],
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "Terrain source, license and vertical-reference audit",
+      "description": "Inspect current providers and official source terms; build a provider matrix that separates datasets, ready services, local prepared terrain and ion assets.",
+      "priority": "must",
+      "kind": "terrain-audit",
+      "skills": [
+        "terrain-hydrology-lidar",
+        "coordinate-reference-systems",
+        "geospatial-web-mapping",
+        "gis-security-guardian"
+      ],
+      "depends_on": [],
+      "risk": "low",
+      "acceptance_criteria": [
+        "Provider matrix records source, sampling, coverage, CRS, vertical reference, NoData, auth, license, attribution and Cesium readiness",
+        "GEBCO 2026, Copernicus GLO-30, AWS Terrarium, SRTMGL1 and AW3D30 are not misrepresented",
+        "Cesium World Terrain and World Bathymetry remain separate ion providers"
+      ],
+      "tools": [
+        {
+          "tool_id": "host.source-inspection",
+          "side_effect": "read"
+        },
+        {
+          "tool_id": "official-provider-documentation",
+          "side_effect": "network"
+        }
+      ],
+      "owner_skill": "terrain-hydrology-lidar"
+    },
+    {
+      "id": "T2",
+      "title": "Independent numeric terrain provider architecture",
+      "description": "Separate ready streaming providers from downloadable DEM workflows, add Copernicus GLO-30 identity, define GEBCO/local preparation, probes, failure states and safe custom endpoints.",
+      "priority": "must",
+      "kind": "desktop-terrain",
+      "skills": [
+        "gis-desktop-application-development",
+        "geospatial-web-mapping",
+        "terrain-hydrology-lidar",
+        "coordinate-reference-systems",
+        "gis-security-guardian"
+      ],
+      "depends_on": [
+        "T1"
+      ],
+      "risk": "medium",
+      "acceptance_criteria": [
+        "GEBCO/Copernicus local paths never request ion tokens",
+        "No source reports active before numeric readiness and tile/sample validation",
+        "Fallback exposes the real reason and never fabricates elevation",
+        "Custom/local URL and loopback routes have bounded security and shutdown behavior"
+      ],
+      "tools": [
+        {
+          "tool_id": "host.source-edit",
+          "side_effect": "write"
+        },
+        {
+          "tool_id": "host.runtime-smoke-test",
+          "side_effect": "read"
+        }
+      ],
+      "owner_skill": "gis-desktop-application-development"
+    },
+    {
+      "id": "T3",
+      "title": "Elevation provenance and vertical exaggeration",
+      "description": "Make readouts and profiles sample only the active numeric terrain, expose provenance and keep vertical exaggeration visual-only.",
+      "priority": "must",
+      "kind": "terrain-measurement",
+      "skills": [
+        "terrain-hydrology-lidar",
+        "coordinate-reference-systems",
+        "geospatial-web-mapping",
+        "gis-security-guardian"
+      ],
+      "depends_on": [
+        "T2"
+      ],
+      "risk": "medium",
+      "acceptance_criteria": [
+        "Elevation and profile identify source, units and known vertical reference",
+        "Ellipsoid and NoData never appear as measured terrain elevation",
+        "1x, 1.5x and 3x change scene relief while a fixed source sample remains unchanged"
+      ],
+      "tools": [
+        {
+          "tool_id": "host.source-edit",
+          "side_effect": "write"
+        }
+      ],
+      "owner_skill": "terrain-hydrology-lidar"
+    },
+    {
+      "id": "T4",
+      "title": "Unified Basemap pane and Esri Hybrid startup contract",
+      "description": "Route Browse All to Options Basemap & Display, merge necessary gallery behavior, remove divergent general selection UX and make esri-hybrid the consistent fresh default.",
+      "priority": "must",
+      "kind": "desktop-ui",
+      "skills": [
+        "gis-desktop-application-development",
+        "gis-ui-command-audit",
+        "gis-ui-ux-design-testing",
+        "gis-internationalization-arabic",
+        "geospatial-web-mapping",
+        "gis-security-guardian"
+      ],
+      "depends_on": [],
+      "risk": "medium",
+      "acceptance_criteria": [
+        "Both basemap ribbon entry points open OptionsDialogTab.BasemapDisplay",
+        "One general selector provides search/filter/thumbnails/status/attribution with matching Options design",
+        "Fresh or invalid settings select esri-hybrid with labels; valid saved choices are honored",
+        "Network failure uses session-only offline fallback without silently overwriting the preferred default",
+        "English, Arabic RTL, keyboard and 100/150/200 percent DPI paths are usable"
+      ],
+      "tools": [
+        {
+          "tool_id": "host.source-edit",
+          "side_effect": "write"
+        }
+      ],
+      "owner_skill": "gis-desktop-application-development"
+    },
+    {
+      "id": "T5",
+      "title": "Deterministic Google-Earth-like coordinate grid behavior",
+      "description": "Diagnose disappearing grid segments and labels, then stabilize LOD, collision, horizon, terrain, anti-meridian, pole and 2D/3D behavior without copying Google assets.",
+      "priority": "must",
+      "kind": "desktop-map",
+      "skills": [
+        "geospatial-web-mapping",
+        "coordinate-reference-systems",
+        "gis-desktop-application-development",
+        "gis-ui-ux-design-testing",
+        "gis-security-guardian"
+      ],
+      "depends_on": [],
+      "risk": "medium",
+      "acceptance_criteria": [
+        "The same camera and viewport deterministically produce the same grid and labels",
+        "No lines or labels render on the globe back side and Grid OFF removes all owned entities",
+        "DD, DM, DMS, whole degrees, N/S/E/W and UTM exception cases are correct",
+        "Pan, zoom, tilt, rotation, anti-meridian, poles, terrain and restart persistence pass native checks"
+      ],
+      "tools": [
+        {
+          "tool_id": "host.source-edit",
+          "side_effect": "write"
+        }
+      ],
+      "owner_skill": "geospatial-web-mapping"
+    },
+    {
+      "id": "T6",
+      "title": "Regression, native acceptance and completion evidence",
+      "description": "Run source, unit, provider and real Windows/WebView2 tests and map every result back to the approved criteria with honest T0-T4 status.",
+      "priority": "must",
+      "kind": "qa",
+      "skills": [
+        "gis-desktop-e2e-testing",
+        "gis-ui-command-audit",
+        "gis-desktop-application-development",
+        "geospatial-web-mapping",
+        "gis-security-guardian"
+      ],
+      "depends_on": [
+        "T2",
+        "T3",
+        "T4",
+        "T5"
+      ],
+      "risk": "low",
+      "acceptance_criteria": [
+        "Build and automated suites report exact pass/fail/blocked outcomes",
+        "Real terrain provider, basemap startup, grid movement, persistence and failure cases are observed on Windows WebView2 or marked NOT RUN",
+        "No Preview is created unless the authoritative build-and-test gate passes",
+        "The final report separates verified, partial, blocked and not-run criteria"
+      ],
+      "tools": [
+        {
+          "tool_id": "host.runtime-smoke-test",
+          "side_effect": "read"
+        }
+      ],
+      "owner_skill": "gis-desktop-e2e-testing"
+    }
+  ]
+}

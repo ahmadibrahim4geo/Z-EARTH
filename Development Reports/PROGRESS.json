@@ -1,0 +1,106 @@
+{
+  "schema_version": 1,
+  "request_id": "ZE-FULL-REPAIR-2026-10-27",
+  "plan_revision": "r1",
+  "repository": "https://github.com/ahmadibrahim4geo/Z-EARTH.git",
+  "base_branch": "main",
+  "base_commit": "6696a8ed179206d7769eeddc5e9b51e3a1fa30a6",
+  "working_branch": "repair/full-verification-2026-10-27",
+  "overall_status": "in_progress",
+  "current_phase": "01-test-gates-and-core-repairs",
+  "phases": [
+    {
+      "id": "00-source-preflight",
+      "status": "completed",
+      "report": "2026-10-27_Phase_00_Source_Preflight.md",
+      "evidence": {
+        "remote_main": "6696a8ed179206d7769eeddc5e9b51e3a1fa30a6",
+        "release_build": "passed",
+        "mstest": "failed: 240 passed, 3 failed",
+        "skill_snapshot": "failed on Windows CRLF checkout"
+      }
+    },
+    {
+      "id": "01-test-gates-and-core-repairs",
+      "status": "in_progress"
+    },
+    {
+      "id": "02-command-and-data-flow-repairs",
+      "status": "not_started"
+    },
+    {
+      "id": "03-native-e2e-and-ui-ux",
+      "status": "not_started"
+    },
+    {
+      "id": "04-preview-and-repository-integration",
+      "status": "blocked_until_all_gates_pass"
+    }
+  ],
+  "release_gate": "blocked",
+  "workstreams": [
+    {
+      "id": "map-grid-ui-engine",
+      "status": "completed",
+      "report": "Map_Grid_UI_Engine_Integration_Report.md",
+      "evidence": {
+        "build": "0 warnings, 0 errors",
+        "mstest": "262 passed, 0 failed (13 MapGridSettingsTests)",
+        "node": "55 passed, 0 failed",
+        "native_t3": "captured 3D regional, 2D world, defaults, grid OFF, ribbon ON, dialog dark/light, four label formats, four label sizes",
+        "native_t4": "not_run_by_request",
+        "not_run": [
+          "native Save/Cancel click-through",
+          "high-DPI scaling",
+          "software WebGL fallback"
+        ]
+      }
+    },
+    {
+      "id": "options-five-tabs-design-integration",
+      "status": "implemented_with_blocked_gates",
+      "report": "Options_Five_Tabs_Design_Compliance_and_Implementation.md",
+      "evidence": {
+        "build": "passed: 0 warnings, 0 errors",
+        "node": "63 passed in full suite; latest thumbnail + command contracts 17 passed, 0 failed",
+        "native_t3": "five final Windows captures in native-evidence/options-five-tabs-final plus basemap/terrain/grid illustrative-thumbnail captures in native-evidence/options-thumbnail-evidence",
+        "security": "passed: 0 findings",
+        "mstest": "blocked: vstest could not connect to testhost after 90 seconds",
+        "native_interaction": "partial: visual capture complete; full five-tab click-through and DPI matrix not completed",
+        "preview": "not_created_until_release_gates_pass"
+      }
+    },
+    {
+      "id": "ge-functional-spec-backlog",
+      "status": "baseline_and_pilot_repairs_completed",
+      "report": "2026-10-28_GE_Functional_Spec_Backlog.md",
+      "evidence": {
+        "source_sha256": "ac6350c18e340636cda6539842f15ee0bd23da459e2a79f6b09c746067516b34",
+        "feature_count": 151,
+        "initial_statuses": {
+          "NEEDS_AUDIT": 145,
+          "PARTIAL": 3,
+          "PRESENT_UNVERIFIED": 1,
+          "DIFFERENT_BY_DESIGN": 2
+        },
+        "parser_tests": "4 passed, 0 failed",
+        "ui_audit_tests": "18 passed, 0 failed (workspace-local Temp required under sandbox)",
+        "node": "67 passed, 0 failed",
+        "build": "passed single-node: 0 warnings, 0 errors; parallel .NET 10/MSBuild project-reference IPC failed silently in this host",
+        "mstest": "262 passed, 0 failed outside sandbox; sandbox named-pipe testhost startup timed out",
+        "pilot_repairs": [
+          "truthful bilingual current-viewport screenshot contract",
+          "flight camera-mode disclaimer, HUD telemetry and keyboard input coverage",
+          "grid default colors aligned across Settings, Bridge, Cesium and Options UI"
+        ],
+        "native_t3": {
+          "flight": "limited pass: WebView2 activation/HUD, Page Up throttle 55% to 63%, focused Esc exit. Stale WPF OFF status was fixed and passed build/T1/T2; post-fix T3 recheck blocked by unrelated Filee UAC. P pause not visibly confirmed",
+          "screenshot": "two inspected 910x600 PNG viewport captures, including active flight HUD",
+          "evidence": "native-evidence/ge-parity-pilot-2026-10-28/README.md"
+        }
+      }
+    }
+  ],
+  "last_updated": "2026-10-28T12:27:08+03:00"
+}
+

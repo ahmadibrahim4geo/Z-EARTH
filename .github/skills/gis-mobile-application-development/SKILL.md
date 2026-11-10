@@ -58,3 +58,7 @@ Read [mobile device testing matrix](../../references/mobile-gis-device-test-matr
 Minimum scenario chain: launch -> import real geodata -> identify -> obtain/deny GPS -> edit while offline -> kill/restart -> inspect queue -> sign in/recover session if configured -> reconnect -> detect server conflict -> reconcile without loss -> export -> reread file. Check both RTL and LTR and accessibility. Capture device OS/build, source SHA, app version, permission state, GIS/SDK versions, test artifacts and failures in the [shared acceptance report](../../templates/GIS_ACCEPTANCE_REPORT.md).
 
 An [offline contract example](../../examples/mobile-gis/README.md) and [mobile regression tests](../../tests/test_gis_mobile_application.py) prove only reference policy and deterministic sync semantics, **not** that an Android/iOS binary or device driver has been built.
+
+## Visual assets (conditional)
+
+When the reviewed project needs thumbnails, official logos, photographs, illustrations or screenshots, compose [Visual Asset Discovery & Integration](../visual-asset-discovery-integration/SKILL.md). It owns internet/source discovery, asset suitability, source credits and prepared local variants; keep layout, target resource binding, packaging and actual UI acceptance with this platform/UX owner. Do not silently replace requested images with generic icons or claim a source URL proves local integration.

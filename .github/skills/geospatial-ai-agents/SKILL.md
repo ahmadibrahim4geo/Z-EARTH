@@ -12,6 +12,9 @@ license: MIT
 
 An LLM **chooses tools**; a deterministic GIS engine does the geometry, raster and CRS calculations. Prefer typed actions, never arbitrary code execution or raw shell commands for a user request.
 
+For optional Model Context Protocol tools, load [MCP Tool Orchestration](../mcp-integration-and-tool-orchestration/SKILL.md) and the [capability routing contract](../../references/mcp-integration-workflow.md). Compare verified host-offered MCP and native adapters with the intended GIS operation; never infer an installed server from this documentation or bypass host approval.
+
+
 ## Route by host
 - QGIS GUI and Processing: [QGIS specialist](../qgis-plugin-development/SKILL.md), [OpenGeoS CLI Anything QGIS](https://github.com/opengeos/cli-anything-qgis) (QGIS bindings required), [Whitebox agent](https://github.com/opengeos/qgis-whitebox-agent) (Whitebox provider required).
 - Data inspection, segmentation and raster manipulation: [OpenGeoS geoai-skills](https://github.com/opengeos/geoai-skills) as *patterns*, not necessarily portable to other agent platforms; Python, PyTorch/CUDA/model-license checks.

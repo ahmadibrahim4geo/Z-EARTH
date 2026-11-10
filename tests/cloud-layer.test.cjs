@@ -6,12 +6,13 @@ const code = fs.readFileSync(path.join(__dirname, '../src/ZEarth.Globe/Assets/cl
 const context = { window: {} };
 vm.runInNewContext(code, context);
 let addCount = 0, removeAllCount = 0, renderCount = 0;
+const positions = [];
 let mode = 3;
 const morphCallbacks = [];
 class CloudCollection {
   constructor() { this.length = 0; this.show = true; }
-  add(value) { this.length++; assert.ok(Number.isFinite(value.position.lon)); }
-  removeAll() { removeAllCount++; this.length = 0; }
+  add(value) { this.length++; positions.push(value.position); assert.ok(Number.isFinite(value.position.lon)); }
+  removeAll() { removeAllCount++; this.length = 0; positions.length = 0; }
 }
 const Cesium = {
   CloudCollection, SceneMode: { SCENE3D: 3 },
@@ -43,6 +44,14 @@ assert.equal(model.getState().rendered, false);
 mode=3; morphCallbacks[0]();
 assert.equal(model.getState().count, 64);
 assert.equal(model.getState().rendered, true);
+camera.positionCartographic.height = 4500000;
+moveCallbacks[0]();
+assert.equal(model.getState().count, 180, 'orbital view needs a global illustrative cloud field');
+assert.ok(Math.min(...positions.map(p => p.lat)) < -70 && Math.max(...positions.map(p => p.lat)) > 70);
+const previousRebuilds = removeAllCount;
+camera.positionCartographic.longitude = 60;
+moveCallbacks[0]();
+assert.equal(removeAllCount, previousRebuilds, 'global pattern must remain stable as camera turns');
 assert.equal(model.setEnabled(false).count, 0);
 assert.equal(model.getState().enabled, false);
 assert.ok(removeAllCount >= 1);

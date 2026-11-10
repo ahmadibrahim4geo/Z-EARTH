@@ -59,6 +59,27 @@ handlers.keyup({key:'d'});
 assert.equal(flight.getState().terrainSampleAvailable,true);
 assert.ok(Number.isFinite(flight.getState().aglMeters));
 assert.ok(Number.isFinite(flight.getState().verticalSpeedMetersPerSecond));
+// Verify Arabic keyboard layout support using hardware scancode (KeyW/KeyA/KeyS/KeyD)
+handlers.keydown({code:'KeyW',key:'ص',preventDefault(){}});
+for(const [id,t] of [...raf]){raf.delete(id);t(1250);}
+handlers.keyup({code:'KeyW',key:'ص'});
+
+// Verify throttle controls via KeyE and KeyQ
+const preSpeed = flight.getState().throttle;
+handlers.keydown({code:'KeyE',key:'ث',preventDefault(){}});
+assert.ok(flight.getState().throttle > preSpeed, 'KeyE must increase throttle');
+handlers.keydown({code:'KeyQ',key:'ض',preventDefault(){}});
+assert.equal(flight.getState().throttle, preSpeed, 'KeyQ must decrease throttle');
+
+// Verify mouse steering mode
+handlers.keydown({code:'KeyM',key:'m',preventDefault(){}});
+assert.equal(flight.getState().mouseSteering, true, 'KeyM must toggle mouse steering ON');
+if (handlers.mousemove) {
+  handlers.mousemove({clientX: 900, clientY: 400}); // mouse right of center
+}
+for(const [id,t] of [...raf]){raf.delete(id);t(1300);}
+assert.ok(flight.getState().bankDegrees > 0, 'Mouse offset right of center must cause banking');
+
 handlers.keydown({key:'P',preventDefault(){}});
 assert.equal(flight.getState().paused,true);
 handlers.keydown({key:'Escape',preventDefault(){}});

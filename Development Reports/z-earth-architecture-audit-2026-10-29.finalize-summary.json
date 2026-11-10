@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "explainer",
+  "quality": "showcase",
+  "specification": {
+    "path": "C:\\Users\\ahmad\\.codex\\visualizations\\2026\\10\\28\\01a182e2-adde-7f33-a85b-4f0b4f92835b\\zearth-audit.archify.md",
+    "sha256": "1c03ed49bfe76dd6934ad6cdfb8a2681a4b0397d5b6effe69ac25ba67946cb04",
+    "bytes": 55554
+  },
+  "artifact": {
+    "path": "D:\\My Software\\Z EARTH\\canonical-main\\Development Reports\\Z-EARTH-Architecture-Audit-2026-10-29.html",
+    "sha256": "a8dd2aae2dc6aff49371eab10aaa19fceb6c7b84441407068ee8084fc43c12a7",
+    "bytes": 1042565
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "not-run"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "D:\\My Software\\Z EARTH\\canonical-main\\Development Reports\\z-earth-architecture-audit-2026-10-29.finalize.json",
+    "summaryReceipt": "D:\\My Software\\Z EARTH\\canonical-main\\Development Reports\\z-earth-architecture-audit-2026-10-29.finalize-summary.json"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 2364,
+  "browserCheck": {
+    "requested": false,
+    "ran": false
+  }
+}

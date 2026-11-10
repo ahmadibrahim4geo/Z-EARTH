@@ -14,6 +14,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SKILLS = ROOT / "skills"
 DOMAINS = (
+    ("visual-asset-discovery-integration", ("thumbnail", "visual asset", "image search", "image sourcing", "official logo", "logos", "brand asset", "سامبنيل", "سنبنيل", "ثَمبنيل", "صورة مصغرة", "صورة لكل اختيار", "صور توضيحية", "شعار", "شعارات")),
+
+("gis-architecture-visualization", ("archify", "architecture diagram", "workflow diagram", "draw a diagram", "interactive diagram", "visualize architecture", "diagram the", "ارسملي", "ارسم لي", "مخطط", "مين مسؤول عن مين", "وضحلي بنية", "وضّحلي بنية")),
+    ("clean-room-reference-implementation", ("clean room", "clean-room", "reference software", "reference implementation", "feature parity", "reverse engineering", "الهندسة النظيفة", "الإطار المرجعي", "تحليل برنامج مرجعي", "دراسة برنامج مرجعي", "مضاهاة جوجل إيرث")),
     ("kml-kmz-engineering", ("kml", "kmz", "placemark", "كي ام ال", "كى ام ال", "ستايل km", "ملفات الكي")),
     ("gis-desktop-application-development", ("desktop", "exe", "wpf", "زيرث", "zearth", "سطح المكتب", "برنامج مستقل")),
     ("gis-mobile-application-development", ("android", "ios app", "iphone", "gnss", "offline sync", "mobile gis", "موبايل", "هاتف", "تطبيق جوال", "تطبيق أندرويد", "تطبيق اندرويد")),
@@ -30,6 +34,7 @@ DOMAINS = (
     ("geospatial-api-integration", ("api", "geocod", "gazetteer", "أسماء الأماكن", "بحث عن الأماكن")),
     ("geospatial-data-discovery", ("download data", "stac", "مصادر البيانات", "تنزيل بيانات")),
     ("geospatial-ai-agents", ("agent", "geoai", "automation", "وكيل", "الذكاء الاصطناعي")),
+    ("mcp-integration-and-tool-orchestration", ("mcp", "model context protocol", "mcp server", "mcp tools", "سيرفرات mcp", "سيرفر mcp", "توجيه الأدوات", "تكامل الأدوات")),
     ("geospatial-data-catalogs", ("data catalog", "data repository", "gis catalog", "stac catalog", "كتالوج البيانات", "فهرس البيانات", "مستودعات البيانات")),
     ("gis-internationalization-arabic", ("i18n", "localization", "arabic ui", "bilingual", "تعريب", "ثنائي اللغة", "تعدد اللغات")),
     ("system-capabilities-and-permissions", ("device permissions", "system permissions", "camera permission", "microphone permission", "bluetooth permission", "صلاحيات الجهاز", "أذونات الجهاز", "إذن الكاميرا")),
@@ -43,6 +48,13 @@ DOMAINS = (
 RISKS = {"low", "medium", "high", "critical"}
 SIDE_EFFECTS = {"read", "write", "network", "destructive"}
 STATUSES = {"draft", "approved"}
+VISUALIZATION_SKILL = "gis-architecture-visualization"
+VISUALIZATION_FIELDS = {
+    "purpose": {"architecture-explanation", "feature-design", "cross-component-diagnosis", "structural-change"},
+    "diagram_type": {"architecture", "workflow", "sequence", "dataflow", "lifecycle", "erd", "class", "tree", "timeline", "waterfall"},
+    "evidence_basis": {"proposed", "source-reviewed", "runtime-observed"},
+    "language": {"en", "ar"},
+}
 
 
 def available_skills(root=SKILLS):
@@ -76,6 +88,27 @@ def route_hints(request, known=None):
 
 def _text(value):
     return isinstance(value, str) and bool(value.strip())
+
+
+def validate_visualization(task, prefix):
+    """Validate an optional declared handoff, never infer or execute a diagram."""
+    selected = task.get("skills")
+    has_skill = isinstance(selected, list) and VISUALIZATION_SKILL in selected
+    if not has_skill and "visualization" not in task:
+        return []
+    errors = []
+    if not has_skill:
+        errors.append(prefix + ".visualization requires selecting " + VISUALIZATION_SKILL)
+    declaration = task.get("visualization")
+    if not isinstance(declaration, dict):
+        return errors + [prefix + ".visualization must declare purpose, diagram_type, evidence_basis and language"]
+    for key, choices in VISUALIZATION_FIELDS.items():
+        value = declaration.get(key)
+        if not isinstance(value, str) or value not in choices:
+            errors.append(prefix + ".visualization." + key + " is missing or invalid")
+    if set(declaration) - set(VISUALIZATION_FIELDS):
+        errors.append(prefix + ".visualization contains unknown fields")
+    return errors
 
 
 def validate_plan(plan, known=None, require_approved=False):
@@ -141,6 +174,7 @@ def validate_plan(plan, known=None, require_approved=False):
             errors.append(pref + ".skills contain unknown or missing skill")
         if isinstance(selected, list) and "gis-security-guardian" not in selected:
             errors.append(pref + ".skills must include gis-security-guardian")
+        errors.extend(validate_visualization(task, pref))
         deps = task.get("depends_on")
         if not isinstance(deps, list) or any(not _text(x) for x in deps):
             errors.append(pref + ".depends_on must be string array")
@@ -301,6 +335,16 @@ def compile_workflow(plan, known=None, require_approved=False):
             "completion_gate": "completion-evidence (DoneProof); validate each acceptance criterion against fresh results",
             "journal_owner": "agent-development-journal",
         }
+        if "visualization" in task:
+            step["visualization"] = {
+                **task["visualization"],
+                "renderer": "archify",
+                "artifact_owner": VISUALIZATION_SKILL,
+                "status": "NOT_STARTED",
+                "runtime_verified": False,
+                "gis_execution_proven": False,
+            }
+            step["preflight"].append("actual Node.js, Archify runtime and browser availability; local output and source privacy")
         result["steps"].append(step)
         result["handoffs"].extend(
             {"from_task": dep, "to_task": task["id"], "data_contract": "approved_plan_task_dependency"}
@@ -316,7 +360,10 @@ def main(argv=None):
     p.add_argument("--format", choices=("text", "json"), default="text")
     p.add_argument("--gate", action="store_true", help="Check declared revision-scoped approval; never execute")
     p.add_argument("--workflow", action="store_true", help="Compile a goal-first dependency-ordered workflow preview; requires --plan, never executes")
+    p.add_argument("--mcp-inventory", type=Path, help="Optional unverified MCP/native tool inventory for read-only capability preview; requires --workflow")
     args = p.parse_args(argv)
+    if args.mcp_inventory and (not args.workflow or args.plan is None):
+        p.error("--mcp-inventory requires --plan and --workflow")
     if args.text is not None:
         if args.gate:
             p.error("--gate requires --plan")
@@ -336,6 +383,16 @@ def main(argv=None):
         return 2
     if args.workflow:
         blueprint = compile_workflow(plan, require_approved=args.gate)
+        if args.mcp_inventory and blueprint["valid"]:
+            try:
+                from mcp_tool_router import route_plan
+                inventory = json.loads(args.mcp_inventory.read_text(encoding="utf-8"))
+                blueprint["tool_route_preview"] = route_plan(plan, inventory)
+                blueprint["tool_routing_note"] = "Candidate capabilities only; no live MCP discovery, authorization or invocation."
+            except (OSError, ValueError, TypeError) as exc:
+                blueprint["valid"] = False
+                blueprint["status"] = "BLOCKED"
+                blueprint["errors"].append("MCP inventory preview invalid: " + str(exc))
         if args.format == "json":
             print(json.dumps(blueprint, ensure_ascii=False, indent=2))
         else:

@@ -238,5 +238,84 @@ namespace ZEarth.Tests
             var outPath = System.IO.Path.Combine(outDir, "morph_100_cycles.json");
             System.IO.File.WriteAllText(outPath, JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true }));
         }
+
+        [TestMethod]
+        public void DrawCompleted_EllipseGeometry_AddsEllipsePlaceItemWithCoordinates()
+        {
+            var projectService = new ProjectService();
+            var bridge = new GlobeBridge();
+            var vm = new MainViewModel(projectService, bridge);
+
+            int initialCount = vm.MyPlaces.Count;
+
+            var sampledCoords = new List<object>();
+            for (int i = 0; i < 64; i++)
+            {
+                sampledCoords.Add(new { longitude = 31.23 + (i * 0.001), latitude = 30.04 + (i * 0.001), altitude = 50.0 });
+            }
+
+            var drawPayload = new
+            {
+                @event = "draw.completed",
+                geometryType = "ellipse",
+                shapeKind = "ellipse",
+                center = new { longitude = 31.23, latitude = 30.04, altitude = 50.0 },
+                semiMajorAxis = 1500.0,
+                semiMinorAxis = 750.0,
+                bearingDegrees = 45.0,
+                color = "#38bdf8",
+                coordinates = sampledCoords
+            };
+
+            bridge.HandleWebMessage(JsonSerializer.Serialize(drawPayload));
+
+            Assert.AreEqual(initialCount + 1, vm.MyPlaces.Count, "Ellipse should be added to MyPlaces");
+            var item = vm.MyPlaces.Last();
+            Assert.AreEqual(PlaceItemType.Ellipse, item.ItemType);
+            Assert.AreEqual("#38bdf8", item.ColorHex);
+            Assert.AreEqual(64, item.Coordinates.Count);
+            Assert.AreEqual("ellipse", item.ExtendedData["shapeKind"]);
+            Assert.AreEqual("1500", item.ExtendedData["SemiMajorAxis"]);
+            Assert.AreEqual("750", item.ExtendedData["SemiMinorAxis"]);
+            Assert.AreEqual("45", item.ExtendedData["BearingDegrees"]);
+            Assert.IsTrue(vm.IsModified);
+        }
+
+        [TestMethod]
+        public void DrawCompleted_CircleGeometry_AddsCirclePlaceItemWithCoordinates()
+        {
+            var projectService = new ProjectService();
+            var bridge = new GlobeBridge();
+            var vm = new MainViewModel(projectService, bridge);
+
+            int initialCount = vm.MyPlaces.Count;
+
+            var sampledCoords = new List<object>();
+            for (int i = 0; i < 64; i++)
+            {
+                sampledCoords.Add(new { longitude = 31.23 + (i * 0.001), latitude = 30.04 + (i * 0.001), altitude = 20.0 });
+            }
+
+            var drawPayload = new
+            {
+                @event = "draw.completed",
+                geometryType = "circle",
+                shapeKind = "circle",
+                center = new { longitude = 31.23, latitude = 30.04, altitude = 20.0 },
+                radiusMeters = 800.0,
+                color = "#fb923c",
+                coordinates = sampledCoords
+            };
+
+            bridge.HandleWebMessage(JsonSerializer.Serialize(drawPayload));
+
+            Assert.AreEqual(initialCount + 1, vm.MyPlaces.Count, "Circle should be added to MyPlaces");
+            var item = vm.MyPlaces.Last();
+            Assert.AreEqual(PlaceItemType.Circle, item.ItemType);
+            Assert.AreEqual("#fb923c", item.ColorHex);
+            Assert.AreEqual(64, item.Coordinates.Count);
+            Assert.AreEqual("800", item.ExtendedData["RadiusMeters"]);
+            Assert.IsTrue(vm.IsModified);
+        }
     }
 }

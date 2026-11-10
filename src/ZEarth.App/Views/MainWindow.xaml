@@ -5,6 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
         xmlns:domain="clr-namespace:ZEarth.Domain;assembly=ZEarth.Domain"
+        xmlns:domainLayers="clr-namespace:ZEarth.Domain.Layers;assembly=ZEarth.Domain"
         xmlns:sys="clr-namespace:System;assembly=System.Runtime"
         mc:Ignorable="d"
         Title="{Binding WindowTitle}"
@@ -46,12 +47,23 @@
                                 <Path Data="{StaticResource Icon.FlyTo}" Style="{StaticResource MenuItemIconStyle}"/>
                             </MenuItem.Icon>
                         </MenuItem>
+                        <MenuItem Header="Show Elevation Profile" Command="{Binding PlacementTarget.Tag.ShowElevationProfileCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" CommandParameter="{Binding}"/>
+                        <Separator/>
+                        <MenuItem Header="Cut" Command="{Binding PlacementTarget.Tag.CutPlaceCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" CommandParameter="{Binding}"/>
+                        <MenuItem Header="Copy" Command="{Binding PlacementTarget.Tag.CopyPlaceCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" CommandParameter="{Binding}"/>
+                        <MenuItem Header="Paste" Command="{Binding PlacementTarget.Tag.PastePlaceCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" CommandParameter="{Binding}"/>
+                        <MenuItem Header="Rename" Command="{Binding PlacementTarget.Tag.RenamePlaceCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" CommandParameter="{Binding}"/>
+                        <MenuItem Header="Delete" Command="{Binding PlacementTarget.Tag.DeletePlaceCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" CommandParameter="{Binding}">
+                            <MenuItem.Icon>
+                                <Path Data="{StaticResource Icon.Trash}" Style="{StaticResource MenuItemIconStyle}"/>
+                            </MenuItem.Icon>
+                        </MenuItem>
+                        <Separator/>
                         <MenuItem Header="Save to My Places" Command="{Binding PlacementTarget.Tag.SaveToMyPlacesCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}">
                             <MenuItem.Icon>
                                 <Path Data="{StaticResource Icon.Save}" Style="{StaticResource MenuItemIconStyle}"/>
                             </MenuItem.Icon>
                         </MenuItem>
-                        <Separator/>
                         <MenuItem Header="Add Placemark" Command="{Binding PlacementTarget.Tag.AddPlacemarkCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}">
                             <MenuItem.Icon>
                                 <Path Data="{StaticResource Icon.Placemark}" Style="{StaticResource MenuItemIconStyle}"/>
@@ -63,11 +75,7 @@
                             </MenuItem.Icon>
                         </MenuItem>
                         <Separator/>
-                        <MenuItem Header="Delete" Command="{Binding PlacementTarget.Tag.DeletePlaceCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}">
-                            <MenuItem.Icon>
-                                <Path Data="{StaticResource Icon.Trash}" Style="{StaticResource MenuItemIconStyle}"/>
-                            </MenuItem.Icon>
-                        </MenuItem>
+                        <MenuItem Header="Properties..." Command="{Binding PlacementTarget.Tag.OpenPropertiesCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" CommandParameter="{Binding}"/>
                     </ContextMenu>
                 </StackPanel.ContextMenu>
                 <CheckBox IsChecked="{Binding IsVisible}" Margin="0,0,6,0" VerticalAlignment="Center"/>
@@ -558,6 +566,12 @@
                                             <TextBlock Text="Sidebar" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
                                         </StackPanel>
                                     </Button>
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding ToggleOverviewMapCommand}" Background="{Binding OverviewMapButtonBackground}" ToolTip="Toggle Overview Inset Map (Southeast Corner)" AutomationProperties.AutomationId="ZE.Main.040b.ToggleOverviewMapCommand" AutomationProperties.Name="Toggle Overview Map">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <TextBlock Text="🗺" FontSize="20" HorizontalAlignment="Center" Foreground="{Binding OverviewMapIconBrush}"/>
+                                            <TextBlock Text="Overview" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Button>
                                 </StackPanel>
                                 <TextBlock Grid.Row="1" Text="Panels" Style="{StaticResource RibbonGroupHeaderStyle}"/>
                             </Grid>
@@ -585,6 +599,37 @@
                                     </Button>
                                 </StackPanel>
                                 <TextBlock Grid.Row="1" Text="Projection Mode" Style="{StaticResource RibbonGroupHeaderStyle}"/>
+                            </Grid>
+                        </Border>
+
+                        <!-- Group: Celestial Body (Earth / Moon / Mars) -->
+                        <Border Style="{StaticResource RibbonGroupBorderStyle}">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <StackPanel Grid.Row="0" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Button Style="{StaticResource RibbonSmallBtnStyle}" Command="{Binding SetCelestialBodyCommand}" CommandParameter="earth" Background="{Binding EarthButtonBackground}" ToolTip="View Planet Earth" AutomationProperties.AutomationId="ZE.Main.042a.SetEarthBody" AutomationProperties.Name="Earth" Margin="2,0">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="🌍" FontSize="14" VerticalAlignment="Center"/>
+                                            <TextBlock Text="Earth" FontSize="10" Margin="4,0,0,0" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Style="{StaticResource RibbonSmallBtnStyle}" Command="{Binding SetCelestialBodyCommand}" CommandParameter="moon" Background="{Binding MoonButtonBackground}" ToolTip="View Earth's Moon" AutomationProperties.AutomationId="ZE.Main.042b.SetMoonBody" AutomationProperties.Name="Moon" Margin="2,0">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="🌕" FontSize="14" VerticalAlignment="Center"/>
+                                            <TextBlock Text="Moon" FontSize="10" Margin="4,0,0,0" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Style="{StaticResource RibbonSmallBtnStyle}" Command="{Binding SetCelestialBodyCommand}" CommandParameter="mars" Background="{Binding MarsButtonBackground}" ToolTip="View Planet Mars" AutomationProperties.AutomationId="ZE.Main.042c.SetMarsBody" AutomationProperties.Name="Mars" Margin="2,0">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="🔴" FontSize="14" VerticalAlignment="Center"/>
+                                            <TextBlock Text="Mars" FontSize="10" Margin="4,0,0,0" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Button>
+                                </StackPanel>
+                                <TextBlock Grid.Row="1" Text="Celestial Body" Style="{StaticResource RibbonGroupHeaderStyle}"/>
                             </Grid>
                         </Border>
 
@@ -773,6 +818,12 @@
                                             <TextBlock Text="Circle" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
                                         </StackPanel>
                                     </Button>
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding DrawEllipseCommand}" ToolTip="Draw oriented ellipse with Ramanujan perimeter and geodesic area" AutomationProperties.AutomationId="ZE.Main.056b.DrawEllipseCommand" AutomationProperties.Name="Draw oriented ellipse">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <TextBlock Text="⬭" FontSize="22" FontWeight="Bold" Foreground="#38bdf8" HorizontalAlignment="Center"/>
+                                            <TextBlock Text="Ellipse" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Button>
                                 </StackPanel>
                                 <TextBlock Grid.Row="1" Text="Geometry" Style="{StaticResource RibbonGroupHeaderStyle}"/>
                             </Grid>
@@ -830,6 +881,30 @@
                                         <StackPanel HorizontalAlignment="Center">
                                             <Path Data="{StaticResource Icon.MeasureArea}" Style="{StaticResource RibbonLargeIconStyle}" Fill="#34d399"/>
                                             <TextBlock Text="Area" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding MeasureCircleCommand}" ToolTip="Geodesic circle measurement (radius, diameter, circumference, area)" AutomationProperties.AutomationId="ZE.Main.060b.MeasureCircleCommand" AutomationProperties.Name="Geodesic circle measurement">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <Path Data="{StaticResource Icon.Circle}" Style="{StaticResource RibbonLargeIconStyle}" Fill="#fb923c"/>
+                                            <TextBlock Text="Circle" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding MeasureEllipseCommand}" ToolTip="Geodesic ellipse measurement (axes, bearing, perimeter, area)" AutomationProperties.AutomationId="ZE.Main.060c.MeasureEllipseCommand" AutomationProperties.Name="Geodesic ellipse measurement">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <TextBlock Text="⬭" FontSize="22" FontWeight="Bold" Foreground="#f59e0b" HorizontalAlignment="Center"/>
+                                            <TextBlock Text="Ellipse" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding MeasureRectangleCommand}" ToolTip="Geographic rectangle measurement (width, height, diagonal, area)" AutomationProperties.AutomationId="ZE.Main.060d.MeasureRectangleCommand" AutomationProperties.Name="Geographic rectangle measurement">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <TextBlock Text="▭" FontSize="22" FontWeight="Bold" Foreground="#a855f7" HorizontalAlignment="Center"/>
+                                            <TextBlock Text="Rectangle" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding MeasureCoordinateCommand}" ToolTip="Continuous coordinate inspection &amp; multi-point pinning (DD, DMS, UTM, Z, Azimuth)" AutomationProperties.AutomationId="ZE.Main.060e.MeasureCoordinateCommand" AutomationProperties.Name="Continuous coordinate inspection &amp; multi-point pinning">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <Path Data="{StaticResource Icon.Placemark}" Style="{StaticResource RibbonLargeIconStyle}" Fill="#22c55e"/>
+                                            <TextBlock Text="Pin Coords" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
                                         </StackPanel>
                                     </Button>
                                     <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding ElevationProfileCommand}" ToolTip="Topographic elevation profile along measured path" AutomationProperties.AutomationId="ZE.Main.061.ElevationProfileCommand" AutomationProperties.Name="Topographic elevation profile along measured path">
@@ -903,6 +978,21 @@
                     <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled"
                                   Focusable="False" Background="{DynamicResource Brush.Ribbon.Background}">
                     <StackPanel Orientation="Horizontal" Height="90" Background="{DynamicResource Brush.Ribbon.Background}" Margin="4,2">
+                        <!-- Basemap Visibility Toggle (ON / OFF) -->
+                        <Border Style="{StaticResource RibbonGroupBorderStyle}">
+                            <Grid>
+                                <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding ToggleBasemapVisibilityCommand}"
+                                        ToolTip="Toggle active Basemap ON / OFF (plain solid globe mode)" AutomationProperties.AutomationId="ZE.Ribbon.ToggleBasemap">
+                                    <StackPanel HorizontalAlignment="Center">
+                                        <TextBlock Text="{Binding BasemapToggleIcon}" FontSize="20" HorizontalAlignment="Center"/>
+                                        <TextBlock Text="{Binding BasemapToggleLabel}" FontSize="11" TextAlignment="Center" Margin="0,3,0,0"/>
+                                    </StackPanel>
+                                </Button>
+                                <TextBlock Grid.Row="1" Text="Visibility" Style="{StaticResource RibbonGroupHeaderStyle}"/>
+                            </Grid>
+                        </Border>
+
                         <Border Style="{StaticResource RibbonGroupBorderStyle}">
                             <Grid>
                                 <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
@@ -1082,7 +1172,7 @@
                                             <TextBlock Text="Vector Data" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
                                         </StackPanel>
                                     </Button>
-                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding ToggleLanguageCommand}" ToolTip="Toggle UI Language (English / العربية) and RTL layout (ZE-055)" AutomationProperties.AutomationId="ZE.Main.073.ToggleLanguageCommand" AutomationProperties.Name="Toggle UI Language (English / العربية) and RTL layout (ZE-055)">
+                                    <Button Style="{StaticResource RibbonLargeBtnStyle}" Command="{Binding ToggleLanguageCommand}" ToolTip="{Binding LanguageButtonTooltip}" AutomationProperties.AutomationId="ZE.Main.073.ToggleLanguageCommand" AutomationProperties.Name="{Binding LanguageButtonTooltip}">
                                         <StackPanel HorizontalAlignment="Center">
                                             <Path Data="{StaticResource Icon.CrsGlobe}" Style="{StaticResource RibbonLargeIconStyle}" Fill="{DynamicResource Brush.Accent}"/>
                                             <TextBlock Text="{Binding CurrentLanguageText}" FontSize="11" HorizontalAlignment="Center" Margin="0,3,0,0"/>
@@ -1218,18 +1308,61 @@
                         </Grid>
                     </Border>
 
-                    <!-- Row 1: Unified Scrollable 4-Section Sidebar Container -->
-                    <Grid Grid.Row="1" Margin="6" MinHeight="0">
+                                        <!-- Row 1: Unified Proportional Resizable Accordion Sidebar Container -->
+                    <Grid Grid.Row="1" Margin="6,4" MinHeight="0">
                         <Grid.RowDefinitions>
-                            <RowDefinition Height="220" MinHeight="42" MaxHeight="460"/>
-                            <RowDefinition Height="6"/>
-                            <RowDefinition Height="*" MinHeight="120"/>
+                            <!-- Row 0: Search Section -->
+                            <RowDefinition Height="Auto"/>
+                            <!-- Row 1: Splitter between Search and Places -->
+                            <RowDefinition Height="Auto"/>
+                            <!-- Row 2: Places Section -->
+                            <RowDefinition>
+                                <RowDefinition.Style>
+                                    <Style TargetType="RowDefinition">
+                                        <Setter Property="Height" Value="1.2*"/>
+                                        <Setter Property="MinHeight" Value="40"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsMyPlacesExpanded}" Value="False">
+                                                <Setter Property="Height" Value="Auto"/>
+                                                <Setter Property="MinHeight" Value="0"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </RowDefinition.Style>
+                            </RowDefinition>
+                            <!-- Row 3: Splitter between Places and Layers (Bi-directional mouse stretch/drag) -->
+                            <RowDefinition Height="Auto"/>
+                            <!-- Row 4: Layers Section -->
+                            <RowDefinition>
+                                <RowDefinition.Style>
+                                    <Style TargetType="RowDefinition">
+                                        <Setter Property="Height" Value="*"/>
+                                        <Setter Property="MinHeight" Value="40"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsLayersExpanded}" Value="False">
+                                                <Setter Property="Height" Value="Auto"/>
+                                                <Setter Property="MinHeight" Value="0"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding IsLayersVisible}" Value="False">
+                                                <Setter Property="Height" Value="0"/>
+                                                <Setter Property="MinHeight" Value="0"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </RowDefinition.Style>
+                            </RowDefinition>
                         </Grid.RowDefinitions>
-                        <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                            <!-- ==================== SECTION 1: SEARCH ==================== -->
-                            <Expander IsExpanded="{Binding IsSearchExpanded, Mode=TwoWay}" Margin="0,0,0,8"
-                                      Background="{DynamicResource Brush.Control.Background}"
+
+                        <!-- ==================== SECTION 1: SEARCH (Row 0) ==================== -->
+                        <Expander Grid.Row="0" IsExpanded="{Binding IsSearchExpanded, Mode=TwoWay}" Margin="0,0,0,4"
+                                      Background="Transparent"
                                       BorderBrush="{DynamicResource Brush.Control.Border}" BorderThickness="1">
+                                <Expander.Style>
+                                    <Style TargetType="Expander">
+                                        <Setter Property="VerticalAlignment" Value="Top"/>
+                                        <Setter Property="Background" Value="Transparent"/>
+                                    </Style>
+                                </Expander.Style>
                                 <Expander.Header>
                                     <DockPanel LastChildFill="True">
                                         <TextBlock Text="🔍 " FontSize="12"/>
@@ -1239,25 +1372,30 @@
 
                                 <Border Background="{DynamicResource Brush.Window.Background}" Padding="8" BorderThickness="0,1,0,0" BorderBrush="{DynamicResource Brush.Control.Border}">
                                     <StackPanel>
-                                        <!-- Search Mode Tabs: [By Name] [By Coordinates] -->
-                                        <Grid Margin="0,0,0,8">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="*"/>
-                                            </Grid.ColumnDefinitions>
+                                        <!-- Search Mode Tabs: [By Name] [By Coordinates] (Instant 1-Click Toggle) -->
+                                        <Border Background="#1D1F23" CornerRadius="5" Padding="2" Margin="0,0,0,8" BorderBrush="#35383E" BorderThickness="1">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
 
-                                            <!-- By Name Toggle Button -->
-                                            <RadioButton Grid.Column="0" Content="By Name" Style="{StaticResource SidebarTabBtnStyle}"
-                                                         IsChecked="{Binding SelectedSearchMode, Converter={x:Null}, Mode=OneWay}"
-                                                         Click="SearchModeByName_Click" Height="24" FontSize="11" AutomationProperties.AutomationId="ZE.Main.084.SearchModeByName_Click" AutomationProperties.Name="Search by place name"/>
+                                                <!-- By Name Toggle Button -->
+                                                <RadioButton Grid.Column="0" Content="By Name" GroupName="ExplorerSearchMode"
+                                                             Style="{DynamicResource SidebarTabBtnStyle}"
+                                                             IsChecked="{Binding IsSearchByName, Mode=TwoWay}"
+                                                             Height="24" FontSize="11" AutomationProperties.AutomationId="ZE.Main.084.SearchModeByName" AutomationProperties.Name="Search by place name"/>
 
-                                            <!-- By Coordinates Toggle Button -->
-                                            <RadioButton Grid.Column="1" Content="By Coordinates" Style="{StaticResource SidebarTabBtnStyle}"
-                                                         Click="SearchModeByCoordinates_Click" Height="24" FontSize="11" AutomationProperties.AutomationId="ZE.Main.085.SearchModeByCoordinates_Click" AutomationProperties.Name="Search by coordinates"/>
-                                        </Grid>
+                                                <!-- By Coordinates Toggle Button -->
+                                                <RadioButton Grid.Column="1" Content="By Coordinates" GroupName="ExplorerSearchMode"
+                                                             Style="{DynamicResource SidebarTabBtnStyle}"
+                                                             IsChecked="{Binding IsSearchByCoordinates, Mode=TwoWay}"
+                                                             Height="24" FontSize="11" AutomationProperties.AutomationId="ZE.Main.085.SearchModeByCoordinates" AutomationProperties.Name="Search by coordinates"/>
+                                            </Grid>
+                                        </Border>
 
                                         <!-- MODE 0: BY NAME PANEL -->
-                                        <StackPanel x:Name="SearchByNamePanel">
+                                        <StackPanel x:Name="SearchByNamePanel" Visibility="{Binding IsSearchByNameVisible}">
                                             <Grid Margin="0,0,0,6">
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="*"/>
@@ -1266,13 +1404,13 @@
                                                 </Grid.ColumnDefinitions>
 
                                                 <TextBox Text="{Binding SearchNameQuery, UpdateSourceTrigger=PropertyChanged}"
-                                                         Style="{StaticResource SearchTextBoxStyle}"
+                                                         Style="{DynamicResource SearchTextBoxStyle}"
                                                          KeyDown="SearchByNameBox_KeyDown"
-                                                         ToolTip="Enter city or place name (e.g., 'Cairo', 'القاهرة', 'Giza')"/>
+                                                         ToolTip="Enter city or place name (e.g., 'Cairo', 'Alexandria', 'Giza')"/>
 
                                                 <Button Grid.Column="1" Command="{Binding SearchByNameCommand}"
                                                         Width="30" Height="26" Margin="4,0,0,0"
-                                                        Background="{DynamicResource Brush.Control.Background}"
+                                                        Background="Transparent"
                                                         Foreground="{DynamicResource Brush.Accent}"
                                                         BorderBrush="{DynamicResource Brush.Control.Border}"
                                                         BorderThickness="1" Cursor="Hand" ToolTip="Search local places and online geocoder (Enter)" AutomationProperties.AutomationId="ZE.Main.086.SearchByNameCommand" AutomationProperties.Name="Search local places and online geocoder (Enter)">
@@ -1280,7 +1418,7 @@
                                                 </Button>
                                                 <Button Grid.Column="2" Command="{Binding ClearSearchCommand}" Content="✕"
                                                         Width="30" Height="26" Margin="4,0,0,0"
-                                                        Background="{DynamicResource Brush.Control.Background}"
+                                                        Background="Transparent"
                                                         Foreground="{DynamicResource Brush.Text.Primary}"
                                                         BorderBrush="{DynamicResource Brush.Control.Border}" BorderThickness="1"
                                                         ToolTip="Clear search query, results and messages" AutomationProperties.AutomationId="ZE.Main.087.ClearSearchCommand" AutomationProperties.Name="Clear search query, results and messages"/>
@@ -1289,49 +1427,51 @@
                                                        FontSize="9.5" Foreground="{DynamicResource Brush.Text.Muted}" Margin="1,0,0,6"/>
                                         </StackPanel>
 
-                                        <!-- MODE 1: BY COORDINATES PANEL (X STRICTLY ABOVE Y) -->
-                                        <StackPanel x:Name="SearchByCoordsPanel" Visibility="Collapsed">
-                                            <!-- CRS Selector -->
-                                            <TextBlock Text="Target CRS / Projection:" FontSize="10.5" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text.Secondary}" Margin="0,0,0,2"/>
+                                        <!-- MODE 1: BY COORDINATES PANEL (X STRICTLY ABOVE Y, AUTO-DETECTED WGS84 & UTM) -->
+                                        <StackPanel x:Name="SearchByCoordsPanel" Visibility="{Binding IsSearchByCoordsVisible}">
+                                            <!-- Target CRS Selector (Hidden: Auto-detects WGS 84 DD/DMS & UTM) -->
                                             <ComboBox ItemsSource="{Binding AvailableSearchCrsList}"
                                                       SelectedValue="{Binding SelectedSearchCrsEpsg, Mode=TwoWay}"
                                                       SelectedValuePath="Epsg"
                                                       DisplayMemberPath="Display"
-                                                      Height="24" FontSize="10.5" Margin="0,0,0,8"
-                                                      Background="{DynamicResource Brush.Control.Background}"
-                                                      Foreground="{DynamicResource Brush.Text.Primary}"
-                                                      BorderBrush="{DynamicResource Brush.Control.Border}"/>
+                                                      Visibility="Collapsed"/>
 
                                             <!-- Field 1: X Coordinate (STRICTLY ABOVE Y) -->
                                             <TextBlock Text="{Binding SearchCoordinateXLabel}" FontSize="10.5" FontWeight="SemiBold"
                                                        Foreground="{DynamicResource Brush.Accent}" Margin="0,0,0,2"/>
                                             <TextBox Text="{Binding SearchCoordinateX, UpdateSourceTrigger=PropertyChanged}"
-                                                     Height="24" Padding="4,2" FontSize="11" Margin="0,0,0,6"
-                                                     Background="{DynamicResource Brush.Control.Background}"
-                                                     Foreground="{DynamicResource Brush.Text.Primary}"
-                                                     BorderBrush="{DynamicResource Brush.Control.Border}"
-                                                     BorderThickness="1"
+                                                     Style="{DynamicResource SearchTextBoxStyle}"
+                                                     Height="26" Padding="6,3" FontSize="11" Margin="0,0,0,6"
                                                      ToolTip="{Binding CoordinateFormatPlaceholderX}"/>
 
                                             <!-- Field 2: Y Coordinate (STRICTLY BELOW X) -->
                                             <TextBlock Text="{Binding SearchCoordinateYLabel}" FontSize="10.5" FontWeight="SemiBold"
                                                        Foreground="{DynamicResource Brush.Accent}" Margin="0,0,0,2"/>
                                             <TextBox Text="{Binding SearchCoordinateY, UpdateSourceTrigger=PropertyChanged}"
-                                                     Height="24" Padding="4,2" FontSize="11" Margin="0,0,0,8"
-                                                     Background="{DynamicResource Brush.Control.Background}"
-                                                     Foreground="{DynamicResource Brush.Text.Primary}"
-                                                     BorderBrush="{DynamicResource Brush.Control.Border}"
-                                                     BorderThickness="1"
+                                                     Style="{DynamicResource SearchTextBoxStyle}"
+                                                     Height="26" Padding="6,3" FontSize="11" Margin="0,0,0,8"
                                                      ToolTip="{Binding CoordinateFormatPlaceholderY}"/>
 
-                                            <!-- Locate Button -->
-                                            <Button Command="{Binding LocateCoordinatesCommand}" Content="🎯 Locate / Fly To"
-                                                    Height="26" FontWeight="SemiBold" FontSize="11"
-                                                    Background="{DynamicResource Brush.Accent}" Foreground="#FFFFFF"
-                                                    BorderThickness="0" Cursor="Hand" Margin="0,0,0,6" AutomationProperties.AutomationId="ZE.Main.088.LocateCoordinatesCommand" AutomationProperties.Name="Locate Coordinates"/>
+                                            <!-- Coordinate Action Buttons: [ Locate / Fly To ] [ 💾 Save to Places ] -->
+                                            <Grid Margin="0,0,0,6">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <Button Grid.Column="0" Command="{Binding LocateCoordinatesCommand}" Content="🎯 Locate / Fly To"
+                                                        Height="28" FontWeight="SemiBold" FontSize="11" Margin="0,0,3,0"
+                                                        Background="{DynamicResource Brush.Accent}" Foreground="#FFFFFF"
+                                                        BorderThickness="0" Cursor="Hand" AutomationProperties.AutomationId="ZE.Main.088.LocateCoordinatesCommand" AutomationProperties.Name="Locate Coordinates"/>
+                                                <Button Grid.Column="1" Command="{Binding SaveCoordinatesToPlacesCommand}" Content="💾 Save to Places"
+                                                        Height="28" FontWeight="SemiBold" FontSize="11" Margin="3,0,0,0"
+                                                        Background="#35383E" Foreground="{DynamicResource Brush.Text.Primary}"
+                                                        BorderBrush="{DynamicResource Brush.Control.Border}" BorderThickness="1" Cursor="Hand" ToolTip="Save this location as a manageable Placemark in My Places" AutomationProperties.AutomationId="ZE.Main.SaveCoordsToPlaces" AutomationProperties.Name="Save Coordinates to Places"/>
+                                            </Grid>
+
+                                            <!-- One-Time Device Location Request -->
                                             <Button Command="{Binding FindMyLocationCommand}" Content="◎ My Device Location (permission required)"
                                                     Height="28" Padding="6,2" Margin="0,0,0,8" FontSize="10.5"
-                                                    Background="{DynamicResource Brush.Control.Background}"
+                                                    Background="Transparent"
                                                     Foreground="{DynamicResource Brush.Text.Primary}"
                                                     BorderBrush="{DynamicResource Brush.Control.Border}" BorderThickness="1"
                                                     ToolTip="Request a one-time device location fix and fill WGS84 X/Y; no tracking" AutomationProperties.AutomationId="ZE.Main.089.FindMyLocationCommand" AutomationProperties.Name="Request a one-time device location fix and fill WGS84 X/Y; no tracking"/>
@@ -1354,14 +1494,14 @@
 
                                         <Button Command="{Binding ClearSearchCommand}" Content="Clear results"
                                                 HorizontalAlignment="Right" Margin="0,0,0,5" Padding="8,3"
-                                                Background="{DynamicResource Brush.Control.Background}"
+                                                Background="Transparent"
                                                 Foreground="{DynamicResource Brush.Text.Secondary}"
                                                 BorderBrush="{DynamicResource Brush.Control.Border}" BorderThickness="1" AutomationProperties.AutomationId="ZE.Main.090.ClearSearchCommand" AutomationProperties.Name="Clear Search"/>
                                         <!-- Search Results List -->
                                         <ItemsControl ItemsSource="{Binding SearchResults}">
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate>
-                                                    <Border Background="{DynamicResource Brush.Control.Background}"
+                                                    <Border Background="Transparent"
                                                             BorderBrush="{DynamicResource Brush.Control.Border}" BorderThickness="1"
                                                             CornerRadius="3" Padding="6,4" Margin="0,2">
                                                         <Grid>
@@ -1396,7 +1536,7 @@
                                                                         Background="{DynamicResource Brush.Accent}" Foreground="#FFFFFF" BorderThickness="0" Cursor="Hand" AutomationProperties.AutomationId="ZE.Main.091.FlyToSearchResultCommand" AutomationProperties.Name="Fly To Search Result"/>
                                                                 <Button Content="💾 My Places" Command="{Binding DataContext.SaveSearchResultToMyPlacesCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}"
                                                                         Padding="6,1" FontSize="10" Margin="0,0,4,0"
-                                                                        Background="{DynamicResource Brush.Control.Background}" Foreground="{DynamicResource Brush.Text.Primary}" BorderBrush="{DynamicResource Brush.Control.Border}" BorderThickness="1" Cursor="Hand" AutomationProperties.AutomationId="ZE.Main.092.SaveSearchResultToMyPlacesCommand" AutomationProperties.Name="Save Search Result To My Places"/>
+                                                                        Background="Transparent" Foreground="{DynamicResource Brush.Text.Primary}" BorderBrush="{DynamicResource Brush.Control.Border}" BorderThickness="1" Cursor="Hand" AutomationProperties.AutomationId="ZE.Main.092.SaveSearchResultToMyPlacesCommand" AutomationProperties.Name="Save Search Result To My Places"/>
                                                             </StackPanel>
                                                         </Grid>
                                                     </Border>
@@ -1407,15 +1547,34 @@
                                 </Border>
                             </Expander>
 
-                        </ScrollViewer>
-                        <GridSplitter Grid.Row="1" Height="6" HorizontalAlignment="Stretch"
+                        <!-- ==================== SPLITTER: SEARCH / PLACES (Row 1) ==================== -->
+                        <GridSplitter Grid.Row="1" Height="5" HorizontalAlignment="Stretch"
                                       ResizeDirection="Rows" ResizeBehavior="PreviousAndNext"
                                       Background="{DynamicResource Brush.Control.Border}"
-                                      Cursor="SizeNS" ToolTip="Drag to resize Search and My Places"/>
-                            <!-- ==================== SECTION 2: MY PLACES ==================== -->
-                            <Expander Grid.Row="2" IsExpanded="{Binding IsMyPlacesExpanded, Mode=TwoWay}" Margin="0,0,0,8"
-                                      Background="{DynamicResource Brush.Control.Background}"
-                                      BorderBrush="{DynamicResource Brush.Control.Border}" BorderThickness="1">
+                                      Cursor="SizeNS" ToolTip="Drag to resize Search and Places"
+                                      Margin="0,0,0,4">
+                            <GridSplitter.Style>
+                                <Style TargetType="GridSplitter">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </Style>
+                            </GridSplitter.Style>
+                        </GridSplitter>
+
+                        <!-- ==================== SECTION 2: MY PLACES (Row 2) ==================== -->
+                        <Expander Grid.Row="2" IsExpanded="{Binding IsMyPlacesExpanded, Mode=TwoWay}" Margin="0,0,0,4"
+                                          Background="Transparent"
+                                          BorderBrush="{DynamicResource Brush.Control.Border}" BorderThickness="1">
+                                <Expander.Style>
+                                    <Style TargetType="Expander">
+                                        <Setter Property="VerticalAlignment" Value="Stretch"/>
+                                        <Setter Property="Background" Value="Transparent"/>
+                                        <Style.Triggers>
+                                            <Trigger Property="IsExpanded" Value="False">
+                                                <Setter Property="VerticalAlignment" Value="Top"/>
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Expander.Style>
                                 <Expander.Header>
                                     <DockPanel LastChildFill="True">
                                         <TextBlock Text="📁 " FontSize="12"/>
@@ -1425,13 +1584,13 @@
                                 </Expander.Header>
 
                                 <Border Background="{DynamicResource Brush.Window.Background}" Padding="6" BorderThickness="0,1,0,0" BorderBrush="{DynamicResource Brush.Control.Border}">
-                                    <Grid MinHeight="120">
+                                    <Grid MinHeight="40">
                                         <Grid.RowDefinitions>
                                             <RowDefinition Height="Auto"/>
                                             <RowDefinition Height="*"/>
                                         </Grid.RowDefinitions>
                                         <!-- Toolbar (Parity Framework - EXP-01) -->
-                                        <Border Grid.Row="0" Background="{DynamicResource Brush.Control.Background}" CornerRadius="3" Padding="4,2" Margin="0,0,0,6">
+                                        <Border Grid.Row="0" Background="Transparent" CornerRadius="3" Padding="4,2" Margin="0,0,0,6">
                                             <WrapPanel Orientation="Horizontal">
                                                 <Button Style="{StaticResource QuickAccessBtnStyle}" Command="{Binding AddPlacemarkCommand}" ToolTip="Add new Placemark (📍)" AutomationProperties.AutomationId="ZE.Main.093.AddPlacemarkCommand" AutomationProperties.Name="Add new Placemark (📍)">📍</Button>
                                                 <Button Style="{StaticResource QuickAccessBtnStyle}" Command="{Binding DrawLineCommand}" ToolTip="Add Path/Line (〰️)" AutomationProperties.AutomationId="ZE.Main.094.DrawLineCommand" AutomationProperties.Name="Add Path/Line (〰️)">〰️</Button>
@@ -1451,7 +1610,7 @@
                                         </Border>
 
                                         <!-- My Places TreeView (Saved Scenes is the first folder inside My Places) -->
-                                        <TreeView Grid.Row="1" ItemsSource="{Binding MyPlaces}" MinHeight="120" VerticalAlignment="Stretch"
+                                        <TreeView Grid.Row="1" ItemsSource="{Binding MyPlaces}" MinHeight="40" VerticalAlignment="Stretch"
                                                   Background="{DynamicResource Brush.Window.Background}"
                                                   BorderBrush="{DynamicResource Brush.Control.Border}" BorderThickness="1"
                                                   VirtualizingStackPanel.IsVirtualizing="True"
@@ -1460,6 +1619,11 @@
                                                   MouseDoubleClick="TreeView_MouseDoubleClick"
                                                   PreviewMouseLeftButtonDown="TreeView_PreviewMouseLeftButtonDown"
                                                   PreviewMouseRightButtonDown="TreeView_PreviewMouseRightButtonDown"
+                                                  PreviewMouseMove="TreeView_PreviewMouseMove"
+                                                  AllowDrop="True"
+                                                  DragOver="TreeView_DragOver"
+                                                  Drop="TreeView_Drop"
+                                                  PreviewKeyDown="TreeView_PreviewKeyDown"
                                                   Padding="2">
                                             <TreeView.ItemTemplate>
                                                 <HierarchicalDataTemplate DataType="{x:Type domain:PlaceItem}" ItemsSource="{Binding Children}">
@@ -1484,31 +1648,40 @@
                                                 </HierarchicalDataTemplate>
                                             </TreeView.ItemTemplate>
 
-                                            <!-- Context Menu on Nodes (Parity Framework - EXP-01..05) -->
+                                            <!-- Context Menu on Nodes (Google Earth Pro Parity) -->
                                             <TreeView.ContextMenu>
-                                                <ContextMenu>
-                                                    <MenuItem Header="✈ Fly To / Zoom to Extent" Command="{Binding FlyToPlaceCommand}"/>
-                                                    <MenuItem Header="⚙ Properties..." Command="{Binding OpenPropertiesCommand}"/>
-                                                    <MenuItem Header="{Binding MoveToFolderLabel}" Click="MovePlaceToFolder_Click"/>
-                                                    <MenuItem Header="★ Set as Startup Scene" Command="{Binding SetAsStartupSceneCommand}"/>
-                                                    <MenuItem Header="↑ Move Saved Scene Up" Command="{Binding MoveSavedSceneUpCommand}"/>
-                                                    <MenuItem Header="↓ Move Saved Scene Down" Command="{Binding MoveSavedSceneDownCommand}"/>
-                                                    <Separator/>
-                                                    <MenuItem Header="📍 Add Placemark" Command="{Binding AddPlacemarkCommand}"/>
-                                                    <MenuItem Header="〰️ Add Path" Command="{Binding DrawLineCommand}"/>
-                                                    <MenuItem Header="⬡ Add Polygon" Command="{Binding DrawPolygonCommand}"/>
-                                                    <MenuItem Header="▭ Add Rectangle" Command="{Binding DrawRectangleCommand}"/>
-                                                    <MenuItem Header="📁 Add Folder" Command="{Binding AddFolderCommand}"/>
-                                                    <MenuItem Header="🎬 Add Saved Scene" Command="{Binding AddSavedSceneCommand}"/>
-                                                    <MenuItem Header="📥 Import KML/KMZ..." Command="{Binding ImportKmlCommand}"/>
-                                                    <MenuItem Header="GPS / GPX Import..." Command="{Binding ImportGpxCommand}"/>
-                                                    <MenuItem Header="▶ Replay selected GPS track" Command="{Binding PlayGpsTrackCommand}"/>
-                                                    <MenuItem Header="■ Stop GPS replay" Command="{Binding StopGpsTrackCommand}"/>
-                                                    <Separator/>
-                                                    <MenuItem Header="💾 Save Active Project" Command="{Binding SaveProjectCommand}"/>
-                                                    <MenuItem Header="📤 Export Selected Item..." Command="{Binding ExportSelectedItemCommand}"/>
-                                                    <MenuItem Header="📦 Export All My Places..." Command="{Binding ExportAllMyPlacesCommand}"/>
-                                                    <MenuItem Header="🗑 Delete" Command="{Binding DeletePlaceCommand}"/>
+                                                <ContextMenu ContextMenuOpening="TreeView_ContextMenuOpening">
+                                                    <MenuItem x:Name="CtxCut" Header="Cut" InputGestureText="Ctrl+X" Command="{Binding CutPlaceCommand}"/>
+                                                    <MenuItem x:Name="CtxCopy" Header="Copy" InputGestureText="Ctrl+C" Command="{Binding CopyPlaceCommand}"/>
+                                                    <MenuItem x:Name="CtxPaste" Header="Paste" InputGestureText="Ctrl+V" Command="{Binding PastePlaceCommand}"/>
+                                                    <MenuItem x:Name="CtxDelete" Header="Delete" InputGestureText="Del" Command="{Binding DeletePlaceCommand}"/>
+                                                    <MenuItem x:Name="CtxRename" Header="Rename" InputGestureText="F2" Command="{Binding RenamePlaceCommand}"/>
+                                                    <Separator x:Name="CtxSep1"/>
+                                                    <MenuItem x:Name="CtxSaveToMyPlaces" Header="Save to My Places" Command="{Binding SaveToMyPlacesCommand}"/>
+                                                    <MenuItem x:Name="CtxSavePlaceAs" Header="Save Place As..." InputGestureText="Ctrl+S" Command="{Binding SavePlaceAsCommand}"/>
+                                                    <MenuItem x:Name="CtxMoveToFolder" Header="{Binding MoveToFolderLabel}" Click="MovePlaceToFolder_Click"/>
+                                                    <Separator x:Name="CtxSep2"/>
+                                                    <MenuItem x:Name="CtxDirectionsFrom" Header="Directions from here" Command="{Binding DirectionsFromHereCommand}"/>
+                                                    <MenuItem x:Name="CtxDirectionsTo" Header="Directions to here" Command="{Binding DirectionsToHereCommand}"/>
+                                                    <Separator x:Name="CtxSep3"/>
+                                                    <MenuItem x:Name="CtxFlyTo" Header="✈ Fly To / Zoom to Extent" Command="{Binding FlyToPlaceCommand}"/>
+                                                    <MenuItem x:Name="CtxProfile" Header="📈 Show Elevation Profile" Command="{Binding ShowElevationProfileCommand}"/>
+                                                    <MenuItem x:Name="CtxSnapshot" Header="📸 Snapshot View" Command="{Binding SnapshotViewCommand}"/>
+                                                    <MenuItem x:Name="CtxSetStartup" Header="★ Set as Startup Scene" Command="{Binding SetAsStartupSceneCommand}"/>
+                                                    <MenuItem x:Name="CtxMoveSceneUp" Header="↑ Move Saved Scene Up" Command="{Binding MoveSavedSceneUpCommand}"/>
+                                                    <MenuItem x:Name="CtxMoveSceneDown" Header="↓ Move Saved Scene Down" Command="{Binding MoveSavedSceneDownCommand}"/>
+                                                    <Separator x:Name="CtxSep4"/>
+                                                    <MenuItem x:Name="CtxAddFolder" Header="📁 Add Folder" Command="{Binding AddFolderCommand}"/>
+                                                    <MenuItem x:Name="CtxAddPlacemark" Header="📍 Add Placemark" Command="{Binding AddPlacemarkCommand}"/>
+                                                    <MenuItem x:Name="CtxAddPath" Header="〰️ Add Path" Command="{Binding DrawLineCommand}"/>
+                                                    <MenuItem x:Name="CtxAddPolygon" Header="⬡ Add Polygon" Command="{Binding DrawPolygonCommand}"/>
+                                                    <MenuItem x:Name="CtxAddRectangle" Header="▭ Add Rectangle" Command="{Binding DrawRectangleCommand}"/>
+                                                    <MenuItem x:Name="CtxAddScene" Header="🎬 Add Saved Scene" Command="{Binding AddSavedSceneCommand}"/>
+                                                    <MenuItem x:Name="CtxImportKml" Header="📥 Import KML/KMZ..." Command="{Binding ImportKmlCommand}"/>
+                                                    <MenuItem x:Name="CtxImportGpx" Header="GPS / GPX Import..." Command="{Binding ImportGpxCommand}"/>
+                                                    <Separator x:Name="CtxSep5"/>
+                                                    <MenuItem x:Name="CtxChooseLabelField" Header="🏷 Choose Label Field..." Command="{Binding ChooseLabelFieldCommand}" CommandParameter="{Binding SelectedPlace}"/>
+                                                    <MenuItem x:Name="CtxProperties" Header="⚙ Properties..." Command="{Binding OpenPropertiesCommand}"/>
                                                 </ContextMenu>
                                             </TreeView.ContextMenu>
                                         </TreeView>
@@ -1516,14 +1689,173 @@
                                     </Grid>
                                 </Border>
                             </Expander>
+
+                        <!-- ==================== SPLITTER: PLACES / LAYERS (Row 3: Free Mouse Stretch Up/Down) ==================== -->
+                        <GridSplitter Grid.Row="3" Height="6" HorizontalAlignment="Stretch"
+                                      ResizeDirection="Rows" ResizeBehavior="PreviousAndNext"
+                                      Background="{DynamicResource Brush.Control.Border}"
+                                      Cursor="SizeNS" ToolTip="Drag to resize Places and Layers"
+                                      Margin="0,2,0,4">
+                            <GridSplitter.Style>
+                                <Style TargetType="GridSplitter">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsLayersVisible}" Value="False">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding IsLayersExpanded}" Value="False">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding IsMyPlacesExpanded}" Value="False">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </GridSplitter.Style>
+                        </GridSplitter>
+
+                        <!-- ==================== SECTION 3: LAYERS (Row 4) ==================== -->
+                        <Expander Grid.Row="4" IsExpanded="{Binding IsLayersExpanded, Mode=TwoWay}"
+                                  Visibility="{Binding IsLayersVisible, Converter={StaticResource BoolToVisibilityConverter}}"
+                                  Background="Transparent"
+                                  BorderBrush="{DynamicResource Brush.Control.Border}" BorderThickness="1"
+                                  Margin="0,0,0,4">
+                            <Expander.Style>
+                                    <Style TargetType="Expander">
+                                        <Setter Property="VerticalAlignment" Value="Stretch"/>
+                                        <Setter Property="Background" Value="Transparent"/>
+                                        <Style.Triggers>
+                                            <Trigger Property="IsExpanded" Value="False">
+                                                <Setter Property="VerticalAlignment" Value="Top"/>
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Expander.Style>
+                                <Expander.Header>
+                                <DockPanel LastChildFill="True">
+                                    <TextBlock Text="🌐 " FontSize="12"/>
+                                    <TextBlock Text="{Binding LayersSectionTitle}" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource Brush.Text.Primary}"/>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                        <Button Style="{StaticResource QuickAccessBtnStyle}" Command="{Binding ToggleLayersMaximizeCommand}"
+                                                ToolTip="{Binding LayersMaximizeTooltip}" Width="20" Height="20" Margin="2,0"
+                                                AutomationProperties.AutomationId="ZE.Main.120.ToggleLayersMaximizeCommand">
+                                            <TextBlock Text="{Binding LayersMaximizeIcon}" FontSize="10"/>
+                                        </Button>
+                                        <Button Style="{StaticResource QuickAccessBtnStyle}" Command="{Binding CloseLayersPanelCommand}"
+                                                ToolTip="Close Layers Panel" Width="20" Height="20" Margin="2,0"
+                                                AutomationProperties.AutomationId="ZE.Main.121.CloseLayersPanelCommand">
+                                            <TextBlock Text="✕" FontSize="10" Foreground="{DynamicResource Brush.Text.Muted}"/>
+                                        </Button>
+                                    </StackPanel>
+                                </DockPanel>
+                            </Expander.Header>
+
+                            <Border Background="{DynamicResource Brush.Window.Background}" Padding="6" BorderThickness="0,1,0,0" BorderBrush="{DynamicResource Brush.Control.Border}">
+                                <Grid MinHeight="40">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="*"/>
+                                    </Grid.RowDefinitions>
+
+                                    <!-- Mini Toolbar: Add Local Layer | Open Folder | Refresh -->
+                                    <Border Grid.Row="0" Background="Transparent" CornerRadius="3" Padding="4,2" Margin="0,0,0,6">
+                                        <WrapPanel Orientation="Horizontal">
+                                            <Button Style="{StaticResource QuickAccessBtnStyle}" Command="{Binding AddCustomLocalLayerCommand}" ToolTip="Add Local Vector/Raster Layer (➕)" AutomationProperties.AutomationId="ZE.Main.122.AddCustomLocalLayerCommand">➕ Add Layer</Button>
+                                            <Button Style="{StaticResource QuickAccessBtnStyle}" Command="{Binding OpenLayersFolderCommand}" ToolTip="Open User Layers Folder in File Explorer (📂)" AutomationProperties.AutomationId="ZE.Main.123.OpenLayersFolderCommand">📂 Open Folder</Button>
+                                            <Button Style="{StaticResource QuickAccessBtnStyle}" Command="{Binding RefreshLayersCommand}" ToolTip="Refresh All Layers (🔄)" AutomationProperties.AutomationId="ZE.Main.124.RefreshLayersCommand">🔄 Refresh</Button>
+                                            <Rectangle Width="1" Height="14" Fill="{DynamicResource Brush.Control.Border}" Margin="3,0"/>
+                                            <Button Style="{StaticResource QuickAccessBtnStyle}" Command="{Binding SelectAllLayersCommand}" ToolTip="Select / Check All Layers (☑)" AutomationProperties.AutomationId="ZE.Main.SelectAllLayers">☑ Check All</Button>
+                                            <Button Style="{StaticResource QuickAccessBtnStyle}" Command="{Binding UnselectAllLayersCommand}" ToolTip="Unselect / Uncheck All Layers (☐)" AutomationProperties.AutomationId="ZE.Main.UnselectAllLayers">☐ Uncheck All</Button>
+                                        </WrapPanel>
+                                    </Border>
+
+                                    <!-- Search / Filter Layers Box -->
+                                    <Grid Grid.Row="1" Margin="0,0,0,6">
+                                        <TextBox Text="{Binding LayersFilterText, UpdateSourceTrigger=PropertyChanged}"
+                                                 Style="{DynamicResource SearchTextBoxStyle}"
+                                                 Padding="6,3" FontSize="11" Height="26"
+                                                 ToolTip="Filter layers by name (e.g. 'Weather', 'Borders', 'Gazetteer', 'Clouds')..."/>
+                                    </Grid>
+
+                                    <!-- Layers Hierarchical TreeView -->
+                                    <TreeView Grid.Row="2" ItemsSource="{Binding FilteredLayerCategories}" MinHeight="40" VerticalAlignment="Stretch"
+                                              Background="{DynamicResource Brush.Window.Background}"
+                                              BorderBrush="{DynamicResource Brush.Control.Border}" BorderThickness="1"
+                                              VirtualizingStackPanel.IsVirtualizing="True"
+                                              VirtualizingStackPanel.VirtualizationMode="Recycling"
+                                              Padding="2">
+                                        <TreeView.ItemTemplate>
+                                            <HierarchicalDataTemplate DataType="{x:Type domainLayers:ReferenceLayerCategoryGroup}" ItemsSource="{Binding Layers}">
+                                                <StackPanel Orientation="Horizontal" Margin="1,2">
+                                                    <TextBlock Text="{Binding Icon}" FontSize="12" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="{Binding CategoryName}" FontWeight="SemiBold" FontSize="11.5" Foreground="{DynamicResource Brush.Text.Primary}" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                                <HierarchicalDataTemplate.ItemTemplate>
+                                                    <DataTemplate DataType="{x:Type domainLayers:ReferenceLayerItem}">
+                                                        <Grid Margin="1,1">
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="Auto"/>
+                                                                <ColumnDefinition Width="*"/>
+                                                                <ColumnDefinition Width="Auto"/>
+                                                            </Grid.ColumnDefinitions>
+
+                                                            <CheckBox Grid.Column="0" IsChecked="{Binding IsVisible, Mode=TwoWay}"
+                                                                      Command="{Binding DataContext.ToggleReferenceLayerCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                      CommandParameter="{Binding}"
+                                                                      VerticalAlignment="Center" Margin="0,0,5,0"/>
+
+                                                            <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="11"
+                                                                       Foreground="{DynamicResource Brush.Text.Primary}"
+                                                                       ToolTip="{Binding Description}"
+                                                                       VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+
+                                                            <!-- In-row Fly To / Zoom button -->
+                                                            <Button Grid.Column="2" Content="✈" ToolTip="Zoom to Layer"
+                                                                    Command="{Binding DataContext.ZoomToReferenceLayerCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                    CommandParameter="{Binding}"
+                                                                    Width="18" Height="18" Padding="0" FontSize="10" Margin="4,0,2,0"
+                                                                    Background="Transparent" Foreground="{DynamicResource Brush.Accent}" BorderThickness="0" Cursor="Hand"
+                                                                    AutomationProperties.AutomationId="ZE.Main.125.ZoomToReferenceLayerCommand"/>
+                                                        </Grid>
+                                                    </DataTemplate>
+                                                </HierarchicalDataTemplate.ItemTemplate>
+                                            </HierarchicalDataTemplate>
+                                        </TreeView.ItemTemplate>
+                                        <TreeView.ContextMenu>
+                                            <ContextMenu>
+                                                <MenuItem Header="✈ Zoom to Extent" Command="{Binding ZoomToReferenceLayerCommand}" CommandParameter="{Binding PlacementTarget.SelectedItem, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                                                <MenuItem Header="🔄 Refresh Layers" Command="{Binding RefreshLayersCommand}"/>
+                                                <Separator/>
+                                                <MenuItem Header="➕ Add Local Layer..." Command="{Binding AddCustomLocalLayerCommand}"/>
+                                                <MenuItem Header="📂 Open Layers Folder" Command="{Binding OpenLayersFolderCommand}"/>
+                                                <Separator/>
+                                                <MenuItem Header="⚙ Layer Properties..." Command="{Binding OpenLayerPropertiesCommand}" CommandParameter="{Binding PlacementTarget.SelectedItem, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                                                <Separator/>
+                                                <MenuItem Header="🌤 Weather Display Metric">
+                                                    <MenuItem Header="🌡 Temperature (°C)" Command="{Binding SetWeatherMetricCommand}" CommandParameter="temperature"/>
+                                                    <MenuItem Header="💧 Relative Humidity (%)" Command="{Binding SetWeatherMetricCommand}" CommandParameter="humidity"/>
+                                                    <MenuItem Header="💨 Wind Speed &amp; Direction" Command="{Binding SetWeatherMetricCommand}" CommandParameter="wind"/>
+                                                    <MenuItem Header="⏲ Barometric Pressure (hPa)" Command="{Binding SetWeatherMetricCommand}" CommandParameter="pressure"/>
+                                                    <Separator/>
+                                                    <MenuItem Header="°F Fahrenheit" Command="{Binding SetWeatherMetricCommand}" CommandParameter="fahrenheit"/>
+                                                    <MenuItem Header="°C Celsius" Command="{Binding SetWeatherMetricCommand}" CommandParameter="celsius"/>
+                                                </MenuItem>
+                                            </ContextMenu>
+                                        </TreeView.ContextMenu>
+                                    </TreeView>
+                                </Grid>
+                            </Border>
+                        </Expander>
                     </Grid>
 
                 </Grid>
             </Border>
 
-            <!-- ==================== COLUMN 1: RESIZABLE SPLITTER ==================== -->
-            <GridSplitter x:Name="WorkspaceSplitter" Grid.Column="1" Width="4" HorizontalAlignment="Center" VerticalAlignment="Stretch"
-                          Background="{DynamicResource Brush.Ribbon.Border}" Cursor="SizeWE"/>
+            <!-- ==================== COLUMN 1: RESIZABLE SPLITTER (Explorer & Globe) ==================== -->
+            <GridSplitter x:Name="WorkspaceSplitter" Grid.Column="1" Width="5" HorizontalAlignment="Center" VerticalAlignment="Stretch"
+                          ResizeDirection="Columns" ResizeBehavior="PreviousAndNext" ShowsPreview="False"
+                          Background="{DynamicResource Brush.Ribbon.Border}" Cursor="SizeWE" ToolTip="Drag to resize Explorer and Viewport"/>
 
             <!-- ==================== COLUMN 2: GEOGRAPHIC GLOBE VIEWPORT ==================== -->
             <Border x:Name="ViewportBorder" Grid.Column="2" Background="#000000">
@@ -1563,6 +1895,7 @@
                 <Grid Grid.Row="0" Margin="0,1">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
@@ -1574,12 +1907,23 @@
                             <TextBlock Text="{Binding StatusCenterCoordinates}" FontWeight="SemiBold" FontSize="11" Foreground="{DynamicResource Brush.Text.Primary}"/>
                             <TextBlock Text=" | Eye: " FontSize="11" Foreground="{DynamicResource Brush.Text.Muted}" Margin="6,0,0,0"/>
                             <TextBlock Text="{Binding StatusAltitude}" FontWeight="SemiBold" FontSize="11" Foreground="{DynamicResource Brush.Text.Primary}"/>
+                            <TextBlock Text=" | Zoom: " FontSize="11" Foreground="{DynamicResource Brush.Text.Muted}" Margin="6,0,0,0"/>
+                            <TextBlock Text="{Binding StatusZoomLevel}" FontWeight="SemiBold" FontSize="11" Foreground="{DynamicResource Brush.Accent}"/>
                             <TextBlock Text=" | Head: " FontSize="11" Foreground="{DynamicResource Brush.Text.Muted}" Margin="6,0,0,0"/>
                             <TextBlock Text="{Binding StatusHeading}" FontWeight="SemiBold" FontSize="11" Foreground="{DynamicResource Brush.Text.Primary}"/>
                         </StackPanel>
                     </Button>
 
-                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Grid.Column="1" Command="{Binding CopyCenterCoordinatesCommand}" Style="{StaticResource StatusBarBtnStyle}"
+                            ToolTip="Copy Center Coordinates to Clipboard" Padding="5,1" Margin="6,0,0,0"
+                            AutomationProperties.AutomationId="ZE.Main.CopyCenterCoordinates">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="📋 " FontSize="10" Foreground="{DynamicResource Brush.Accent}"/>
+                            <TextBlock Text="Copy" FontSize="10.5" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text.Primary}"/>
+                        </StackPanel>
+                    </Button>
+
+                    <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
                         <Button Command="{Binding SelectCrsCommand}" Style="{StaticResource StatusBarBtnStyle}"
                                 ToolTip="Click to select Coordinate Reference System (CRS)" AutomationProperties.AutomationId="ZE.Main.109.SelectCrsCommand" AutomationProperties.Name="Click to select Coordinate Reference System (CRS)">
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">

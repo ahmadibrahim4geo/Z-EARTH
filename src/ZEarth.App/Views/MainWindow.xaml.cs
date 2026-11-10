@@ -103,11 +103,7 @@ namespace ZEarth.App.Views
             if (ViewModel != null && ViewModel.IsModified)
             {
                 var projectName = ViewModel.CurrentProject.Name;
-                var res = MessageBox.Show(
-                    $"Do you want to save changes to '{projectName}' before closing?",
-                    "Z EARTH Desktop GIS",
-                    MessageBoxButton.YesNoCancel,
-                    MessageBoxImage.Question);
+                var res = ModernSaveConfirmationDialog.Show(this, projectName);
 
                 if (res == MessageBoxResult.Yes)
                 {
@@ -801,8 +797,11 @@ namespace ZEarth.App.Views
             }
         }
 
+        private Point _treeDragStartPoint;
+
         private void TreeView_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
+            _treeDragStartPoint = e.GetPosition(null);
             var source = e.OriginalSource as DependencyObject;
             if (source is CheckBox || source is Button) return;
 
@@ -828,6 +827,110 @@ namespace ZEarth.App.Views
             }
         }
 
+        private void TreeView_PreviewMouseMove(object sender, MouseEventArgs e)
+        {
+            if (e.LeftButton != MouseButtonState.Pressed) return;
+            Point current = e.GetPosition(null);
+            Vector diff = _treeDragStartPoint - current;
+
+            if (Math.Abs(diff.X) > SystemParameters.MinimumHorizontalDragDistance ||
+                Math.Abs(diff.Y) > SystemParameters.MinimumVerticalDragDistance)
+            {
+                if (ViewModel?.SelectedPlace != null && !ViewModel.SelectedPlace.IsProtected)
+                {
+                    if (sender is DependencyObject dragSource)
+                    {
+                        DragDrop.DoDragDrop(dragSource, ViewModel.SelectedPlace, DragDropEffects.Move);
+                    }
+                }
+            }
+        }
+
+        private void TreeView_DragOver(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent(typeof(PlaceItem)))
+            {
+                e.Effects = DragDropEffects.Move;
+                e.Handled = true;
+            }
+            else
+            {
+                e.Effects = DragDropEffects.None;
+            }
+        }
+
+        private void TreeView_Drop(object sender, DragEventArgs e)
+        {
+            if (!e.Data.GetDataPresent(typeof(PlaceItem))) return;
+            var dragged = e.Data.GetData(typeof(PlaceItem)) as PlaceItem;
+            if (dragged == null || dragged.IsProtected) return;
+
+            var targetElement = e.OriginalSource as DependencyObject;
+            while (targetElement != null && targetElement is not TreeViewItem)
+            {
+                targetElement = VisualTreeHelper.GetParent(targetElement);
+            }
+
+            PlaceItem? targetItem = (targetElement as TreeViewItem)?.DataContext as PlaceItem;
+
+            if (targetItem == null || targetItem == dragged) return;
+
+            PlaceItem? destinationFolder = targetItem.ItemType == PlaceItemType.Folder
+                ? targetItem
+                : null;
+
+            if (destinationFolder != null)
+            {
+                ViewModel.MovePlaceToFolder(dragged, destinationFolder);
+            }
+            else
+            {
+                // Dropped onto another feature: move to root or alongside
+                ViewModel.MovePlaceToFolder(dragged, null);
+            }
+            e.Handled = true;
+        }
+
+        private void TreeView_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (ViewModel?.SelectedPlace == null) return;
+
+            if (e.Key == Key.Delete && ViewModel.DeletePlaceCommand.CanExecute(null))
+            {
+                ViewModel.DeletePlaceCommand.Execute(null);
+                e.Handled = true;
+            }
+            else if (e.Key == Key.F2 && ViewModel.RenamePlaceCommand.CanExecute(null))
+            {
+                ViewModel.RenamePlaceCommand.Execute(null);
+                e.Handled = true;
+            }
+            else if (e.Key == Key.C && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+            {
+                if (ViewModel.CopyPlaceCommand.CanExecute(null))
+                {
+                    ViewModel.CopyPlaceCommand.Execute(null);
+                    e.Handled = true;
+                }
+            }
+            else if (e.Key == Key.X && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+            {
+                if (ViewModel.CutPlaceCommand.CanExecute(null))
+                {
+                    ViewModel.CutPlaceCommand.Execute(null);
+                    e.Handled = true;
+                }
+            }
+            else if (e.Key == Key.V && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+            {
+                if (ViewModel.PastePlaceCommand.CanExecute(null))
+                {
+                    ViewModel.PastePlaceCommand.Execute(null);
+                    e.Handled = true;
+                }
+            }
+        }
+
         private void TreeView_PreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)
         {
             var source = e.OriginalSource as DependencyObject;
@@ -844,6 +947,79 @@ namespace ZEarth.App.Views
                     ViewModel.SelectedPlace = item;
                 }
             }
+        }
+
+        private void TreeView_ContextMenuOpening(object sender, ContextMenuEventArgs e)
+        {
+            var item = ViewModel.SelectedPlace;
+            if (item == null)
+            {
+                CtxCut.Visibility = Visibility.Collapsed;
+                CtxCopy.Visibility = Visibility.Collapsed;
+                CtxDelete.Visibility = Visibility.Collapsed;
+                CtxRename.Visibility = Visibility.Collapsed;
+                CtxSaveToMyPlaces.Visibility = Visibility.Collapsed;
+                CtxSavePlaceAs.Visibility = Visibility.Collapsed;
+                CtxMoveToFolder.Visibility = Visibility.Collapsed;
+                CtxDirectionsFrom.Visibility = Visibility.Collapsed;
+                CtxDirectionsTo.Visibility = Visibility.Collapsed;
+                CtxProfile.Visibility = Visibility.Collapsed;
+                CtxSnapshot.Visibility = Visibility.Collapsed;
+                CtxSetStartup.Visibility = Visibility.Collapsed;
+                CtxMoveSceneUp.Visibility = Visibility.Collapsed;
+                CtxMoveSceneDown.Visibility = Visibility.Collapsed;
+                CtxAddFolder.Visibility = Visibility.Visible;
+                CtxAddPlacemark.Visibility = Visibility.Visible;
+                CtxAddPath.Visibility = Visibility.Visible;
+                CtxAddPolygon.Visibility = Visibility.Visible;
+                CtxAddRectangle.Visibility = Visibility.Visible;
+                CtxAddScene.Visibility = Visibility.Visible;
+                CtxImportKml.Visibility = Visibility.Visible;
+                CtxImportGpx.Visibility = Visibility.Visible;
+                CtxChooseLabelField.Visibility = Visibility.Collapsed;
+                CtxProperties.Visibility = Visibility.Collapsed;
+                return;
+            }
+
+            var isFolder = item.ItemType == PlaceItemType.Folder;
+            var isPath = item.ItemType == PlaceItemType.Path;
+            var isPoint = item.ItemType == PlaceItemType.Placemark;
+            var isScene = item.ItemType == PlaceItemType.SavedScene;
+            var isProtected = item.IsProtected;
+
+            CtxCut.IsEnabled = !isProtected;
+            CtxDelete.IsEnabled = !isProtected;
+            CtxCut.Visibility = isProtected ? Visibility.Collapsed : Visibility.Visible;
+            CtxDelete.Visibility = isProtected ? Visibility.Collapsed : Visibility.Visible;
+            CtxRename.Visibility = Visibility.Visible;
+
+            var inMyPlaces = ViewModel.IsInMyPlaces(item);
+            CtxSaveToMyPlaces.Visibility = inMyPlaces ? Visibility.Collapsed : Visibility.Visible;
+            CtxSavePlaceAs.Visibility = isScene ? Visibility.Collapsed : Visibility.Visible;
+
+            CtxProfile.Visibility = isPath ? Visibility.Visible : Visibility.Collapsed;
+            CtxDirectionsFrom.Visibility = (isPoint || isPath) ? Visibility.Visible : Visibility.Collapsed;
+            CtxDirectionsTo.Visibility = (isPoint || isPath) ? Visibility.Visible : Visibility.Collapsed;
+            CtxSnapshot.Visibility = (isPoint || isPath) ? Visibility.Visible : Visibility.Collapsed;
+
+            CtxSetStartup.Visibility = isScene ? Visibility.Visible : Visibility.Collapsed;
+            CtxMoveSceneUp.Visibility = isScene ? Visibility.Visible : Visibility.Collapsed;
+            CtxMoveSceneDown.Visibility = isScene ? Visibility.Visible : Visibility.Collapsed;
+
+            var addVis = isFolder ? Visibility.Visible : Visibility.Collapsed;
+            CtxAddFolder.Visibility = addVis;
+            CtxAddPlacemark.Visibility = addVis;
+            CtxAddPath.Visibility = addVis;
+            CtxAddPolygon.Visibility = addVis;
+            CtxAddRectangle.Visibility = addVis;
+            CtxAddScene.Visibility = (isFolder && item.Id == "folder_saved_scenes") ? Visibility.Visible : Visibility.Collapsed;
+            CtxImportKml.Visibility = addVis;
+            CtxImportGpx.Visibility = addVis;
+
+            CtxProperties.Visibility = Visibility.Visible;
+            CtxChooseLabelField.Visibility = (item.ExtendedData.Count > 0 || (isFolder && item.Children.Any(c => c.ExtendedData.Count > 0)))
+                ? Visibility.Visible
+                : Visibility.Collapsed;
         }
 
         private void SearchBox_KeyDown(object sender, KeyEventArgs e)

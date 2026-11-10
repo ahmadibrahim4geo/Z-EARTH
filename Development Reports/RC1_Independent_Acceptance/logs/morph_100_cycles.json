@@ -1,0 +1,89 @@
+{
+  "TotalTransitions": 100,
+  "InitialPlaces": 5,
+  "FinalPlaces": 5,
+  "InitialMemoryBytes": 12613440,
+  "FinalMemoryBytes": 12609816,
+  "NetMemoryDeltaBytes": -3624,
+  "Samples": [
+    {
+      "Cycle": 1,
+      "Mode": "Scene2D",
+      "PlaceCount": 5,
+      "WorkingSetDeltaBytes": 16448,
+      "Status": "OK"
+    },
+    {
+      "Cycle": 10,
+      "Mode": "Scene3D",
+      "PlaceCount": 5,
+      "WorkingSetDeltaBytes": 24632,
+      "Status": "OK"
+    },
+    {
+      "Cycle": 20,
+      "Mode": "Scene3D",
+      "PlaceCount": 5,
+      "WorkingSetDeltaBytes": 32856,
+      "Status": "OK"
+    },
+    {
+      "Cycle": 30,
+      "Mode": "Scene3D",
+      "PlaceCount": 5,
+      "WorkingSetDeltaBytes": 49304,
+      "Status": "OK"
+    },
+    {
+      "Cycle": 40,
+      "Mode": "Scene3D",
+      "PlaceCount": 5,
+      "WorkingSetDeltaBytes": 57528,
+      "Status": "OK"
+    },
+    {
+      "Cycle": 50,
+      "Mode": "Scene3D",
+      "PlaceCount": 5,
+      "WorkingSetDeltaBytes": 73976,
+      "Status": "OK"
+    },
+    {
+      "Cycle": 60,
+      "Mode": "Scene3D",
+      "PlaceCount": 5,
+      "WorkingSetDeltaBytes": 82200,
+      "Status": "OK"
+    },
+    {
+      "Cycle": 70,
+      "Mode": "Scene3D",
+      "PlaceCount": 5,
+      "WorkingSetDeltaBytes": 98648,
+      "Status": "OK"
+    },
+    {
+      "Cycle": 80,
+      "Mode": "Scene3D",
+      "PlaceCount": 5,
+      "WorkingSetDeltaBytes": 106872,
+      "Status": "OK"
+    },
+    {
+      "Cycle": 90,
+      "Mode": "Scene3D",
+      "PlaceCount": 5,
+      "WorkingSetDeltaBytes": 123320,
+      "Status": "OK"
+    },
+    {
+      "Cycle": 100,
+      "Mode": "Scene3D",
+      "PlaceCount": 5,
+      "WorkingSetDeltaBytes": 131544,
+      "Status": "OK"
+    }
+  ],
+  "Result": "PASS",
+  "Timestamp": "2026-11-10T14:39:11.4761905Z"
+}

@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Xml;
 using System.Xml.Linq;
 
@@ -139,10 +140,11 @@ namespace ZEarth.Domain.Kml
 
         private static PlaceItem ParsePlacemark(XElement placemarkElem)
         {
-            string name = GetElementValue(placemarkElem, "name") ?? "Untitled Placemark";
-            var placemark = new PlaceItem(name, PlaceItemType.Placemark)
+            string rawName = GetElementValue(placemarkElem, "name") ?? string.Empty;
+            string description = GetElementValue(placemarkElem, "description") ?? string.Empty;
+            var placemark = new PlaceItem(string.IsNullOrWhiteSpace(rawName) ? "Untitled Placemark" : rawName, PlaceItemType.Placemark)
             {
-                Description = GetElementValue(placemarkElem, "description") ?? string.Empty,
+                Description = description,
                 IsVisible = ParseVisibility(GetElementValue(placemarkElem, "visibility")),
                 StyleUrl = GetElementValue(placemarkElem, "styleUrl")
             };
@@ -155,10 +157,11 @@ namespace ZEarth.Domain.Kml
                 placemark.TimeSpanEnd = GetElementValue(timeSpan, "end");
             }
 
-            // Parse ExtendedData
+            // Parse ExtendedData: supports <Data name="...">, <SchemaData><SimpleData name="...">, and direct XML tags
             var extData = FindDescendant(placemarkElem, "ExtendedData");
             if (extData != null)
             {
+                // 1. <Data name="Key"><value>Val</value></Data>
                 foreach (var dataElem in extData.Elements().Where(e => e.Name.LocalName.Equals("Data", StringComparison.OrdinalIgnoreCase)))
                 {
                     string? key = dataElem.Attribute("name")?.Value;
@@ -167,6 +170,73 @@ namespace ZEarth.Domain.Kml
                     {
                         placemark.ExtendedData[key] = val;
                     }
+                }
+
+                // 2. <SchemaData><SimpleData name="Key">Val</SimpleData></SchemaData> (Standard GIS / Database exports)
+                foreach (var schemaData in extData.Elements().Where(e => e.Name.LocalName.Equals("SchemaData", StringComparison.OrdinalIgnoreCase)))
+                {
+                    foreach (var simpleData in schemaData.Elements().Where(e => e.Name.LocalName.Equals("SimpleData", StringComparison.OrdinalIgnoreCase)))
+                    {
+                        string? key = simpleData.Attribute("name")?.Value;
+                        string val = simpleData.Value;
+                        if (!string.IsNullOrEmpty(key) && val != null)
+                        {
+                            placemark.ExtendedData[key] = val;
+                        }
+                    }
+                }
+
+                // 3. Direct elements inside ExtendedData: <FieldName>Value</FieldName>
+                foreach (var directElem in extData.Elements())
+                {
+                    string ln = directElem.Name.LocalName;
+                    if (!ln.Equals("Data", StringComparison.OrdinalIgnoreCase) && !ln.Equals("SchemaData", StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (!directElem.HasElements && !string.IsNullOrWhiteSpace(directElem.Value) && !placemark.ExtendedData.ContainsKey(ln))
+                        {
+                            placemark.ExtendedData[ln] = directElem.Value.Trim();
+                        }
+                    }
+                }
+            }
+
+            // 4. If ExtendedData is empty, extract attribute rows from HTML tables in description
+            if (placemark.ExtendedData.Count == 0 && !string.IsNullOrWhiteSpace(description) && description.Contains("<table", StringComparison.OrdinalIgnoreCase))
+            {
+                ExtractAttributesFromHtmlTable(description, placemark.ExtendedData);
+            }
+
+            // Smart name resolution:
+            // Order: 1. name -> 2. type -> 3. facilityId -> 4. featureId -> 5. id
+            if (string.IsNullOrWhiteSpace(rawName) || rawName.Equals("Untitled Placemark", StringComparison.OrdinalIgnoreCase) || rawName.Equals("Feature", StringComparison.OrdinalIgnoreCase))
+            {
+                var nameKey = placemark.ExtendedData.Keys.FirstOrDefault(k =>
+                    (k.IndexOf("name", StringComparison.OrdinalIgnoreCase) >= 0 || k.Contains("اسم"))
+                    && !string.IsNullOrWhiteSpace(placemark.ExtendedData[k]));
+
+                var typeKey = placemark.ExtendedData.Keys.FirstOrDefault(k =>
+                    (k.IndexOf("type", StringComparison.OrdinalIgnoreCase) >= 0 || k.Contains("نوع"))
+                    && !string.IsNullOrWhiteSpace(placemark.ExtendedData[k]));
+
+                var facilityKey = placemark.ExtendedData.Keys.FirstOrDefault(k =>
+                    k.IndexOf("facility", StringComparison.OrdinalIgnoreCase) >= 0
+                    && !string.IsNullOrWhiteSpace(placemark.ExtendedData[k]));
+
+                var featureKey = placemark.ExtendedData.Keys.FirstOrDefault(k =>
+                    k.IndexOf("feature", StringComparison.OrdinalIgnoreCase) >= 0
+                    && !string.IsNullOrWhiteSpace(placemark.ExtendedData[k]));
+
+                var idKey = placemark.ExtendedData.Keys.FirstOrDefault(k =>
+                    (k.Equals("id", StringComparison.OrdinalIgnoreCase) ||
+                     k.IndexOf("objectid", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                     k.IndexOf("fid", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                     k.EndsWith("id", StringComparison.OrdinalIgnoreCase))
+                    && !string.IsNullOrWhiteSpace(placemark.ExtendedData[k]));
+
+                var bestKey = nameKey ?? typeKey ?? facilityKey ?? featureKey ?? idKey;
+                if (bestKey != null && !string.IsNullOrWhiteSpace(placemark.ExtendedData[bestKey]))
+                {
+                    placemark.Name = placemark.ExtendedData[bestKey].Trim();
                 }
             }
 
@@ -362,6 +432,25 @@ namespace ZEarth.Domain.Kml
         {
             if (string.IsNullOrWhiteSpace(val)) return true;
             return val == "1" || val.Equals("true", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static void ExtractAttributesFromHtmlTable(string html, Dictionary<string, string> target)
+        {
+            if (string.IsNullOrWhiteSpace(html)) return;
+            var rowRegex = new Regex(@"<tr[^>]*>\s*<(?:td|th)[^>]*>(.*?)<\/(?:td|th)>\s*<td[^>]*>(.*?)<\/td>\s*<\/tr>", RegexOptions.IgnoreCase | RegexOptions.Singleline);
+            var stripTags = new Regex(@"<[^>]+>", RegexOptions.Compiled);
+
+            foreach (Match m in rowRegex.Matches(html))
+            {
+                string rawKey = stripTags.Replace(m.Groups[1].Value, string.Empty).Trim();
+                string rawVal = stripTags.Replace(m.Groups[2].Value, string.Empty).Trim();
+                string key = System.Net.WebUtility.HtmlDecode(rawKey);
+                string val = System.Net.WebUtility.HtmlDecode(rawVal);
+                if (!string.IsNullOrWhiteSpace(key) && !target.ContainsKey(key))
+                {
+                    target[key] = val;
+                }
+            }
         }
     }
 }

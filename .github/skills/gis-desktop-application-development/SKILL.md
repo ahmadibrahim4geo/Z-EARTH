@@ -189,3 +189,7 @@ For each desktop project, document: use case; chosen GIS engine and UI shell; al
 ## Device and OS capability adapters
 
 Use [System Capabilities & Permissions](../system-capabilities-and-permissions/SKILL.md) only for reviewed OS integration needs: time, local/scoped storage, native location, serial/BLE, notifications, cameras or device diagnostics. Preserve existing WPF/Qt renderer and GIS engine; the platform skill implements the native API, Security owns rights, UI/UX designs consent, and Desktop E2E provides T3/T4 evidence. Mark absent hardware or native host checks NOT RUN.
+
+## Visual assets (conditional)
+
+When the reviewed project needs thumbnails, official logos, photographs, illustrations or screenshots, compose [Visual Asset Discovery & Integration](../visual-asset-discovery-integration/SKILL.md). It owns internet/source discovery, asset suitability, source credits and prepared local variants; keep layout, target resource binding, packaging and actual UI acceptance with this platform/UX owner. Do not silently replace requested images with generic icons or claim a source URL proves local integration.

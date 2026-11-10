@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Globalization;
@@ -165,6 +165,7 @@ namespace ZEarth.App.ViewModels
         private string _windowTitle = "Z EARTH Desktop GIS - Developed by Ahmad Ibrahim";
         private CameraState _currentCamera = CameraState.CreateHome();
         private SceneMode _currentSceneMode = SceneMode.Scene3D;
+        private string _statusZoomLevel = "Z3.0";
         private string _statusCoordinates = "26.8206° N, 30.8025° E";
         private string _statusAltitude = "4,500 km";
         private string _statusHeading = "0.0°";
@@ -716,6 +717,49 @@ namespace ZEarth.App.ViewModels
             }
         }
 
+        private bool _isOverviewMapVisible;
+        public bool IsOverviewMapVisible
+        {
+            get => _isOverviewMapVisible;
+            set
+            {
+                if (SetProperty(ref _isOverviewMapVisible, value))
+                {
+                    OnPropertyChanged(nameof(OverviewMapButtonBackground));
+                    OnPropertyChanged(nameof(OverviewMapIconBrush));
+                }
+            }
+        }
+
+        public Brush OverviewMapButtonBackground => IsOverviewMapVisible ? (Brush)App.Current.FindResource("Brush.Accent") : Brushes.Transparent;
+        public Brush OverviewMapIconBrush => IsOverviewMapVisible ? Brushes.Black : (Brush)App.Current.FindResource("Brush.Accent");
+
+        private string _currentCelestialBody = "earth";
+        public string CurrentCelestialBody
+        {
+            get => _currentCelestialBody;
+            set
+            {
+                if (SetProperty(ref _currentCelestialBody, value))
+                {
+                    OnPropertyChanged(nameof(IsEarthActive));
+                    OnPropertyChanged(nameof(IsMoonActive));
+                    OnPropertyChanged(nameof(IsMarsActive));
+                    OnPropertyChanged(nameof(EarthButtonBackground));
+                    OnPropertyChanged(nameof(MoonButtonBackground));
+                    OnPropertyChanged(nameof(MarsButtonBackground));
+                }
+            }
+        }
+
+        public bool IsEarthActive => string.Equals(_currentCelestialBody, "earth", StringComparison.OrdinalIgnoreCase);
+        public bool IsMoonActive => string.Equals(_currentCelestialBody, "moon", StringComparison.OrdinalIgnoreCase);
+        public bool IsMarsActive => string.Equals(_currentCelestialBody, "mars", StringComparison.OrdinalIgnoreCase);
+
+        public Brush EarthButtonBackground => IsEarthActive ? (Brush)App.Current.FindResource("Brush.Accent") : Brushes.Transparent;
+        public Brush MoonButtonBackground => IsMoonActive ? (Brush)App.Current.FindResource("Brush.Accent") : Brushes.Transparent;
+        public Brush MarsButtonBackground => IsMarsActive ? (Brush)App.Current.FindResource("Brush.Accent") : Brushes.Transparent;
+
         public bool Is2DMode
         {
             get => CurrentSceneMode == SceneMode.Scene2D;
@@ -779,6 +823,12 @@ namespace ZEarth.App.ViewModels
             set => SetProperty(ref _statusAltitude, value);
         }
 
+        public string StatusZoomLevel
+        {
+            get => _statusZoomLevel;
+            set => SetProperty(ref _statusZoomLevel, value);
+        }
+
         public string StatusHeading
         {
             get => _statusHeading;
@@ -816,6 +866,26 @@ namespace ZEarth.App.ViewModels
         }
 
         public ProjectDocument CurrentProject => _projectService.CurrentProject;
+
+        private bool _isBasemapVisible = true;
+        public bool IsBasemapVisible
+        {
+            get => _isBasemapVisible;
+            set
+            {
+                if (SetProperty(ref _isBasemapVisible, value))
+                {
+                    OnPropertyChanged(nameof(BasemapToggleLabel));
+                    OnPropertyChanged(nameof(BasemapToggleIcon));
+                }
+            }
+        }
+
+        public string BasemapToggleLabel => IsBasemapVisible
+            ? (LocalizationService.Instance.IsArabic ? "الخريطة: مفعلة" : "Basemap: ON")
+            : (LocalizationService.Instance.IsArabic ? "الخريطة: معطلة" : "Basemap: OFF");
+
+        public string BasemapToggleIcon => IsBasemapVisible ? "🗺" : "⚪";
         public ObservableCollection<PlaceItem> MyPlaces => CurrentProject.MyPlaces;
         public PlaceItem TemporaryPlacesFolder => CurrentProject.EnsureTemporaryPlacesFolder();
         public ObservableCollection<PlaceItem> TemporaryPlaces => TemporaryPlacesFolder.Children;
@@ -839,13 +909,130 @@ namespace ZEarth.App.ViewModels
             set => SetProperty(ref _isMyPlacesExpanded, value);
         }
 
+        // Layers Section State (Parity with Google Earth Pro Sidebar)
+        private bool _isLayersExpanded = true;
+        private bool _isLayersVisible = true;
+        private bool _isLayersMaximized = false;
+        private string _layersFilterText = string.Empty;
+
+        public bool IsLayersExpanded
+        {
+            get => _isLayersExpanded;
+            set => SetProperty(ref _isLayersExpanded, value);
+        }
+
+        public bool IsLayersVisible
+        {
+            get => _isLayersVisible;
+            set => SetProperty(ref _isLayersVisible, value);
+        }
+
+        public bool IsLayersMaximized
+        {
+            get => _isLayersMaximized;
+            set
+            {
+                if (SetProperty(ref _isLayersMaximized, value))
+                {
+                    OnPropertyChanged(nameof(LayersMaximizeIcon));
+                    OnPropertyChanged(nameof(LayersMaximizeTooltip));
+                    if (value)
+                    {
+                        IsSearchExpanded = false;
+                        IsMyPlacesExpanded = false;
+                        IsLayersExpanded = true;
+                    }
+                    else
+                    {
+                        IsSearchExpanded = true;
+                        IsMyPlacesExpanded = true;
+                    }
+                }
+            }
+        }
+
+        public string LayersSectionTitle => LocalizationService.Instance.IsArabic ? "الطبقات" : "Layers";
+        public string LayersMaximizeIcon => IsLayersMaximized ? "🗗" : "🗖";
+        public string LayersMaximizeTooltip => IsLayersMaximized
+            ? (LocalizationService.Instance.IsArabic ? "استعادة الحجم الطبيعي" : "Restore Panel")
+            : (LocalizationService.Instance.IsArabic ? "تكبير اللوحة" : "Maximize Panel");
+
+        public string LayersFilterText
+        {
+            get => _layersFilterText;
+            set
+            {
+                if (SetProperty(ref _layersFilterText, value))
+                {
+                    ApplyLayersFilter();
+                }
+            }
+        }
+
+        public ReferenceLayerCatalog ReferenceLayerCatalog { get; } = new();
+        public ObservableCollection<ReferenceLayerCategoryGroup> LayerCategories { get; } = new();
+        public ObservableCollection<ReferenceLayerCategoryGroup> FilteredLayerCategories { get; } = new();
+        public ReferenceLayerCategoryGroup UserLayersCategory { get; } = new()
+        {
+            Category = ReferenceLayerCategory.PlacesAndNames,
+            CategoryName = "My Local Layers",
+            Icon = "📂",
+            IsExpanded = true
+        };
+
         // Search Section State (Two explicit modes: By Name & By Coordinates)
         private int _selectedSearchMode = 0; // 0 = By Name, 1 = By Coordinates
         public int SelectedSearchMode
         {
             get => _selectedSearchMode;
-            set => SetProperty(ref _selectedSearchMode, value);
+            set
+            {
+                if (SetProperty(ref _selectedSearchMode, value))
+                {
+                    OnPropertyChanged(nameof(IsSearchByName));
+                    OnPropertyChanged(nameof(IsSearchByCoordinates));
+                    OnPropertyChanged(nameof(IsSearchByNameVisible));
+                    OnPropertyChanged(nameof(IsSearchByCoordsVisible));
+                }
+            }
         }
+
+        public bool IsSearchByName
+        {
+            get => _selectedSearchMode == 0;
+            set
+            {
+                if (value && _selectedSearchMode != 0)
+                {
+                    _selectedSearchMode = 0;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(SelectedSearchMode));
+                    OnPropertyChanged(nameof(IsSearchByCoordinates));
+                    OnPropertyChanged(nameof(IsSearchByNameVisible));
+                    OnPropertyChanged(nameof(IsSearchByCoordsVisible));
+                }
+            }
+        }
+
+        public bool IsSearchByCoordinates
+        {
+            get => _selectedSearchMode == 1;
+            set
+            {
+                if (value && _selectedSearchMode != 1)
+                {
+                    _selectedSearchMode = 1;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(SelectedSearchMode));
+                    OnPropertyChanged(nameof(IsSearchByName));
+                    OnPropertyChanged(nameof(IsSearchByNameVisible));
+                    OnPropertyChanged(nameof(IsSearchByCoordsVisible));
+                }
+            }
+        }
+
+        public Visibility IsSearchByNameVisible => IsSearchByName ? Visibility.Visible : Visibility.Collapsed;
+        public Visibility IsSearchByCoordsVisible => IsSearchByCoordinates ? Visibility.Visible : Visibility.Collapsed;
 
         private string _searchNameQuery = string.Empty;
         public string SearchNameQuery
@@ -961,9 +1148,22 @@ namespace ZEarth.App.ViewModels
         // Sidebar Navigation & Action Commands
         public ICommand ExpandAllSectionsCommand { get; }
         public ICommand CollapseAllSectionsCommand { get; }
+        public ICommand ToggleLayersExpandCommand { get; }
+        public ICommand CloseLayersPanelCommand { get; }
+        public ICommand ToggleLayersMaximizeCommand { get; }
+        public ICommand ToggleReferenceLayerCommand { get; }
+        public ICommand ZoomToReferenceLayerCommand { get; }
+        public ICommand AddCustomLocalLayerCommand { get; }
+        public ICommand OpenLayersFolderCommand { get; }
+        public ICommand RefreshLayersCommand { get; }
+        public ICommand SelectAllLayersCommand { get; }
+        public ICommand UnselectAllLayersCommand { get; }
+        public ICommand OpenLayerPropertiesCommand { get; }
+        public ICommand SetWeatherMetricCommand { get; }
         public ICommand ClearSearchCommand { get; }
         public ICommand SearchByNameCommand { get; }
         public ICommand LocateCoordinatesCommand { get; }
+        public ICommand SaveCoordinatesToPlacesCommand { get; }
         public ICommand FindMyLocationCommand { get; }
         public ICommand FlyToSearchResultCommand { get; }
         public ICommand SaveSearchResultToMyPlacesCommand { get; }
@@ -972,6 +1172,7 @@ namespace ZEarth.App.ViewModels
         public ICommand MoveSavedSceneUpCommand { get; }
         public ICommand MoveSavedSceneDownCommand { get; }
         public ICommand OpenPropertiesCommand { get; }
+        public ICommand ChooseLabelFieldCommand { get; }
         public ICommand KeepInTemporaryCommand { get; }
         public ICommand SaveTemporaryToProjectCommand { get; }
         public ICommand MoveToMyPlacesCommand { get; }
@@ -1003,6 +1204,8 @@ namespace ZEarth.App.ViewModels
         public RelayCommand NextExtentCommand { get; }
         public ICommand Set3DModeCommand { get; }
         public ICommand Set2DModeCommand { get; }
+        public ICommand ToggleOverviewMapCommand { get; }
+        public ICommand SetCelestialBodyCommand { get; }
 
         public ICommand NewProjectCommand { get; }
         public ICommand OpenProjectCommand { get; }
@@ -1015,6 +1218,7 @@ namespace ZEarth.App.ViewModels
         public ICommand PlayGpsTrackCommand { get; }
         public ICommand StopGpsTrackCommand { get; }
         public ICommand ToggleCoordinateFormatCommand { get; }
+        public ICommand CopyCenterCoordinatesCommand { get; }
         public ICommand SelectCrsCommand { get; }
         public ICommand UndoCommand { get; }
         public ICommand RedoCommand { get; }
@@ -1027,17 +1231,30 @@ namespace ZEarth.App.ViewModels
         public ICommand SaveToMyPlacesCommand { get; }
         public ICommand AddSavedSceneCommand { get; }
         public ICommand RenamePlaceCommand { get; }
+        public ICommand CutPlaceCommand { get; }
+        public ICommand CopyPlaceCommand { get; }
+        public ICommand PastePlaceCommand { get; }
+        public ICommand SnapshotViewCommand { get; }
+        public ICommand DirectionsFromHereCommand { get; }
+        public ICommand DirectionsToHereCommand { get; }
+        public ICommand SavePlaceAsCommand => ExportSelectedItemCommand;
+        public ICommand ShowElevationProfileCommand => ElevationProfileCommand;
 
         public ICommand DrawPlacemarkCommand { get; }
         public ICommand DrawLineCommand { get; }
         public ICommand DrawPolygonCommand { get; }
         public ICommand DrawCircleCommand { get; }
         public ICommand DrawRectangleCommand { get; }
+        public ICommand DrawEllipseCommand { get; }
         public ICommand OverlayImageCommand { get; }
         public ICommand Model3DCommand { get; }
 
         public ICommand MeasureDistanceCommand { get; }
         public ICommand MeasureAreaCommand { get; }
+        public ICommand MeasureCircleCommand { get; }
+        public ICommand MeasureEllipseCommand { get; }
+        public ICommand MeasureRectangleCommand { get; }
+        public ICommand MeasureCoordinateCommand { get; }
         public ICommand ClearMeasurementCommand { get; }
         public ICommand ToggleSnapCommand { get; }
         public ICommand ElevationProfileCommand { get; }
@@ -1051,6 +1268,7 @@ namespace ZEarth.App.ViewModels
         public ICommand ToggleTerrainCommand { get; }
         public ICommand SelectBasemapCommand { get; }
         public ICommand OpenBasemapGalleryCommand { get; }
+        public ICommand ToggleBasemapVisibilityCommand { get; }
         public ICommand HistoricalImageryCommand { get; }
         public ICommand NasaHistoricalImageryCommand { get; }
         public ICommand ClearNasaHistoricalImageryCommand { get; }
@@ -1073,7 +1291,8 @@ namespace ZEarth.App.ViewModels
         public ICommand ImportVectorCommand { get; }
 
         public string CurrentLanguageCode => LocalizationService.Instance.CurrentLanguage;
-        public string CurrentLanguageText => LocalizationService.Instance.IsArabic ? "English (EN)" : "العربية (AR)";
+        public string CurrentLanguageText => LocalizationService.Instance.IsArabic ? "الإنجليزية" : "Arabic";
+        public string LanguageButtonTooltip => LocalizationService.Instance.IsArabic ? "التبديل إلى واجهة اللغة الإنجليزية" : "Switch UI language to Arabic (RTL layout)";
         public string MoveToFolderLabel => LocalizationService.Instance.IsArabic ? "نقل إلى مجلد..." : "Move to folder...";
 
         public ICommand AboutCommand { get; }
@@ -1104,6 +1323,7 @@ namespace ZEarth.App.ViewModels
 
             _globeBridge.CameraChanged += OnGlobeCameraChanged;
             _globeBridge.CameraMoveEnded += OnGlobeCameraMoveEnded;
+            _globeBridge.OverviewMapChanged += (s, v) => RunOnUi(() => IsOverviewMapVisible = v);
             _globeBridge.SceneModeChanged += (s, m) =>
             {
                 void update()
@@ -1251,9 +1471,28 @@ namespace ZEarth.App.ViewModels
                         SelectedSearchCrsEpsg = 4326; // geographic WGS84, X=lon, Y=lat
                         SearchCoordinateX = longitude.ToString("F7", CultureInfo.InvariantCulture);
                         SearchCoordinateY = latitude.ToString("F7", CultureInfo.InvariantCulture);
+                        var target = new SearchResultItem
+                        {
+                            Title = LocalizationService.Instance.IsArabic ? "موقع جهازي" : "My Device Location",
+                            Subtitle = double.IsFinite(accuracy)
+                                ? $"Device fix: {latitude:F6}°, {longitude:F6}° (±{accuracy:0} m)"
+                                : $"Device fix: {latitude:F6}°, {longitude:F6}°",
+                            Longitude = longitude,
+                            Latitude = latitude,
+                            Altitude = 1500.0,
+                            Source = "Device Location",
+                            SourceBadge = "GPS",
+                            Icon = "◎",
+                            IsLocal = true
+                        };
+                        if (!SearchResults.Any(r => Math.Abs(r.Longitude - longitude) < 1e-5 && Math.Abs(r.Latitude - latitude) < 1e-5))
+                        {
+                            SearchResults.Insert(0, target);
+                        }
+                        SelectedSearchResult = target;
                         CoordinateValidationMessage = double.IsFinite(accuracy)
-                            ? $"One-time device fix received (±{accuracy:0} m reported accuracy). Choose Locate / Fly To."
-                            : "One-time device fix received; accuracy not reported. Choose Locate / Fly To.";
+                            ? $"One-time device fix received (±{accuracy:0} m reported accuracy). Choose Locate or Save to Places."
+                            : "One-time device fix received; accuracy not reported. Choose Locate or Save to Places.";
                         IsCoordinateValidationSuccess = true;
                     });
                 }
@@ -1309,15 +1548,7 @@ namespace ZEarth.App.ViewModels
                     OnPropertyChanged(nameof(SunlightIconBrush));
                 });
             };
-            _globeBridge.AtmosphereChanged += (s, enabled) =>
-            {
-                Application.Current?.Dispatcher?.Invoke(() =>
-                {
-                    _isAtmosphereEnabled = enabled;
-                    OnPropertyChanged(nameof(IsAtmosphereEnabled));
-                    OnPropertyChanged(nameof(AtmosphereIconBrush));
-                });
-            };
+            _globeBridge.AtmosphereChanged += (s, enabled) => RunOnUi(() => IsAtmosphereEnabled = enabled);
             _globeBridge.CloudsChanged += (s, enabled) => RunOnUi(() =>
             {
                 AreCloudsEnabled = enabled;
@@ -1433,7 +1664,88 @@ namespace ZEarth.App.ViewModels
                     else if (cmd == "places.addFolder") ExecuteAddFolder();
                     else if (cmd == "places.deleteSelected") ExecuteDeletePlace();
                     else if (cmd == "places.saveToMyPlaces") ExecuteSaveToMyPlaces();
-                    else if (cmd == "places.addScene") ExecuteAddSavedScene();
+                    else if (cmd == "places.addScene" || cmd == "places.addCurrentScene") ExecuteAddSavedScene();
+                    else if (cmd.StartsWith("places.addPlacemarkAt:"))
+                    {
+                        var parts = cmd.Split(':');
+                        if (parts.Length >= 3 && double.TryParse(parts[1], System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var lon)
+                            && double.TryParse(parts[2], System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var lat))
+                        {
+                            ExecuteAddPlacemarkAt(lon, lat);
+                        }
+                    }
+                    else if (cmd.StartsWith("places.directionsFromCoords:"))
+                    {
+                        var parts = cmd.Split(':');
+                        if (parts.Length >= 3 && double.TryParse(parts[1], System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var lon)
+                            && double.TryParse(parts[2], System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var lat))
+                        {
+                            ExecuteDirectionsFromHere(lat, lon);
+                        }
+                    }
+                    else if (cmd.StartsWith("places.directionsToCoords:"))
+                    {
+                        var parts = cmd.Split(':');
+                        if (parts.Length >= 3 && double.TryParse(parts[1], System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var lon)
+                            && double.TryParse(parts[2], System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var lat))
+                        {
+                            ExecuteDirectionsToHere(lat, lon);
+                        }
+                    }
+                    else if (cmd.StartsWith("places.select:"))
+                    {
+                        var id = cmd.Substring("places.select:".Length);
+                        var item = FindPlaceById(id);
+                        if (item != null) SelectedPlace = item;
+                    }
+                    else if (cmd.StartsWith("places.openProperties"))
+                    {
+                        var id = cmd.Contains(':') ? cmd.Substring(cmd.IndexOf(':') + 1) : null;
+                        var item = !string.IsNullOrEmpty(id) ? FindPlaceById(id) : SelectedPlace;
+                        if (item != null) ExecuteOpenProperties(item);
+                    }
+                    else if (cmd.StartsWith("places.elevationProfile"))
+                    {
+                        var id = cmd.Contains(':') ? cmd.Substring(cmd.IndexOf(':') + 1) : null;
+                        var item = !string.IsNullOrEmpty(id) ? FindPlaceById(id) : SelectedPlace;
+                        if (item != null) { SelectedPlace = item; _ = ExecuteElevationProfileAsync(); }
+                    }
+                    else if (cmd.StartsWith("places.cut:"))
+                    {
+                        var id = cmd.Substring("places.cut:".Length);
+                        var item = FindPlaceById(id);
+                        if (item != null) ExecuteCutPlace(item);
+                    }
+                    else if (cmd.StartsWith("places.copy:"))
+                    {
+                        var id = cmd.Substring("places.copy:".Length);
+                        var item = FindPlaceById(id);
+                        if (item != null) ExecuteCopyPlace(item);
+                    }
+                    else if (cmd.StartsWith("places.delete:"))
+                    {
+                        var id = cmd.Substring("places.delete:".Length);
+                        var item = FindPlaceById(id);
+                        if (item != null) { SelectedPlace = item; ExecuteDeletePlace(); }
+                    }
+                    else if (cmd.StartsWith("places.directionsFrom"))
+                    {
+                        var id = cmd.Contains(':') ? cmd.Substring(cmd.IndexOf(':') + 1) : null;
+                        var item = !string.IsNullOrEmpty(id) ? FindPlaceById(id) : SelectedPlace;
+                        if (item != null) ExecuteDirectionsFromHere(item);
+                    }
+                    else if (cmd.StartsWith("places.directionsTo"))
+                    {
+                        var id = cmd.Contains(':') ? cmd.Substring(cmd.IndexOf(':') + 1) : null;
+                        var item = !string.IsNullOrEmpty(id) ? FindPlaceById(id) : SelectedPlace;
+                        if (item != null) ExecuteDirectionsToHere(item);
+                    }
+                    else if (cmd.StartsWith("places.snapshotView"))
+                    {
+                        var id = cmd.Contains(':') ? cmd.Substring(cmd.IndexOf(':') + 1) : null;
+                        var item = !string.IsNullOrEmpty(id) ? FindPlaceById(id) : SelectedPlace;
+                        if (item != null) ExecuteSnapshotView(item);
+                    }
                     else if (cmd == "project.save") _ = ExecuteSaveProjectAsync();
                     else if (cmd == "project.undo") { if (_undoRedo.Undo()) { _projectService.IsModified = true; UpdatePlacesOnGlobe(); } }
                     else if (cmd == "project.redo") { if (_undoRedo.Redo()) { _projectService.IsModified = true; UpdatePlacesOnGlobe(); } }
@@ -1476,6 +1788,7 @@ namespace ZEarth.App.ViewModels
                     else if (cmd == "locale.toggle")
                     {
                         LocalizationService.Instance.ToggleLanguage(Application.Current?.MainWindow);
+                _ = _globeBridge.SetGazetteerLocaleAsync(LocalizationService.Instance.IsArabic);
                         OnPropertyChanged(nameof(CurrentLanguageCode));
                         OnPropertyChanged(nameof(CurrentLanguageText));
                         UpdateWindowTitle();
@@ -1520,6 +1833,19 @@ namespace ZEarth.App.ViewModels
                 }
             }, "Switch to 2D");
 
+            ToggleOverviewMapCommand = AsyncCommand(async () =>
+            {
+                IsOverviewMapVisible = !IsOverviewMapVisible;
+                await _globeBridge.SetOverviewMapAsync(IsOverviewMapVisible);
+            }, "Toggle Overview Map");
+
+            SetCelestialBodyCommand = AsyncCommand(async param =>
+            {
+                var body = param?.ToString()?.ToLowerInvariant() ?? "earth";
+                CurrentCelestialBody = body;
+                await _globeBridge.SetCelestialBodyAsync(body);
+            }, "Set Celestial Body");
+
             SetCompassModeCommand = new RelayCommand(p =>
             {
                 if (p is string m && !string.IsNullOrEmpty(m)) CompassMode = m;
@@ -1542,6 +1868,7 @@ namespace ZEarth.App.ViewModels
             PlayGpsTrackCommand = AsyncCommand(ExecutePlayGpsTrackAsync, "Replay selected GPX path in UTC");
             StopGpsTrackCommand = AsyncCommand(ExecuteStopGpsTrackAsync, "Stop GPS track replay");
             ToggleCoordinateFormatCommand = new RelayCommand(ExecuteToggleCoordinateFormat);
+            CopyCenterCoordinatesCommand = new RelayCommand(ExecuteCopyCenterCoordinates);
             SelectCrsCommand = new RelayCommand(ExecuteSelectCrs);
             UndoCommand = new RelayCommand(() => ApplyHistoryAction(undo: true), () => _undoRedo.CanUndo);
             RedoCommand = new RelayCommand(() => ApplyHistoryAction(undo: false), () => _undoRedo.CanRedo);
@@ -1551,6 +1878,7 @@ namespace ZEarth.App.ViewModels
             SearchByNameCommand = AsyncCommand(() => RunBusyAsync("Searching…", ExecuteSearchByNameAsync), "Search by name");
             ClearSearchCommand = new RelayCommand(ExecuteClearSearch);
             LocateCoordinatesCommand = AsyncCommand(ExecuteLocateCoordinatesAsync, "Locate coordinates");
+            SaveCoordinatesToPlacesCommand = new RelayCommand(ExecuteSaveCoordinatesToPlaces);
             FindMyLocationCommand = AsyncCommand(ExecuteFindMyLocationAsync, "Ask permission for device location");
             FlyToSearchResultCommand = AsyncCommand(p => ExecuteFlyToSearchResultAsync(p as SearchResultItem), "Fly to search result");
             SaveSearchResultToMyPlacesCommand = new RelayCommand(p => ExecuteSaveSearchResultToMyPlaces(p as SearchResultItem));
@@ -1560,13 +1888,48 @@ namespace ZEarth.App.ViewModels
             {
                 IsSearchExpanded = true;
                 IsMyPlacesExpanded = true;
+                IsLayersExpanded = true;
             });
 
             CollapseAllSectionsCommand = new RelayCommand(() =>
             {
                 IsSearchExpanded = false;
                 IsMyPlacesExpanded = false;
+                IsLayersExpanded = false;
             });
+
+            ToggleLayersExpandCommand = new RelayCommand(() => IsLayersExpanded = !IsLayersExpanded);
+            CloseLayersPanelCommand = new RelayCommand(() => IsLayersVisible = false);
+            ToggleLayersMaximizeCommand = new RelayCommand(() => IsLayersMaximized = !IsLayersMaximized);
+
+            ToggleReferenceLayerCommand = AsyncCommand(p => p is ReferenceLayerItem item ? ExecuteToggleReferenceLayerAsync(item) : Task.CompletedTask, "Toggle layer visibility");
+            ZoomToReferenceLayerCommand = AsyncCommand(p => p is ReferenceLayerItem item ? ExecuteZoomToReferenceLayerAsync(item) : Task.CompletedTask, "Zoom to layer extent");
+
+            AddCustomLocalLayerCommand = new RelayCommand(ExecuteAddCustomLocalLayer);
+            OpenLayersFolderCommand = new RelayCommand(ExecuteOpenLayersFolder);
+            SelectAllLayersCommand = AsyncCommand(() => SetAllLayersVisibilityAsync(true), "Select all reference layers");
+            UnselectAllLayersCommand = AsyncCommand(() => SetAllLayersVisibilityAsync(false), "Unselect all reference layers");
+            RefreshLayersCommand = new RelayCommand(() =>
+            {
+                RefreshUserLayers();
+                ApplyLayersFilter();
+                StatusMessage = LocalizationService.Instance.IsArabic ? "تم تحديث الطبقات بنجاح." : "Layers refreshed successfully.";
+            });
+
+            SetWeatherMetricCommand = AsyncCommand(p => p is string m ? ExecuteSetWeatherMetricAsync(m) : Task.CompletedTask, "Set weather display metric");
+
+            OpenLayerPropertiesCommand = new RelayCommand(p =>
+            {
+                var item = p as ReferenceLayerItem;
+                if (item == null) return;
+                System.Windows.MessageBox.Show(
+                    $"Layer: {item.Name}\nCategory: {item.CategoryName}\nProvider: {item.Provider}\nAttribution: {item.Attribution}\nStatus: {item.StatusBadgeText}\nSource/URL: {item.Url}",
+                    "Layer Properties",
+                    System.Windows.MessageBoxButton.OK,
+                    System.Windows.MessageBoxImage.Information);
+            });
+
+            InitializeLayers();
 
             FlyToPlaceCommand = AsyncCommand(p => ExecuteFlyToPlaceAsync(p as PlaceItem), "Fly to place");
             AddPlacemarkCommand = new RelayCommand(ExecuteAddPlacemark);
@@ -1575,10 +1938,17 @@ namespace ZEarth.App.ViewModels
             SaveToMyPlacesCommand = new RelayCommand(ExecuteSaveToMyPlaces, () => SelectedPlace != null && TemporaryPlaces.Contains(SelectedPlace));
             AddSavedSceneCommand = new RelayCommand(ExecuteAddSavedScene);
             RenamePlaceCommand = new RelayCommand(ExecuteRenamePlace, () => SelectedPlace != null);
+            CutPlaceCommand = new RelayCommand(p => ExecuteCutPlace(p as PlaceItem), _ => SelectedPlace != null && !SelectedPlace.IsProtected);
+            CopyPlaceCommand = new RelayCommand(p => ExecuteCopyPlace(p as PlaceItem), _ => SelectedPlace != null);
+            PastePlaceCommand = new RelayCommand(p => ExecutePastePlace(p as PlaceItem), _ => _clipboardPlaceItem != null);
+            SnapshotViewCommand = new RelayCommand(p => ExecuteSnapshotView(p as PlaceItem), _ => SelectedPlace != null);
+            DirectionsFromHereCommand = new RelayCommand(p => ExecuteDirectionsFromHere(p as PlaceItem), _ => SelectedPlace != null);
+            DirectionsToHereCommand = new RelayCommand(p => ExecuteDirectionsToHere(p as PlaceItem), _ => SelectedPlace != null);
             SetAsStartupSceneCommand = new RelayCommand(p => ExecuteSetAsStartupScene(p as PlaceItem));
             MoveSavedSceneUpCommand = new RelayCommand(() => ExecuteMoveSavedScene(-1));
             MoveSavedSceneDownCommand = new RelayCommand(() => ExecuteMoveSavedScene(1));
             OpenPropertiesCommand = new RelayCommand(p => ExecuteOpenProperties(p as PlaceItem));
+            ChooseLabelFieldCommand = new RelayCommand(p => ExecuteChooseLabelField(p as PlaceItem));
 
             KeepInTemporaryCommand = new RelayCommand(ExecuteKeepInTemporary);
             SaveTemporaryToProjectCommand = new RelayCommand(ExecuteSaveTemporaryToProject);
@@ -1618,9 +1988,18 @@ namespace ZEarth.App.ViewModels
             DrawRectangleCommand = AsyncCommand(() => _globeBridge.StartDrawingAsync("rectangle"), "Draw rectangle");
             DrawCircleCommand = AsyncCommand(async () =>
             {
-                ActiveMeasurementInfo = "Draw Circle: Click center point, then click outer edge to complete circle.";
+                ActiveMeasurementInfo = LocalizationService.Instance.IsArabic
+                    ? "رسم دائرة: انقر المركز ثم انقر المحيط لتحديد نصف القطر"
+                    : "Draw Circle: Click center point, then click outer edge to complete circle.";
                 await _globeBridge.StartDrawingAsync("circle", "#22A8DE");
             }, "Draw circle");
+            DrawEllipseCommand = AsyncCommand(async () =>
+            {
+                ActiveMeasurementInfo = LocalizationService.Instance.IsArabic
+                    ? "رسم قطع ناقص: انقر نقطة المركز، ثم نقطة المحور الرئيسي، ثم نقطة المحور الثانوي"
+                    : "Draw Ellipse: Click 1 (Center) -> Click 2 (Major Axis) -> Click 3 (Minor Axis)";
+                await _globeBridge.StartDrawingAsync("ellipse", "#22A8DE");
+            }, "Draw ellipse");
             OverlayImageCommand = new RelayCommand(ExecuteOverlayImage);
             Model3DCommand = new RelayCommand(ExecuteModel3D);
 
@@ -1628,16 +2007,56 @@ namespace ZEarth.App.ViewModels
             MeasureDistanceCommand = AsyncCommand(async () =>
             {
                 IsMeasuring = true;
-                ActiveMeasurementInfo = "Distance measurement active: click on map/features to place vertices";
+                ActiveMeasurementInfo = LocalizationService.Instance.IsArabic
+                    ? "قياس المسافة الجيوديسية: انقر على الخريطة لإضافة نقاط المسار"
+                    : "Distance measurement active: click on map/features to place vertices";
                 await _globeBridge.StartMeasurementAsync("distance");
             }, "Measure distance");
 
             MeasureAreaCommand = AsyncCommand(async () =>
             {
                 IsMeasuring = true;
-                ActiveMeasurementInfo = "Area measurement active: click 3+ points to form polygon; double-click/right-click to finish";
+                ActiveMeasurementInfo = LocalizationService.Instance.IsArabic
+                    ? "قياس المساحة: انقر 3 نقاط على الأقل لتكوين مضلع؛ انقر نقراً مزدوجاً للإنهاء"
+                    : "Area measurement active: click 3+ points to form polygon; double-click/right-click to finish";
                 await _globeBridge.StartMeasurementAsync("area");
             }, "Measure area");
+
+            MeasureCircleCommand = AsyncCommand(async () =>
+            {
+                IsMeasuring = true;
+                ActiveMeasurementInfo = LocalizationService.Instance.IsArabic
+                    ? "قياس دائرة: انقر المركز ثم انقر المحيط لقياس نصف القطر والقطر والمحيط والمساحة"
+                    : "Circle Measurement: Click center point, then click outer edge to measure radius & area";
+                await _globeBridge.StartMeasurementAsync("circle");
+            }, "Measure circle");
+
+            MeasureEllipseCommand = AsyncCommand(async () =>
+            {
+                IsMeasuring = true;
+                ActiveMeasurementInfo = LocalizationService.Instance.IsArabic
+                    ? "قياس قطع ناقص: انقر المركز -> المحور الرئيسي -> المحور الثانوي لقياس المحيط والمساحة بدقة رومانوجان"
+                    : "Ellipse Measurement: Click center -> Click major axis -> Click minor axis to measure Ramanujan perimeter & area";
+                await _globeBridge.StartMeasurementAsync("ellipse");
+            }, "Measure ellipse");
+
+            MeasureRectangleCommand = AsyncCommand(async () =>
+            {
+                IsMeasuring = true;
+                ActiveMeasurementInfo = LocalizationService.Instance.IsArabic
+                    ? "قياس مستطيل: انقر الزاوية الأولى ثم الزاوية المقابلة قطرياً لقياس العرض والارتفاع والقطر والمساحة"
+                    : "Rectangle Measurement: Click first corner, then click opposite diagonal corner to measure width, height, diagonal & area";
+                await _globeBridge.StartMeasurementAsync("rectangle");
+            }, "Measure rectangle");
+
+            MeasureCoordinateCommand = AsyncCommand(async () =>
+            {
+                IsMeasuring = true;
+                ActiveMeasurementInfo = LocalizationService.Instance.IsArabic
+                    ? "فحص وتحديد الإحداثيات: انقر على الخريطة لإسقاط نقاط متتالية وفحص إحداثياتها (درجات عشرية، درجات ودقائق، UTM، الارتفاع، والمسافة والاتجاه)"
+                    : "Coordinate Inspection: Click on map to place numbered pins and inspect DD, DMS, UTM, Elevation & Segment distance/bearing";
+                await _globeBridge.StartMeasurementAsync("coordinate");
+            }, "Continuous coordinate inspection");
 
             ClearMeasurementCommand = AsyncCommand(async () =>
             {
@@ -1675,6 +2094,21 @@ namespace ZEarth.App.ViewModels
             // general selector, eliminating two divergent settings surfaces.
             OpenBasemapGalleryCommand = new RelayCommand(() =>
                 ExecuteShowOptions(Views.OptionsDialogTab.BasemapDisplay));
+            ToggleBasemapVisibilityCommand = AsyncCommand(async () =>
+            {
+                IsBasemapVisible = !IsBasemapVisible;
+                if (IsBasemapVisible)
+                {
+                    string active = SelectedBasemapId ?? ImageryRegistry.ProviderEsriHybrid;
+                    await _globeBridge.SetBasemapAsync(active);
+                    StatusMessage = LocalizationService.Instance.IsArabic ? "تم تفعيل خريطة الأساس." : "Basemap imagery enabled.";
+                }
+                else
+                {
+                    await _globeBridge.SetBasemapAsync("off");
+                    StatusMessage = LocalizationService.Instance.IsArabic ? "تم إيقاف خريطة الأساس (عرض المجسم سادة)." : "Basemap imagery disabled (solid sphere mode).";
+                }
+            }, "Toggle Basemap ON/OFF");
             ToggleTerrainCommand = AsyncCommand(ExecuteToggleTerrainAsync, "Toggle terrain");
             SelectBasemapCommand = new RelayCommand(p =>
             {
@@ -1706,14 +2140,23 @@ namespace ZEarth.App.ViewModels
 
             // Tool Commands (Sprint 4 & Sprint 8)
             ImportVectorCommand = new RelayCommand(p => ExecuteImportVector(p as string));
-            ToggleLanguageCommand = new RelayCommand(() =>
+            ToggleLanguageCommand = new RelayCommand(async () =>
             {
                 LocalizationService.Instance.ToggleLanguage(Application.Current?.MainWindow);
                 OnPropertyChanged(nameof(CurrentLanguageCode));
                 OnPropertyChanged(nameof(CurrentLanguageText));
+                OnPropertyChanged(nameof(LanguageButtonTooltip));
                 OnPropertyChanged(nameof(GpsImportLabel));
                 OnPropertyChanged(nameof(GpsImportTooltip));
+                OnPropertyChanged(nameof(LayersSectionTitle));
+                OnPropertyChanged(nameof(MoveToFolderLabel));
+                OnPropertyChanged(nameof(LayersMaximizeTooltip));
                 UpdateWindowTitle();
+                if (_globeBridge != null)
+                {
+                    await _globeBridge.SendRequestAsync("locale.set", new { isArabic = LocalizationService.Instance.IsArabic });
+                    await _globeBridge.SendRequestAsync("gazetteer.setLocale", new { isArabic = LocalizationService.Instance.IsArabic });
+                }
             });
             CoordinateConverterCommand = new RelayCommand(ExecuteShowCoordinateConverter);
             TakeScreenshotCommand = AsyncCommand(ExecuteTakeScreenshotAsync, "Capture map screenshot");
@@ -1779,7 +2222,8 @@ namespace ZEarth.App.ViewModels
         private async Task ExecuteToggleFlightModeAsync()
         {
             var target = !IsFlightModeEnabled;
-            if (await _globeBridge.SetFlightModeAsync(target))
+            var mouseSteering = SettingsService.Current.FlightSteeringMode == "Mouse";
+            if (await _globeBridge.SetFlightModeAsync(target, mouseSteering))
             {
                 IsFlightModeEnabled = target;
                 StatusMessage = GetFlightModeStatus(target);
@@ -2063,6 +2507,30 @@ namespace ZEarth.App.ViewModels
                         newItem.ExtendedData["RadiusMeters"] = radius.ToString(CultureInfo.InvariantCulture);
                         newItem.ExtendedData["AreaSquareMeters"] = (Math.PI * radius * radius).ToString(CultureInfo.InvariantCulture);
                     }
+                    else if (type == "ellipse")
+                    {
+                        double semiMajor = 100.0, semiMinor = 50.0, bearing = 0.0;
+                        if (root.TryGetProperty("semiMajorAxis", out var aProp)) semiMajor = aProp.GetDouble();
+                        if (root.TryGetProperty("semiMinorAxis", out var bProp)) semiMinor = bProp.GetDouble();
+                        if (root.TryGetProperty("bearingDegrees", out var bgProp)) bearing = bgProp.GetDouble();
+                        double cLon = CurrentCamera.Longitude, cLat = CurrentCamera.Latitude, cAlt = 0.0;
+                        if (root.TryGetProperty("center", out var centerProp))
+                        {
+                            cLon = centerProp.GetProperty("longitude").GetDouble();
+                            cLat = centerProp.GetProperty("latitude").GetDouble();
+                            if (centerProp.TryGetProperty("altitude", out var altP)) cAlt = altP.GetDouble();
+                        }
+                        newItem = new PlaceItem($"Ellipse {count}", PlaceItemType.Ellipse, cLat, cLon, cAlt)
+                        {
+                            Coordinates = coords,
+                            ColorHex = color ?? "#22A8DE"
+                        };
+                        newItem.ExtendedData["shapeKind"] = "ellipse";
+                        newItem.ExtendedData["SemiMajorAxis"] = semiMajor.ToString(CultureInfo.InvariantCulture);
+                        newItem.ExtendedData["SemiMinorAxis"] = semiMinor.ToString(CultureInfo.InvariantCulture);
+                        newItem.ExtendedData["BearingDegrees"] = bearing.ToString(CultureInfo.InvariantCulture);
+                        newItem.ExtendedData["AreaSquareMeters"] = (Math.PI * semiMajor * semiMinor).ToString(CultureInfo.InvariantCulture);
+                    }
                     else
                     {
                         var first = coords.FirstOrDefault() ?? new CoordinatePoint(CurrentCamera.Longitude, CurrentCamera.Latitude, CurrentCamera.Altitude);
@@ -2247,6 +2715,25 @@ namespace ZEarth.App.ViewModels
                         double area = root.TryGetProperty("areaSquareMeters", out var arProp) ? arProp.GetDouble() : Math.PI * r * r;
                         ActiveMeasurementInfo = $"Radius: {GeodesicMeasurementService.FormatDistance(r)} | Area: {GeodesicMeasurementService.FormatArea(area)}";
                     }
+                    else if (mode == "ellipse" && root.TryGetProperty("semiMajorAxis", out var elAProp))
+                    {
+                        double a = elAProp.GetDouble();
+                        double b = root.TryGetProperty("semiMinorAxis", out var elBProp) ? elBProp.GetDouble() : 0.0;
+                        double area = root.TryGetProperty("areaSquareMeters", out var elAreaProp) ? elAreaProp.GetDouble() : Math.PI * a * b;
+                        ActiveMeasurementInfo = $"Ellipse: a={GeodesicMeasurementService.FormatDistance(a)}, b={GeodesicMeasurementService.FormatDistance(b)} | Area={GeodesicMeasurementService.FormatArea(area)}";
+                    }
+                    else if (mode == "rectangle" && root.TryGetProperty("widthMeters", out var rectWProp))
+                    {
+                        double w = rectWProp.GetDouble();
+                        double h = root.TryGetProperty("heightMeters", out var rectHProp) ? rectHProp.GetDouble() : 0.0;
+                        double area = root.TryGetProperty("areaSquareMeters", out var rectAreaProp) ? rectAreaProp.GetDouble() : w * h;
+                        ActiveMeasurementInfo = $"Rectangle: {GeodesicMeasurementService.FormatDistance(w)} × {GeodesicMeasurementService.FormatDistance(h)} | Area={GeodesicMeasurementService.FormatArea(area)}";
+                    }
+                    else if (mode == "coordinate")
+                    {
+                        int pts = root.TryGetProperty("pointCount", out var pProp) ? pProp.GetInt32() : 0;
+                        ActiveMeasurementInfo = $"Coordinate Inspection: {pts} points pinned";
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -2357,18 +2844,50 @@ namespace ZEarth.App.ViewModels
             StatusCoordinates = CoordinateFormatter.Format(CurrentCamera.Longitude, CurrentCamera.Latitude, SelectedCoordinateFormat);
             UpdateStatusCrsFromActiveMap();
 
-            if (CurrentCamera.Altitude >= 1000)
-            {
-                StatusAltitude = $"{(CurrentCamera.Altitude / 1000.0):N0} km";
-            }
-            else
-            {
-                StatusAltitude = $"{CurrentCamera.Altitude:N0} m";
-            }
+            StatusAltitude = FormatEyeAltitude(CurrentCamera.Altitude);
+            StatusZoomLevel = FormatZoomLevel(CurrentCamera.ZoomLevel);
 
             StatusHeading = $"{CurrentCamera.Heading:F1}°";
             UpdateCenterCoordinates(_pendingCenter ?? _lastKnownCenter ?? _globeBridge.CurrentCenter);
             OnPropertyChanged(nameof(StatusViewMode));
+        }
+
+        public static string FormatEyeAltitude(double altitudeMeters)
+        {
+            if (double.IsNaN(altitudeMeters) || double.IsInfinity(altitudeMeters) || altitudeMeters <= 0)
+                return "0 m";
+
+            if (altitudeMeters < 100.0)
+            {
+                return $"{altitudeMeters:F1} m";
+            }
+            if (altitudeMeters < 1_000.0)
+            {
+                return $"{altitudeMeters:F0} m";
+            }
+            if (altitudeMeters < 10_000.0)
+            {
+                double km = altitudeMeters / 1000.0;
+                return $"{km:F2} km ({altitudeMeters:N0} m)";
+            }
+            if (altitudeMeters < 100_000.0)
+            {
+                double km = altitudeMeters / 1000.0;
+                return $"{km:F1} km";
+            }
+            if (altitudeMeters < 1_000_000.0)
+            {
+                double km = altitudeMeters / 1000.0;
+                return $"{km:N0} km";
+            }
+            return $"{(altitudeMeters / 1000.0):N0} km";
+        }
+
+        public static string FormatZoomLevel(double zoomLevel)
+        {
+            if (double.IsNaN(zoomLevel) || double.IsInfinity(zoomLevel) || zoomLevel <= 0)
+                return "Z0";
+            return $"Z{zoomLevel:F1}";
         }
 
         private void UpdateStatusCrsFromActiveMap()
@@ -2399,7 +2918,8 @@ namespace ZEarth.App.ViewModels
                 try
                 {
                     var (x, y) = CoordinateTransformService.TransformFast(center.Longitude, center.Latitude, 4326, epsg);
-                    StatusCenterCoordinates = string.Format(CultureInfo.InvariantCulture, "Center X/E: {0:N1} m | Y/N: {1:N1} m", x, y);
+                    var elevPart = Math.Abs(center.Altitude) > 0.01 ? string.Format(CultureInfo.InvariantCulture, " | Elev: {0:N1} m", center.Altitude) : "";
+                    StatusCenterCoordinates = string.Format(CultureInfo.InvariantCulture, "Center X/E: {0:N1} m | Y/N: {1:N1} m{2}", x, y, elevPart);
                     return;
                 }
                 catch
@@ -2408,7 +2928,31 @@ namespace ZEarth.App.ViewModels
                 }
             }
 
-            StatusCenterCoordinates = $"Center: {CoordinateFormatter.Format(center.Longitude, center.Latitude, SelectedCoordinateFormat)}";
+            var elevStr = Math.Abs(center.Altitude) > 0.01 ? string.Format(CultureInfo.InvariantCulture, " | Elev: {0:N1} m", center.Altitude) : "";
+            StatusCenterCoordinates = $"Center: {CoordinateFormatter.Format(center.Longitude, center.Latitude, SelectedCoordinateFormat)}{elevStr}";
+        }
+
+        private void ExecuteCopyCenterCoordinates()
+        {
+            var center = _pendingCenter ?? _lastKnownCenter ?? _globeBridge?.CurrentCenter;
+            if (center != null && center.IsValid)
+            {
+                var dd = string.Format(CultureInfo.InvariantCulture, "{0:F6}, {1:F6}", center.Latitude, center.Longitude);
+                var dms = CoordinateFormatter.Format(center.Longitude, center.Latitude, CoordinateDisplayFormat.DegreesMinutesSeconds);
+                var elev = Math.Abs(center.Altitude) > 0.01 ? string.Format(CultureInfo.InvariantCulture, " | Elev: {0:F1} m", center.Altitude) : "";
+                var textToCopy = $"{dms} ({dd}){elev}";
+                try
+                {
+                    Clipboard.SetText(textToCopy);
+                    StatusMessage = LocalizationService.Instance.IsArabic
+                        ? $"تم نسخ إحداثيات المركز: {textToCopy}"
+                        : $"Copied center coordinates: {textToCopy}";
+                }
+                catch (Exception ex)
+                {
+                    LoggerService.Instance.LogWarning($"Failed to copy coordinates: {ex.Message}");
+                }
+            }
         }
 
         private void UpdateCursorCoordinates(CursorPositionInfo? pos)
@@ -2705,7 +3249,14 @@ namespace ZEarth.App.ViewModels
             try
             {
                 CoordinateValidationMessage = string.Empty;
-                var result = _searchService.SearchByCoordinates(SearchCoordinateX, SearchCoordinateY, SelectedSearchCrsEpsg);
+                var viewLon = _lastKnownCenter?.Longitude ?? _currentCamera.Longitude;
+                var viewLat = _lastKnownCenter?.Latitude ?? _currentCamera.Latitude;
+                var result = _searchService.SearchByCoordinates(
+                    SearchCoordinateX,
+                    SearchCoordinateY,
+                    SelectedSearchCrsEpsg,
+                    viewLon,
+                    viewLat);
                 IsCoordinateValidationSuccess = true;
                 CoordinateValidationMessage = $"Target: {result.CoordinateDisplay} ({result.Source})";
 
@@ -2727,6 +3278,62 @@ namespace ZEarth.App.ViewModels
             {
                 IsCoordinateValidationSuccess = false;
                 CoordinateValidationMessage = $"Coordinate Error: {ex.Message}";
+            }
+        }
+
+        public void ExecuteSaveCoordinatesToPlaces()
+        {
+            try
+            {
+                var isAr = LocalizationService.Instance.IsArabic;
+                SearchResultItem? target = SelectedSearchResult;
+                if (target == null && !string.IsNullOrWhiteSpace(SearchCoordinateX) && !string.IsNullOrWhiteSpace(SearchCoordinateY))
+                {
+                    var viewLon = _lastKnownCenter?.Longitude ?? _currentCamera.Longitude;
+                    var viewLat = _lastKnownCenter?.Latitude ?? _currentCamera.Latitude;
+                    target = _searchService.SearchByCoordinates(
+                        SearchCoordinateX,
+                        SearchCoordinateY,
+                        SelectedSearchCrsEpsg,
+                        viewLon,
+                        viewLat);
+                }
+
+                if (target == null)
+                {
+                    CoordinateValidationMessage = isAr ? "يرجى تحديد أو إدخال إحداثيات أولاً لحفظها." : "Please enter or locate coordinates first to save.";
+                    IsCoordinateValidationSuccess = false;
+                    return;
+                }
+
+                string name = target.Title;
+                if (target.Source != null && target.Source.Contains("device", StringComparison.OrdinalIgnoreCase))
+                {
+                    name = isAr ? "موقع جهازي" : "My Device Location";
+                }
+                else if (string.IsNullOrWhiteSpace(name) || name.StartsWith("Coordinates:", StringComparison.OrdinalIgnoreCase))
+                {
+                    name = isAr
+                        ? $"نقطة إحداثيات ({target.Latitude:F4}°, {target.Longitude:F4}°)"
+                        : $"Coordinate Point ({target.Latitude:F4}°, {target.Longitude:F4}°)";
+                }
+
+                var p = new PlaceItem(name, PlaceItemType.Placemark, target.Latitude, target.Longitude, 0);
+                p.Description = target.Subtitle ?? $"Coordinates: {target.Latitude:F7}°, {target.Longitude:F7}°";
+                p.ExtendedData["AltitudeMode"] = "ClampToGround";
+                MyPlaces.Add(p);
+                SelectedPlace = p;
+                _projectService.IsModified = true;
+                UpdatePlacesOnGlobe();
+                OnPropertyChanged(nameof(MyPlaces));
+                StatusMessage = isAr ? $"تم حفظ '{name}' في قائمة الأماكن (My Places)." : $"Saved '{name}' to My Places.";
+                CoordinateValidationMessage = StatusMessage;
+                IsCoordinateValidationSuccess = true;
+            }
+            catch (Exception ex)
+            {
+                CoordinateValidationMessage = $"Save Error: {ex.Message}";
+                IsCoordinateValidationSuccess = false;
             }
         }
 
@@ -2862,6 +3469,25 @@ namespace ZEarth.App.ViewModels
             UpdatePlacesOnGlobe();
         }
 
+        private void ExecuteAddPlacemarkAt(double lon, double lat)
+        {
+            var targetList = MyPlaces;
+            var p = new PlaceItem($"Placemark {MyPlaces.Count + 1}", PlaceItemType.Placemark, lat, lon, 0.0);
+            p.ExtendedData["AltitudeMode"] = "ClampToGround";
+            _undoRedo.ExecuteAction(new AddPlaceAction(targetList, p));
+            _pendingSessionItems.Add(p);
+            SelectedPlace = p;
+            _projectService.IsModified = true;
+            UpdatePlacesOnGlobe();
+            StatusMessage = $"Added placemark at {lat:F5}°, {lon:F5}°";
+        }
+
+        public bool IsInMyPlaces(PlaceItem? item)
+        {
+            if (item == null) return false;
+            return FindParentList(MyPlaces, item) != null;
+        }
+
         private void ExecuteAddFolder()
         {
             var targetList = MyPlaces;
@@ -2882,6 +3508,22 @@ namespace ZEarth.App.ViewModels
                 if (found != null) return found;
             }
             return null;
+        }
+
+        public PlaceItem? FindPlaceById(string id)
+        {
+            if (string.IsNullOrEmpty(id)) return null;
+            PlaceItem? Search(IEnumerable<PlaceItem> items)
+            {
+                foreach (var item in items)
+                {
+                    if (item.Id == id) return item;
+                    var sub = Search(item.Children);
+                    if (sub != null) return sub;
+                }
+                return null;
+            }
+            return Search(MyPlaces) ?? Search(TemporaryPlaces);
         }
 
         private void ApplyHistoryAction(bool undo)
@@ -3028,6 +3670,48 @@ namespace ZEarth.App.ViewModels
                 OnPropertyChanged(nameof(MyPlaces));
                 OnPropertyChanged(nameof(TemporaryPlaces));
                 OnPropertyChanged(nameof(SavedScenes));
+            }
+        }
+
+        private void ExecuteChooseLabelField(PlaceItem? item)
+        {
+            var target = item ?? SelectedPlace;
+            if (target == null) return;
+
+            var dlg = new Views.ChooseLabelFieldDialog(target)
+            {
+                Owner = Application.Current?.MainWindow
+            };
+
+            if (dlg.ShowDialog() == true)
+            {
+                var field = dlg.SelectedField;
+                if (!string.IsNullOrEmpty(field))
+                {
+                    void ApplyField(PlaceItem pi)
+                    {
+                        if (pi.ExtendedData.TryGetValue(field, out var val) && !string.IsNullOrWhiteSpace(val))
+                        {
+                            pi.Name = val;
+                        }
+                        if (dlg.ApplyToChildren)
+                        {
+                            foreach (var child in pi.Children)
+                            {
+                                ApplyField(child);
+                            }
+                        }
+                    }
+
+                    ApplyField(target);
+                    _projectService.IsModified = true;
+                    UpdatePlacesOnGlobe();
+                    OnPropertyChanged(nameof(MyPlaces));
+                    OnPropertyChanged(nameof(TemporaryPlaces));
+                    StatusMessage = LocalizationService.Instance.IsArabic
+                        ? $"تم تحديث تسمية المعالم وفق الحقل '{field}'"
+                        : $"Updated feature labels using field '{field}'";
+                }
             }
         }
 
@@ -3313,11 +3997,167 @@ namespace ZEarth.App.ViewModels
             }
         }
 
+        private PlaceItem? _clipboardPlaceItem;
+        private bool _isCutOperation;
+
+        public void ExecuteCutPlace(PlaceItem? item = null)
+        {
+            var target = item ?? SelectedPlace;
+            if (target == null || target.IsProtected) return;
+            _clipboardPlaceItem = target;
+            _isCutOperation = true;
+            StatusMessage = LocalizationService.Instance.IsArabic ? $"تم قص '{target.Name}'" : $"Cut '{target.Name}'";
+            ShowToast(StatusMessage);
+        }
+
+        public void ExecuteCopyPlace(PlaceItem? item = null)
+        {
+            var target = item ?? SelectedPlace;
+            if (target == null) return;
+            _clipboardPlaceItem = target.Clone();
+            _isCutOperation = false;
+            StatusMessage = LocalizationService.Instance.IsArabic ? $"تم نسخ '{target.Name}'" : $"Copied '{target.Name}'";
+            ShowToast(StatusMessage);
+        }
+
+        public void ExecutePastePlace(PlaceItem? targetFolder = null)
+        {
+            if (_clipboardPlaceItem == null) return;
+            var target = targetFolder ?? SelectedPlace;
+            PlaceItem toInsert;
+            if (_isCutOperation)
+            {
+                var prevParent = FindParentList(MyPlaces, _clipboardPlaceItem);
+                prevParent?.Remove(_clipboardPlaceItem);
+                toInsert = _clipboardPlaceItem;
+                _isCutOperation = false;
+            }
+            else
+            {
+                toInsert = _clipboardPlaceItem.Clone();
+                toInsert.Id = Guid.NewGuid().ToString("N");
+            }
+
+            if (target != null && target.ItemType == PlaceItemType.Folder)
+            {
+                target.AddChild(toInsert);
+            }
+            else if (target != null)
+            {
+                var parent = FindParentList(MyPlaces, target);
+                if (parent != null)
+                {
+                    int idx = parent.IndexOf(target);
+                    parent.Insert(idx + 1, toInsert);
+                }
+                else
+                {
+                    MyPlaces.Add(toInsert);
+                }
+            }
+            else
+            {
+                MyPlaces.Add(toInsert);
+            }
+
+            _projectService.IsModified = true;
+            UpdatePlacesOnGlobe();
+            OnPropertyChanged(nameof(MyPlaces));
+            OnPropertyChanged(nameof(TemporaryPlaces));
+            StatusMessage = LocalizationService.Instance.IsArabic ? $"تم لصق '{toInsert.Name}'" : $"Pasted '{toInsert.Name}'";
+            ShowToast(StatusMessage);
+        }
+
+        public void ExecuteSnapshotView(PlaceItem? item = null)
+        {
+            var target = item ?? SelectedPlace;
+            if (target == null) return;
+            var cam = _globeBridge.CurrentCamera;
+            if (cam != null)
+            {
+                target.Camera = cam.Clone();
+                _projectService.IsModified = true;
+                StatusMessage = LocalizationService.Instance.IsArabic
+                    ? $"تم التقاط وحفظ المشهد للعنصر '{target.Name}'"
+                    : $"Snapshot view captured for '{target.Name}'";
+                ShowToast(StatusMessage);
+            }
+        }
+
+        public void ExecuteDirectionsFromHere(PlaceItem? item = null)
+        {
+            var target = item ?? SelectedPlace;
+            if (target == null) return;
+            double? lat = target.Latitude;
+            double? lon = target.Longitude;
+            if (lat == null && target.Coordinates?.Count > 0)
+            {
+                lat = target.Coordinates[0].Latitude;
+                lon = target.Coordinates[0].Longitude;
+            }
+            if (lat.HasValue && lon.HasValue)
+            {
+                StatusMessage = LocalizationService.Instance.IsArabic
+                    ? $"الاتجاهات من هنا: [{lat.Value:F5}, {lon.Value:F5}] ({target.Name})"
+                    : $"Directions from here: [{lat.Value:F5}, {lon.Value:F5}] ({target.Name})";
+                ShowToast(StatusMessage);
+            }
+        }
+
+        public void ExecuteDirectionsFromHere(double lat, double lon, string label = "Custom Location")
+        {
+            var isAr = LocalizationService.Instance.IsArabic;
+            StatusMessage = isAr
+                ? $"الاتجاهات من هنا: [{lat:F5}, {lon:F5}] ({label})"
+                : $"Directions from here: [{lat:F5}, {lon:F5}] ({label})";
+            ShowToast(StatusMessage);
+        }
+
+        public void ExecuteDirectionsToHere(PlaceItem? item = null)
+        {
+            var target = item ?? SelectedPlace;
+            if (target == null) return;
+            double? lat = target.Latitude;
+            double? lon = target.Longitude;
+            if (lat == null && target.Coordinates?.Count > 0)
+            {
+                lat = target.Coordinates[0].Latitude;
+                lon = target.Coordinates[0].Longitude;
+            }
+            if (lat.HasValue && lon.HasValue)
+            {
+                StatusMessage = LocalizationService.Instance.IsArabic
+                    ? $"الاتجاهات إلى هنا: [{lat.Value:F5}, {lon.Value:F5}] ({target.Name})"
+                    : $"Directions to here: [{lat.Value:F5}, {lon.Value:F5}] ({target.Name})";
+                ShowToast(StatusMessage);
+            }
+        }
+
+        public void ExecuteDirectionsToHere(double lat, double lon, string label = "Custom Location")
+        {
+            var isAr = LocalizationService.Instance.IsArabic;
+            StatusMessage = isAr
+                ? $"الاتجاهات إلى هنا: [{lat:F5}, {lon:F5}] ({label})"
+                : $"Directions to here: [{lat:F5}, {lon:F5}] ({label})";
+            ShowToast(StatusMessage);
+        }
+
         private void ExecuteRenamePlace()
         {
-            if (SelectedPlace == null) return;
-            _projectService.IsModified = true;
-            UpdateWindowTitle();
+            if (SelectedPlace == null || SelectedPlace.IsProtected) return;
+            var dlg = new Views.RenamePlaceDialog(SelectedPlace.Name)
+            {
+                Owner = Application.Current?.MainWindow
+            };
+            if (dlg.ShowDialog() == true)
+            {
+                SelectedPlace.Name = dlg.NewName;
+                _projectService.IsModified = true;
+                UpdatePlacesOnGlobe();
+                OnPropertyChanged(nameof(MyPlaces));
+                OnPropertyChanged(nameof(TemporaryPlaces));
+                UpdateWindowTitle();
+            }
         }
 
         public void UpdatePlacesOnGlobe()
@@ -3352,6 +4192,11 @@ namespace ZEarth.App.ViewModels
                     }
                     if (item.IsVisible)
                     {
+                        // Keep the popup bounded and exclude binary model payloads.
+                        var infoAttributes = item.ExtendedData
+                            .Where(kv => !string.Equals(kv.Key, "ModelGlbBase64", StringComparison.OrdinalIgnoreCase))
+                            .Take(300)
+                            .ToDictionary(kv => kv.Key, kv => kv.Value is { Length: > 8192 } ? kv.Value[..8192] + "…" : kv.Value);
                         string altitudeMode = item.ExtendedData.TryGetValue("AltitudeMode", out var altitudeModeValue)
                             ? altitudeModeValue
                             : "ClampToGround";
@@ -3394,16 +4239,23 @@ namespace ZEarth.App.ViewModels
                                 });
                             }
                         }
-                        else if (item.ItemType == PlaceItemType.Polygon && item.Coordinates.Count >= 3)
+                        else if ((item.ItemType == PlaceItemType.Polygon || item.ItemType == PlaceItemType.Ellipse) && item.Coordinates.Count >= 3)
                         {
+                            string fillMode = item.ExtendedData.TryGetValue("FillMode", out var fm) ? fm : "both";
+                            string fillColor = item.ExtendedData.TryGetValue("FillColor", out var fc) && !string.IsNullOrWhiteSpace(fc) ? fc : item.ColorHex;
+                            string linePattern = item.ExtendedData.TryGetValue("LinePattern", out var lp) ? lp : "solid";
                             flat.Add(new
                             {
                                 id = item.Id,
                                 name = item.Name,
                                 type = "polygon",
+                                attributes = infoAttributes,
                                 coordinates = item.Coordinates.Select(c => new { lon = c.Longitude, lat = c.Latitude, alt = c.Altitude }).ToList(),
                                 innerRings = item.InnerRings.Select(r => r.Select(c => new { lon = c.Longitude, lat = c.Latitude, alt = c.Altitude }).ToList()).ToList(),
                                 color = item.ColorHex,
+                                fillColor,
+                                fillMode,
+                                linePattern,
                                 lineWidth,
                                 fillOpacity,
                                 altitudeMode
@@ -3411,13 +4263,16 @@ namespace ZEarth.App.ViewModels
                         }
                         else if (item.ItemType == PlaceItemType.Path && item.Coordinates.Count >= 2)
                         {
+                            string linePattern = item.ExtendedData.TryGetValue("LinePattern", out var lp) ? lp : "solid";
                             flat.Add(new
                             {
                                 id = item.Id,
                                 name = item.Name,
                                 type = "path",
+                                attributes = infoAttributes,
                                 coordinates = item.Coordinates.Select(c => new { lon = c.Longitude, lat = c.Latitude, alt = c.Altitude }).ToList(),
                                 color = item.ColorHex,
+                                linePattern,
                                 lineWidth,
                                 altitudeMode
                             });
@@ -3434,6 +4289,7 @@ namespace ZEarth.App.ViewModels
                                 id = item.Id,
                                 name = item.Name,
                                 type = "circle",
+                                attributes = infoAttributes,
                                 lon = item.Longitude.GetValueOrDefault(0),
                                 lat = item.Latitude.GetValueOrDefault(0),
                                 alt = item.Altitude.GetValueOrDefault(0),
@@ -3457,6 +4313,7 @@ namespace ZEarth.App.ViewModels
                                 id = item.Id,
                                 name = item.Name,
                                 type = "groundOverlay",
+                                attributes = infoAttributes,
                                 west = west,
                                 south = south,
                                 east = east,
@@ -3475,6 +4332,7 @@ namespace ZEarth.App.ViewModels
                                     id = item.Id,
                                     name = item.Name,
                                     type = "point",
+                                attributes = infoAttributes,
                                     lon = item.Longitude.Value,
                                     lat = item.Latitude.Value,
                                     alt = item.Altitude.GetValueOrDefault(0),
@@ -3494,6 +4352,7 @@ namespace ZEarth.App.ViewModels
                                 id = item.Id,
                                 name = item.Name,
                                 type = "point",
+                                attributes = infoAttributes,
                                 lon = item.Longitude.Value,
                                 lat = item.Latitude.Value,
                                 alt = item.Altitude.GetValueOrDefault(0),
@@ -3534,15 +4393,28 @@ namespace ZEarth.App.ViewModels
             }
 
             var arabic = LocalizationService.Instance.IsArabic;
-            var result = MessageBox.Show(
-                arabic
-                    ? $"لديك {pending.Count} من العناصر المستوردة أو المرسومة في هذه الجلسة.\n\nهل تريد حفظها في الأماكن المؤقتة للجلسة القادمة؟\n\nنعم: احفظها. لا: أغلق دون الاحتفاظ بها. إلغاء: ارجع إلى البرنامج."
-                    : $"You created or imported {pending.Count} item(s) during this session.\n\n" +
-                      "Save them inside Temporary Places for the next launch?\n\n" +
-                      "Yes: keep them. No: close without keeping them. Cancel: return to Z EARTH.",
-                arabic ? "حفظ عناصر الجلسة؟" : "Save session places?",
-                MessageBoxButton.YesNoCancel,
-                MessageBoxImage.Question);
+            MessageBoxResult result;
+            if (Application.Current?.MainWindow != null)
+            {
+                var dlg = new Views.SaveSessionPlacesDialog(pending.Count)
+                {
+                    Owner = Application.Current.MainWindow
+                };
+                dlg.ShowDialog();
+                result = dlg.Result;
+            }
+            else
+            {
+                result = MessageBox.Show(
+                    arabic
+                        ? $"لديك {pending.Count} من العناصر المستوردة أو المرسومة في هذه الجلسة.\n\nهل تريد حفظها في الأماكن المؤقتة للجلسة القادمة؟\n\nنعم: احفظها. لا: أغلق دون الاحتفاظ بها. إلغاء: ارجع إلى البرنامج."
+                        : $"You created or imported {pending.Count} item(s) during this session.\n\n" +
+                          "Save them inside Temporary Places for the next launch?\n\n" +
+                          "Yes: keep them. No: close without keeping them. Cancel: return to Z EARTH.",
+                    arabic ? "حفظ عناصر الجلسة؟" : "Save session places?",
+                    MessageBoxButton.YesNoCancel,
+                    MessageBoxImage.Question);
+            }
 
             var resolved = ResolvePendingPlacesOnClose(result);
             if (!resolved && result == MessageBoxResult.Yes)
@@ -3824,10 +4696,12 @@ namespace ZEarth.App.ViewModels
 
                     if (string.IsNullOrEmpty(directFilePath))
                     {
-                        MessageBox.Show(intoTemporary
-                            ? $"File '{Path.GetFileName(filePath)}' was imported into Temporary Places."
-                            : $"File '{Path.GetFileName(filePath)}' was added as an Explorer root. Move it to a folder or keep it in Temporary Places when closing.",
-                            "KML Import", MessageBoxButton.OK, MessageBoxImage.Information);
+                        var fileName = Path.GetFileName(filePath);
+                        var isAr = LocalizationService.Instance.IsArabic;
+                        StatusMessage = isAr
+                            ? $"تم استيراد الملف بنجاح: {fileName}"
+                            : $"Successfully imported '{fileName}'";
+                        ShowToast(StatusMessage);
                     }
                 }
                 catch (Exception ex)
@@ -3915,7 +4789,12 @@ namespace ZEarth.App.ViewModels
 
                         if (string.IsNullOrEmpty(directFilePath))
                         {
-                            MessageBox.Show($"Vector dataset '{Path.GetFileName(filePath)}' ({result.Features.Count} features) was added as an Explorer root.\nSource CRS: {result.SourceCrs}\n\nYou can keep it in Temporary Places when you close Z EARTH.", "Vector Import", MessageBoxButton.OK, MessageBoxImage.Information);
+                            var fileName = Path.GetFileName(filePath);
+                            var isAr = LocalizationService.Instance.IsArabic;
+                            StatusMessage = isAr
+                                ? $"تم استيراد الطبقة بنجاح: {fileName} ({result.Features.Count} معالم)"
+                                : $"Successfully imported '{fileName}' ({result.Features.Count} features)";
+                            ShowToast(StatusMessage);
                         }
                     }
                     else if (!result.Success && string.IsNullOrEmpty(directFilePath))
@@ -3966,7 +4845,7 @@ namespace ZEarth.App.ViewModels
                 await _globeBridge.ToggleSaveImageAsync(IsSaveImageModeActive);
 
                 StatusMessage = LocalizationService.Instance.IsArabic
-                    ? (IsSaveImageModeActive ? "تم تفعيل نمط حفظ الخريطة (Google Earth Pro). قم بتعديل العنوان والوصف ثم اضغط حفظ الصورة." : "تم إغلاق نمط حفظ الخريطة.")
+                    ? (IsSaveImageModeActive ? "تم تفعيل نمط حفظ الخريطة. قم بتعديل العنوان والوصف ثم اضغط حفظ الصورة." : "تم إغلاق نمط حفظ الخريطة.")
                     : (IsSaveImageModeActive ? "Save Image mode active (Google Earth Pro). Customize Title and Legend then click Save Image." : "Save Image mode closed.");
             }
             catch (Exception ex)
@@ -4185,13 +5064,15 @@ namespace ZEarth.App.ViewModels
                 dlg = new Views.ElevationProfileDialog();
             }
             dlg.Owner = Application.Current?.MainWindow;
-            dlg.ShowDialog();
+            dlg.SampleHovered += (lon, lat) => _ = _globeBridge.ShowProfileHoverPointAsync(lon, lat);
+            dlg.SampleHoverCleared += () => _ = _globeBridge.ClearProfileHoverPointAsync();
+            dlg.Show();
         }
 
-        public void ExecuteShowOptions() => ExecuteShowOptions(Views.OptionsDialogTab.MeasurementUnits);
+        public void ExecuteShowOptions() => ExecuteShowOptions(Views.OptionsDialogTab.GeneralSettings);
 
         private void ExecuteShowOptions(bool openGridTab) =>
-            ExecuteShowOptions(openGridTab ? Views.OptionsDialogTab.MapGrid : Views.OptionsDialogTab.MeasurementUnits);
+            ExecuteShowOptions(openGridTab ? Views.OptionsDialogTab.MapGrid : Views.OptionsDialogTab.GeneralSettings);
 
         private void ExecuteShowOptions(Views.OptionsDialogTab initialTab)
         {
@@ -4638,6 +5519,337 @@ namespace ZEarth.App.ViewModels
                 Owner = Application.Current.MainWindow
             };
             aboutWindow.ShowDialog();
+        }
+
+        private void InitializeLayers()
+        {
+            try
+            {
+                LayerCategories.Clear();
+                var groups = ReferenceLayerCatalog.GetGroupedCategories();
+                foreach (var g in groups)
+                {
+                    LayerCategories.Add(g);
+                }
+                RefreshUserLayers();
+                LayerCategories.Add(UserLayersCategory);
+                ApplyLayersFilter();
+            }
+            catch (Exception ex)
+            {
+                LoggerService.Instance.LogError("InitializeLayers error", ex);
+            }
+        }
+
+        private void RefreshUserLayers()
+        {
+            UserLayersCategory.Layers.Clear();
+            UserLayersCategory.CategoryName = LocalizationService.Instance.IsArabic ? "طبقاتي المحلية" : "My Local Layers";
+            var layersDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "ZEarth", "Layers");
+            try
+            {
+                if (!Directory.Exists(layersDir))
+                {
+                    Directory.CreateDirectory(layersDir);
+                }
+
+                var allowedExts = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    ".geojson", ".shp", ".kml", ".kmz", ".gpkg", ".tif", ".json"
+                };
+
+                var files = Directory.GetFiles(layersDir, "*.*", SearchOption.TopDirectoryOnly)
+                    .Where(f => allowedExts.Contains(Path.GetExtension(f)))
+                    .OrderBy(f => Path.GetFileName(f));
+
+                foreach (var file in files)
+                {
+                    var fileName = Path.GetFileName(file);
+                    UserLayersCategory.Layers.Add(new ReferenceLayerItem
+                    {
+                        Id = "user_" + Guid.NewGuid().ToString("N")[..8],
+                        Category = ReferenceLayerCategory.PlacesAndNames,
+                        CategoryName = UserLayersCategory.CategoryName,
+                        Name = fileName,
+                        Description = $"Local dataset: {file}",
+                        Provider = "Local User Data",
+                        Attribution = "User Local File",
+                        Url = file,
+                        LayerType = "UserLocalVector",
+                        IsBuiltIn = false,
+                        IsConfigured = true,
+                        IsVisible = false,
+                        Status = ReferenceLayerStatus.Active,
+                        StatusMessage = "Ready (Local file)"
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                LoggerService.Instance.LogError("Failed to scan user layers folder", ex);
+            }
+        }
+
+        private void ApplyLayersFilter()
+        {
+            FilteredLayerCategories.Clear();
+            var filter = _layersFilterText?.Trim() ?? string.Empty;
+            if (string.IsNullOrEmpty(filter))
+            {
+                foreach (var g in LayerCategories)
+                {
+                    FilteredLayerCategories.Add(g);
+                }
+                return;
+            }
+
+            foreach (var g in LayerCategories)
+            {
+                var matchingLayers = g.Layers.Where(l =>
+                    l.Name.Contains(filter, StringComparison.OrdinalIgnoreCase) ||
+                    l.Description.Contains(filter, StringComparison.OrdinalIgnoreCase) ||
+                    g.CategoryName.Contains(filter, StringComparison.OrdinalIgnoreCase)
+                ).ToList();
+
+                if (matchingLayers.Count > 0)
+                {
+                    var filteredGroup = new ReferenceLayerCategoryGroup
+                    {
+                        Category = g.Category,
+                        CategoryName = g.CategoryName,
+                        Icon = g.Icon,
+                        IsExpanded = true
+                    };
+                    foreach (var l in matchingLayers)
+                    {
+                        filteredGroup.Layers.Add(l);
+                    }
+                    FilteredLayerCategories.Add(filteredGroup);
+                }
+            }
+        }
+
+                private async Task SetAllLayersVisibilityAsync(bool visible)
+        {
+            var isAr = LocalizationService.Instance.IsArabic;
+            StatusMessage = visible
+                ? (isAr ? "جاري تفعيل جميع الطبقات المرجعية..." : "Selecting all reference layers...")
+                : (isAr ? "جاري إلغاء تحديد جميع الطبقات..." : "Unselecting all reference layers...");
+
+            foreach (var g in LayerCategories)
+            {
+                foreach (var l in g.Layers)
+                {
+                    if (l.IsVisible != visible)
+                    {
+                        l.IsVisible = visible;
+                        await ExecuteToggleReferenceLayerAsync(l);
+                    }
+                }
+            }
+
+            StatusMessage = visible
+                ? (isAr ? "تم تحديد وتفعيل جميع الطبقات المرجعية." : "All reference layers selected.")
+                : (isAr ? "تم إلغاء تحديد جميع الطبقات المرجعية." : "All reference layers unselected.");
+        }
+
+        private async Task ExecuteToggleReferenceLayerAsync(ReferenceLayerItem item)
+        {
+            if (item == null) return;
+
+            if (item.Id == "ref_esri_wayback")
+            {
+                if (item.IsVisible)
+                {
+                    await ExecuteShowHistoricalImageryAsync();
+                }
+                else
+                {
+                    await _globeBridge.SendRequestAsync("historical.clear");
+                }
+                return;
+            }
+
+            if (item.Id == "ref_weather_stations")
+            {
+                bool ok = await _globeBridge.SetReferenceLayerAsync(
+                    item.Id, item.IsVisible, item.Opacity, item.Name, item.Url, item.LayerType, item.Attribution);
+                var isAr = LocalizationService.Instance.IsArabic;
+                StatusMessage = item.IsVisible
+                    ? (isAr ? "تم تفعيل محطات الرصد الجوي والمناخي العالمية." : "Global Weather Stations enabled (NOAA AWC METAR).")
+                    : (isAr ? "تم تعطيل محطات الرصد المناخي." : "Weather stations layer disabled.");
+                return;
+            }
+
+            if (item.Id == "ref_world_gazetteer")
+            {
+                bool ok = await _globeBridge.SetReferenceLayerAsync(
+                    item.Id, item.IsVisible, item.Opacity, item.Name, item.Url, item.LayerType, item.Attribution);
+                await _globeBridge.SetGazetteerLocaleAsync(LocalizationService.Instance.IsArabic);
+                var isAr = LocalizationService.Instance.IsArabic;
+                StatusMessage = item.IsVisible
+                    ? (isAr ? "تم تفعيل طبقة معالم وأماكن العالم الجغرافية." : "World Gazetteer landmarks enabled.")
+                    : (isAr ? "تم تعطيل طبقة معالم العالم." : "World Gazetteer layer disabled.");
+                return;
+            }
+
+            if (item.LayerType == "UserLocalVector")
+            {
+                if (item.IsVisible)
+                {
+                    if (item.Url.EndsWith(".kml", StringComparison.OrdinalIgnoreCase) || item.Url.EndsWith(".kmz", StringComparison.OrdinalIgnoreCase))
+                    {
+                        ExecuteImportKml(item.Url);
+                    }
+                    else if ((item.Url.EndsWith(".geojson", StringComparison.OrdinalIgnoreCase) || item.Url.EndsWith(".json", StringComparison.OrdinalIgnoreCase)) && File.Exists(item.Url))
+                    {
+                        try
+                        {
+                            string geojson = File.ReadAllText(item.Url);
+                            await _globeBridge.SendRequestAsync("reference.setLayer", new
+                            {
+                                id = item.Id,
+                                visible = true,
+                                name = item.Name,
+                                layerType = "UserLocalVector",
+                                geojson = System.Text.Json.JsonDocument.Parse(geojson).RootElement
+                            });
+                        }
+                        catch
+                        {
+                            ExecuteImportVector(item.Url);
+                        }
+                    }
+                    else
+                    {
+                        ExecuteImportVector(item.Url);
+                    }
+                    StatusMessage = $"Loaded user layer '{item.Name}'.";
+                }
+                else
+                {
+                    await _globeBridge.SetReferenceLayerAsync(item.Id, false, 1.0, item.Name, item.Url, item.LayerType, item.Attribution);
+                    StatusMessage = $"User layer '{item.Name}' disabled.";
+                }
+                return;
+            }
+
+            bool success = await _globeBridge.SetReferenceLayerAsync(
+                item.Id,
+                item.IsVisible,
+                item.Opacity,
+                item.Name,
+                item.Url,
+                item.LayerType,
+                item.Attribution,
+                item.WmtsLayer,
+                item.DateOrTimestamp,
+                item.Query);
+
+            if (success)
+            {
+                StatusMessage = item.IsVisible
+                    ? $"Layer '{item.Name}' enabled ({item.Provider})."
+                    : $"Layer '{item.Name}' disabled.";
+            }
+            else
+            {
+                StatusMessage = $"Could not update layer '{item.Name}'.";
+            }
+        }
+
+        private async Task ExecuteSetWeatherMetricAsync(string metric)
+        {
+            if (string.IsNullOrWhiteSpace(metric)) return;
+            await _globeBridge.SetWeatherMetricAsync(metric);
+            var isAr = LocalizationService.Instance.IsArabic;
+            string metricName = metric switch
+            {
+                "temperature" => isAr ? "درجة الحرارة" : "Temperature",
+                "humidity" => isAr ? "الرطوبة النسبية" : "Relative Humidity",
+                "wind" => isAr ? "سرعة واتجاه الرياح" : "Wind Speed & Direction",
+                "pressure" => isAr ? "الضغط الجوي" : "Barometric Pressure",
+                "fahrenheit" => isAr ? "فهرنهايت" : "Fahrenheit (°F)",
+                "celsius" => isAr ? "مئوية" : "Celsius (°C)",
+                _ => metric
+            };
+            StatusMessage = isAr
+                ? $"تم ضبط مؤشر محطات الطقس إلى {metricName}."
+                : $"Weather stations display set to {metricName}.";
+        }
+
+        private async Task ExecuteZoomToReferenceLayerAsync(ReferenceLayerItem item)
+        {
+            if (item == null) return;
+            var type = item.LayerType?.ToLowerInvariant() ?? "";
+            if (type == "overpassgeojson" || type == "wikipediageosearch" || type == "wikimediageosearch")
+            {
+                // Regional view so OpenStreetMap and GeoData features load immediately
+                var viewLon = _lastKnownCenter?.Longitude ?? _currentCamera.Longitude;
+                var viewLat = _lastKnownCenter?.Latitude ?? _currentCamera.Latitude;
+                await _globeBridge.FlyToAsync(new CameraState
+                {
+                    Latitude = viewLat,
+                    Longitude = viewLon,
+                    Altitude = 65000.0,
+                    Heading = 0,
+                    Pitch = -90,
+                    Roll = 0
+                });
+            }
+            else
+            {
+                await _globeBridge.SendRequestAsync("camera.fullExtent", new { });
+            }
+            StatusMessage = LocalizationService.Instance.IsArabic
+                ? $"تم الانتقال إلى نطاق '{item.Name}'."
+                : $"Zoomed to '{item.Name}'.";
+        }
+
+        private void ExecuteAddCustomLocalLayer()
+        {
+            var dlg = new Microsoft.Win32.OpenFileDialog
+            {
+                Title = LocalizationService.Instance.IsArabic ? "إضافة طبقة جغرافية محلية" : "Add Local Geographic Layer",
+                Filter = "GIS Datasets (*.geojson;*.shp;*.kml;*.kmz;*.gpkg;*.tif)|*.geojson;*.shp;*.kml;*.kmz;*.gpkg;*.tif|All Files (*.*)|*.*",
+                CheckFileExists = true
+            };
+
+            if (dlg.ShowDialog() == true)
+            {
+                var layersDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "ZEarth", "Layers");
+                try
+                {
+                    if (!Directory.Exists(layersDir)) Directory.CreateDirectory(layersDir);
+                    var destPath = Path.Combine(layersDir, Path.GetFileName(dlg.FileName));
+                    if (!File.Exists(destPath) && !string.Equals(dlg.FileName, destPath, StringComparison.OrdinalIgnoreCase))
+                    {
+                        File.Copy(dlg.FileName, destPath, overwrite: true);
+                    }
+                    RefreshUserLayers();
+                    ApplyLayersFilter();
+                    StatusMessage = $"Added layer '{Path.GetFileName(dlg.FileName)}' to My Local Layers.";
+                }
+                catch (Exception ex)
+                {
+                    LoggerService.Instance.LogError("Failed to add user layer", ex);
+                    MessageBox.Show($"Failed to add layer:\n{ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+
+        private void ExecuteOpenLayersFolder()
+        {
+            var layersDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "ZEarth", "Layers");
+            try
+            {
+                if (!Directory.Exists(layersDir)) Directory.CreateDirectory(layersDir);
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("explorer.exe", layersDir) { UseShellExecute = true });
+            }
+            catch (Exception ex)
+            {
+                LoggerService.Instance.LogError("Failed to open layers folder", ex);
+            }
         }
 
         private void ShowDiagnostics()

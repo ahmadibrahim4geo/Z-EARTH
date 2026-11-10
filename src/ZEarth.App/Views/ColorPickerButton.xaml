@@ -48,10 +48,10 @@
             <Border Background="{DynamicResource Brush.Ribbon.Background}"
                     BorderBrush="{DynamicResource Brush.Control.Border}"
                     BorderThickness="1" CornerRadius="6" Padding="10" Margin="0,4,0,0">
-                <StackPanel Width="196">
-                    <TextBlock Text="Grid colour" FontWeight="SemiBold" FontSize="11"
+                <StackPanel Width="240">
+                    <TextBlock Text="Colour Palette &amp; Custom Hex" FontWeight="SemiBold" FontSize="11"
                                Foreground="{DynamicResource Brush.Text.Primary}" Margin="0,0,0,6"/>
-                    <UniformGrid x:Name="SwatchGrid" Columns="6" Margin="0,0,0,8"/>
+                    <UniformGrid x:Name="SwatchGrid" Columns="8" Margin="0,0,0,8"/>
                     <TextBox x:Name="HexInput" Height="26" MaxLength="9"
                              Background="{DynamicResource Brush.Control.Background}"
                              Foreground="{DynamicResource Brush.Text.Primary}"

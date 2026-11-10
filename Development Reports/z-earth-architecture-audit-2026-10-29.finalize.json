@@ -1,0 +1,436 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "explainer",
+  "quality": "showcase",
+  "startedAt": "2026-10-29T03:40:11.440Z",
+  "specification": {
+    "path": "C:\\Users\\ahmad\\.codex\\visualizations\\2026\\10\\28\\01a182e2-adde-7f33-a85b-4f0b4f92835b\\zearth-audit.archify.md",
+    "sha256": "1c03ed49bfe76dd6934ad6cdfb8a2681a4b0397d5b6effe69ac25ba67946cb04",
+    "bytes": 55554
+  },
+  "artifact": {
+    "path": "D:\\My Software\\Z EARTH\\canonical-main\\Development Reports\\Z-EARTH-Architecture-Audit-2026-10-29.html",
+    "sha256": "a8dd2aae2dc6aff49371eab10aaa19fceb6c7b84441407068ee8084fc43c12a7",
+    "bytes": 1042565
+  },
+  "stages": {
+    "browser-check": {
+      "status": "not-run",
+      "execution": "not-requested"
+    },
+    "validate": {
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": null,
+      "execution": "embedded-in-deliver",
+      "command": [
+        "C:\\Users\\ahmad\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\node\\bin\\node.exe",
+        "C:\\Users\\ahmad\\.codex\\visualizations\\2026\\10\\28\\01a182e2-adde-7f33-a85b-4f0b4f92835b\\archify-source\\archify\\bin\\archify.mjs",
+        "deliver",
+        "explainer",
+        "C:\\Users\\ahmad\\.codex\\visualizations\\2026\\10\\28\\01a182e2-adde-7f33-a85b-4f0b4f92835b\\zearth-audit.archify.md",
+        "D:\\My Software\\Z EARTH\\canonical-main\\Development Reports\\Z-EARTH-Architecture-Audit-2026-10-29.html",
+        "--quality",
+        "showcase",
+        "--json"
+      ],
+      "receipt": {
+        "schemaVersion": 1,
+        "ok": true,
+        "command": "validate",
+        "specification": {
+          "sha256": "1c03ed49bfe76dd6934ad6cdfb8a2681a4b0397d5b6effe69ac25ba67946cb04",
+          "bytes": 55554
+        },
+        "validation": {
+          "checksPassed": 4,
+          "checkCount": 4,
+          "compositionProfile": "showcase",
+          "compositionStatus": "pass",
+          "errors": 0,
+          "warnings": 0
+        }
+      }
+    },
+    "deliver": {
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": 1181,
+      "command": [
+        "C:\\Users\\ahmad\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\node\\bin\\node.exe",
+        "C:\\Users\\ahmad\\.codex\\visualizations\\2026\\10\\28\\01a182e2-adde-7f33-a85b-4f0b4f92835b\\archify-source\\archify\\bin\\archify.mjs",
+        "deliver",
+        "explainer",
+        "C:\\Users\\ahmad\\.codex\\visualizations\\2026\\10\\28\\01a182e2-adde-7f33-a85b-4f0b4f92835b\\zearth-audit.archify.md",
+        "D:\\My Software\\Z EARTH\\canonical-main\\Development Reports\\Z-EARTH-Architecture-Audit-2026-10-29.html",
+        "--quality",
+        "showcase",
+        "--json"
+      ],
+      "receipt": {
+        "schemaVersion": 1,
+        "receiptId": "72e592d4-9df6-4d58-b3ff-bb6dc0788aaa",
+        "ok": true,
+        "command": "deliver",
+        "type": "explainer",
+        "input": "C:\\Users\\ahmad\\.codex\\visualizations\\2026\\10\\28\\01a182e2-adde-7f33-a85b-4f0b4f92835b\\zearth-audit.archify.md",
+        "output": "D:\\My Software\\Z EARTH\\canonical-main\\Development Reports\\Z-EARTH-Architecture-Audit-2026-10-29.html",
+        "explainer": {
+          "preparedSha256": "37b7108eb6dfc0a24523d3eaf8c87e63c29915e59ef158fcefa7f0658bb38a4d",
+          "dependencies": [
+            {
+              "kind": "diagram-spec",
+              "id": "system-map",
+              "inline": true,
+              "sha256": "bb02046ca96bae581f71ed9f6d09c83c9954812cfa78aed2f2ae3e63f18b883f",
+              "bytes": 1734
+            }
+          ]
+        },
+        "specification": {
+          "sha256": "1c03ed49bfe76dd6934ad6cdfb8a2681a4b0397d5b6effe69ac25ba67946cb04",
+          "bytes": 55554
+        },
+        "artifact": {
+          "sha256": "a8dd2aae2dc6aff49371eab10aaa19fceb6c7b84441407068ee8084fc43c12a7",
+          "bytes": 1042565
+        },
+        "validation": {
+          "checksPassed": 4,
+          "checkCount": 4,
+          "compositionProfile": "showcase",
+          "compositionStatus": "pass",
+          "errors": 0,
+          "warnings": 0
+        },
+        "update": {
+          "status": "unavailable",
+          "installedVersion": null,
+          "availableVersion": null,
+          "releaseNotes": null,
+          "checkedAt": null,
+          "source": null,
+          "noticeRequired": false,
+          "noticeText": null,
+          "reason": "disabled"
+        }
+      }
+    },
+    "check": {
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": 648,
+      "command": [
+        "C:\\Users\\ahmad\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\node\\bin\\node.exe",
+        "C:\\Users\\ahmad\\.codex\\visualizations\\2026\\10\\28\\01a182e2-adde-7f33-a85b-4f0b4f92835b\\archify-source\\archify\\bin\\archify.mjs",
+        "check",
+        "D:\\My Software\\Z EARTH\\canonical-main\\Development Reports\\Z-EARTH-Architecture-Audit-2026-10-29.html",
+        "--require-provenance"
+      ],
+      "receipt": {
+        "ok": true,
+        "file": "D:\\My Software\\Z EARTH\\canonical-main\\Development Reports\\Z-EARTH-Architecture-Audit-2026-10-29.html",
+        "family": "explainer",
+        "artifact": {
+          "sha256": "a8dd2aae2dc6aff49371eab10aaa19fceb6c7b84441407068ee8084fc43c12a7",
+          "bytes": 1042565
+        },
+        "checks": [
+          {
+            "name": "explainer_structure",
+            "ok": true,
+            "details": [
+              "398 unique DOM IDs"
+            ]
+          },
+          {
+            "name": "explainer_payload_identity",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "explainer_dependencies",
+            "ok": true,
+            "details": [
+              "1 frozen dependencies"
+            ]
+          },
+          {
+            "name": "explainer_native_diagrams",
+            "ok": true,
+            "details": [
+              "system-map: pass"
+            ]
+          }
+        ],
+        "composition": {
+          "schemaVersion": 1,
+          "profile": "showcase",
+          "status": "pass",
+          "summary": {
+            "errors": 0,
+            "warnings": 0
+          },
+          "issues": [],
+          "nativeDiagrams": [
+            {
+              "id": "system-map",
+              "receipt": {
+                "ok": true,
+                "file": "C:\\Users\\ahmad\\AppData\\Local\\Temp\\archify-explainer-check-GClGjT\\child.html",
+                "artifact": {
+                  "sha256": "a6b236ebf1f00e84dd6bcd734c24b213ab8cca9024e9ca0d72e15bd9a9e97251",
+                  "bytes": 852302
+                },
+                "checks": [
+                  {
+                    "name": "single_svg",
+                    "ok": true,
+                    "details": [
+                      "found 1 <svg> block(s)"
+                    ]
+                  },
+                  {
+                    "name": "finite_svg",
+                    "ok": true,
+                    "details": []
+                  },
+                  {
+                    "name": "orthogonal_arrows",
+                    "ok": true,
+                    "details": []
+                  },
+                  {
+                    "name": "label_route_clearance",
+                    "ok": true,
+                    "details": []
+                  },
+                  {
+                    "name": "relationship_crossings",
+                    "ok": true,
+                    "details": []
+                  },
+                  {
+                    "name": "relationship_corridors",
+                    "ok": true,
+                    "details": []
+                  },
+                  {
+                    "name": "container_border_runs",
+                    "ok": true,
+                    "details": []
+                  },
+                  {
+                    "name": "route_rhythm",
+                    "ok": true,
+                    "details": []
+                  },
+                  {
+                    "name": "legend_clearance",
+                    "ok": true,
+                    "details": []
+                  }
+                ],
+                "composition": {
+                  "schemaVersion": 1,
+                  "profile": "showcase",
+                  "status": "pass",
+                  "summary": {
+                    "errors": 0,
+                    "warnings": 0
+                  },
+                  "metrics": {
+                    "properCrossings": 0,
+                    "resolvedCrossovers": 1,
+                    "ambiguousCorridors": 0,
+                    "arrowheadCollisions": 0,
+                    "containerBorderRuns": 0,
+                    "labelRouteClearanceIssues": 0,
+                    "labelCanvasOverflowIssues": 0,
+                    "minLabelRouteClearance": 5,
+                    "desktopReadabilityIssues": 0,
+                    "viewportHeightIssues": 0,
+                    "minProjectedNodeTextPx": 8,
+                    "maxBends": 4,
+                    "routesOverSuggestedBends": 2,
+                    "maxStretch": 1.25,
+                    "routesOverSuggestedStretch": 0,
+                    "minSegmentPx": 24,
+                    "minInteriorSegmentPx": 57,
+                    "shortSegmentCount": 0,
+                    "shortEndpointSegmentCount": 0,
+                    "shortInteriorSegmentCount": 0,
+                    "microSegmentCount": 0
+                  },
+                  "suggestedLimits": {
+                    "bendsPerRelationship": 2,
+                    "stretch": 1.35,
+                    "segmentPx": 16,
+                    "microSegmentPx": 8
+                  },
+                  "routeReview": {
+                    "crossings": [
+                      {
+                        "left": {
+                          "id": "vm-to-bridge-1",
+                          "from": "vm",
+                          "to": "bridge",
+                          "label": "طلب",
+                          "collectionIndex": 4,
+                          "artifactIndex": 5
+                        },
+                        "right": {
+                          "id": "bridge-to-vm-1",
+                          "from": "bridge",
+                          "to": "vm",
+                          "label": "حالة",
+                          "collectionIndex": 9,
+                          "artifactIndex": 10
+                        },
+                        "point": [
+                          93,
+                          986
+                        ],
+                        "sharedNode": "vm"
+                      }
+                    ],
+                    "detours": [
+                      {
+                        "relationship": {
+                          "id": "vm-to-bridge-1",
+                          "from": "vm",
+                          "to": "bridge",
+                          "label": "طلب",
+                          "collectionIndex": 4,
+                          "artifactIndex": 5
+                        },
+                        "bends": 4,
+                        "stretch": 1.25,
+                        "directCorridorBlockers": [
+                          {
+                            "id": "services",
+                            "label": "خدمات المشروع والبيانات",
+                            "box": [
+                              40,
+                              638,
+                              168,
+                              60
+                            ]
+                          },
+                          {
+                            "id": "store",
+                            "label": "إعدادات وملفات المشروع",
+                            "box": [
+                              40,
+                              824,
+                              162,
+                              60
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "relationship": {
+                          "id": "bridge-to-vm-1",
+                          "from": "bridge",
+                          "to": "vm",
+                          "label": "حالة",
+                          "collectionIndex": 9,
+                          "artifactIndex": 10
+                        },
+                        "bends": 4,
+                        "stretch": 1.226,
+                        "directCorridorBlockers": [
+                          {
+                            "id": "services",
+                            "label": "خدمات المشروع والبيانات",
+                            "box": [
+                              40,
+                              638,
+                              168,
+                              60
+                            ]
+                          },
+                          {
+                            "id": "store",
+                            "label": "إعدادات وملفات المشروع",
+                            "box": [
+                              40,
+                              824,
+                              162,
+                              60
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  "leadingSpace": {
+                    "measured": true,
+                    "emptyTopPx": 80,
+                    "emptyTopRatio": 0.051,
+                    "occupiedTop": 80,
+                    "viewBoxTop": 0,
+                    "canvasHeight": 1576,
+                    "typicalNodeHeight": 60,
+                    "reviewSuggested": false
+                  },
+                  "desktopReadability": {
+                    "budgetBasis": "legacy-930",
+                    "readerContract": "declared-wide-v1",
+                    "availableDiagramWidth": 930,
+                    "actualBudgetPx": 930,
+                    "limit": "legacy",
+                    "requestedTargetPx": 7.5,
+                    "requestedTargetMet": true,
+                    "hardFloorPx": 6,
+                    "hardFloorMet": true,
+                    "minimumOwner": {
+                      "kind": "edge",
+                      "id": "user-to-ui-1",
+                      "from": "user",
+                      "to": "ui"
+                    },
+                    "minimumSourceTextPx": 8,
+                    "minimumProjectedTextPx": 8,
+                    "semanticTextCount": 19
+                  },
+                  "issues": []
+                }
+              }
+            }
+          ]
+        },
+        "diagnostics": [],
+        "provenance": "current",
+        "deliveryReceiptId": "72e592d4-9df6-4d58-b3ff-bb6dc0788aaa"
+      }
+    }
+  },
+  "browserCheck": {
+    "requested": false,
+    "ran": false
+  },
+  "diagnostics": [],
+  "evidence": {
+    "receipt": "D:\\My Software\\Z EARTH\\canonical-main\\Development Reports\\z-earth-architecture-audit-2026-10-29.finalize.json",
+    "summaryReceipt": "D:\\My Software\\Z EARTH\\canonical-main\\Development Reports\\z-earth-architecture-audit-2026-10-29.finalize-summary.json"
+  },
+  "visualReview": "not-requested",
+  "finishedAt": "2026-10-29T03:40:13.804Z",
+  "durationMs": 2364,
+  "update": {
+    "status": "unavailable",
+    "installedVersion": null,
+    "availableVersion": null,
+    "releaseNotes": null,
+    "checkedAt": null,
+    "source": null,
+    "noticeRequired": false,
+    "noticeText": null,
+    "reason": "disabled"
+  }
+}

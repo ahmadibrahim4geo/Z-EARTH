@@ -21,6 +21,31 @@
 
 يمكن متابعة نتائج [بناء Windows والاختبارات](https://github.com/ahmadibrahim4geo/Z-EARTH/actions/workflows/build-and-test.yml). ما زال تشغيل البرنامج تفاعليًا والتحقق من WebView2 والبطاقة الرسومية مطلوبين.
 
+## 📥 تحميل وتشغيل Z EARTH (نسخة Windows x64 المحمولة)
+
+- **رابط التحميل المباشر لملف الـ ZIP:** يمكنك تنزيل النسخة المحمولة الجاهزة مباشرة عبر حزمة الـ Artifacts الناتجة عن أحدث بناء لفرع main في صفحة [GitHub Actions Workflows](https://github.com/ahmadibrahim4geo/Z-EARTH/actions/workflows/build-and-test.yml) (اسم الحزمة: `Z-EARTH-v2.2.4-win-x64-portable-preview`). بعد فك الضغط، شغّل `Z EARTH.exe` مباشرة.
+- **صفحة الإصدارات الرسمية:** تفضل بزيارة [GitHub Releases](https://github.com/ahmadibrahim4geo/Z-EARTH/releases) لمتابعة الإصدارات وسجلات التغيير.
+- **دليل التحميل والتشغيل بالتفصيل:** راجع [docs/PORTABLE_PREVIEW.md](docs/PORTABLE_PREVIEW.md).
+
+---
+
+## أحدث التحديثات والتطويرات البرمجية — نوفمبر 2026
+
+شملت هذه التحديثات معالجات جذرية وترقيات حقيقية في الكود المصدري وواجهة التطبيق ومحرك الكرة الأرضية:
+
+| المجال | التحديثات المنفذة | التفاصيل التقنية |
+| --- | --- | --- |
+| **قائمة الـ Explorer وتغيير الحجم** | • استعادة وضبط فواصل السحب التفاعلي (`GridSplitters`) بين الأماكن والطبقات.<br>• تدعيم فاصل التحجيم الرأسي بين شريط الـ Explorer ومسرح الكرة الأرضية مع تأثير بصري عند التمرير.<br>• تثبيت حقل البحث في أعلى النافذة. | [`MainWindow.xaml`](src/ZEarth.App/Views/MainWindow.xaml) |
+| **وضع الدارك ثيم والتباين العالي** | • استبدال مربعات الإدخال البيضاء بخلفيات فحمية داكنة `#202226` وإطار بارز `#45484E` مع نصوص ناصعة البياض `#FFFFFF` ومؤشر كتابة أزرق `#22A8DE`.<br>• إعادة تصميم تبويبات البحث إلى أزرار Segmented متباينة بشارات زرقاء للتبويب النشط. | [`DarkTheme.xaml`](src/ZEarth.App/Themes/DarkTheme.xaml) |
+| **حفظ والتحكم في موقع الجهاز** | • إمكانية حفظ موقع الجهاز الملتقط بضغطة زر كمعلم متكامل (`PlaceItem`) داخل شجرة `My Places`.<br>• إمكانية تغيير الاسم والرمز واللون عبر نافذة الخصائص وحذفه بحرية في أي وقت مع عرض دقة الـ GPS ووقت الالتقاط. | [`MainViewModel.cs`](src/ZEarth.App/ViewModels/MainViewModel.cs) |
+| **البحث الذكي بالإحداثيات** | • تعرف تلقائي على الإحداثيات الجغرافية المسقطة **WGS 84** (DD/DMS) والإحداثيات المترية العالمية **UTM** (Easting/Northing بالامتار).<br>• اشتقاق زون الـ UTM المناسب تلقائياً من مركز الرؤية والتحويل المباشر.<br>• إلغاء القائمة المنسدلة للإسقاط اليدوي، وحل مشكلة النقر المزدوج على التاب لتنتقل بنقرة واحدة. | [`SearchService.cs`](src/ZEarth.Domain/Search/SearchService.cs) |
+| **نافذة تأكيد الحفظ الحديثة** | • استبدال رسالة Win32 القديمة بنافذة مخصصة حديثة [`ModernSaveConfirmationDialog`](src/ZEarth.App/Views/ModernSaveConfirmationDialog.cs) بتصميم داكن `#1E2024` ودعم كامل للغتين العربية والإنجليزية. | [`ModernSaveConfirmationDialog.cs`](src/ZEarth.App/Views/ModernSaveConfirmationDialog.cs) |
+| **محاكي الطيران والتحكم ثنائي اللغة** | • **دعم لوحة المفاتيح العربية:** خريطة مفاتيح للحروف العربية (`ص`، `س`، `ش`، `ي`، `ث`، `ض`، `ح`، `ة`) مع قراءة `keyCode` المادية.<br>• **اتجاهات زاوية الارتفاع (Pitch):** السهم للأعلى و W وحركة الفأرة للأمام ترفع الكاميرا للأعلى؛ السهم للأسفل و S وحركة الفأرة للخلف تنزل الكاميرا للأسفل.<br>• **سرعة مفتوحة وتعجيل:** تسارع غير محدود وتدرج السرعة مع الارتفاع ودعم `Shift Turbo Boost`. | [`flight-simulator.js`](src/ZEarth.Globe/Assets/flight-simulator.js) |
+| **شبكة الإحداثيات والمعالم الرئيسية** | • خيار إظهار/إخفاء مستقل لخطوط نطاقات الـ UTM في نافذة الخيارات تحت `Grid Visibility`.<br>• إظهار مسميات دوائر ومعالم الإسناد الرئيسية بالاسم الرسمي فقط بدون درجات الإحداثيات الزائدة مع تعريب كامل.<br>• **وضع Automatic Adaptive Grid:** تفرع وتزايد خطوط الشبكة تلقائياً مع عمل زوم للداخل. | [`OptionsDialog.xaml`](src/ZEarth.App/Views/OptionsDialog.xaml)<br>[`cesium-engine.js`](src/ZEarth.Globe/Assets/cesium-engine.js) |
+| **فحص واستدعاء طبقات الـ Layers** | • **World Gazetteer:** رفع مسافة الرؤية إلى 35,000 كم لتظهر المعالم من الفضاء.<br>• **محطات الرصد (NOAA METAR):** رفع مسافة الرؤية إلى 25,000 كم.<br>• **طبقات Overpass GeoJSON:** استدعاء ديناميكي للظواهر عند تحريك الكاميرا (`moveEnd`) وتفادي أخطاء الإلغاء.<br>• **NASA GIBS:** استدعاء لقطات اليوم السابق المكتملة لتفادي أخطاء 404.<br>• **USGS Earthquakes:** شارات قوى ومسميات الزلازل حتى 15,000 كم.<br>• **الانتقال السريع للطبقة (`✈`):** تحويل الكاميرا لارتفاع 65 كم لتحميل البيانات المحلية فوراً. | [`cesium-engine.js`](src/ZEarth.Globe/Assets/cesium-engine.js) |
+
+---
+
 ## تحميل Z EARTH.exe لتجربة البرنامج
 
 لم يكن المستودع ينشر ملف EXE في قسم Releases رغم نجاح بناء الكود. أضفنا آلية تجهيز نسخة **Windows x64 Portable Preview** قابلة للتنزيل من GitHub Actions بعد اجتياز اختبارات المشروع. افتح [صفحة البناء والتحميل](https://github.com/ahmadibrahim4geo/Z-EARTH/actions/workflows/build-and-test.yml)، واختر أحدث تشغيل ناجح على فرع main، ثم حمّل `Z-EARTH-v2.2.4-win-x64-portable-preview` من قسم Artifacts. بعد فك الضغط ستجد `Z EARTH.exe` مع ملفات تشغيل Cesium؛ **لا تنقل EXE بمفرده**.

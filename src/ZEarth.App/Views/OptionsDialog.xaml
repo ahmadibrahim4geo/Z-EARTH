@@ -44,8 +44,8 @@
             <Setter Property="BorderThickness" Value="1"/><Setter Property="SnapsToDevicePixels" Value="True"/>
         </Style>
         <Style x:Key="SettingsCardStyle" TargetType="Border">
-            <Setter Property="Background" Value="#202932"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource Brush.Ribbon.Border}"/>
+            <Setter Property="Background" Value="{DynamicResource Brush.Control.Background}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource Brush.Control.Border}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="CornerRadius" Value="10"/>
             <Setter Property="Padding" Value="16"/>
@@ -87,8 +87,8 @@
             <Setter Property="Padding" Value="0"/>
             <Setter Property="Margin" Value="0,0,0,6"/>
             <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}"/>
-            <Setter Property="Background" Value="#202932"/>
-            <Setter Property="BorderBrush" Value="#3B4650"/>
+            <Setter Property="Background" Value="{DynamicResource Brush.Control.Background}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource Brush.Control.Border}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -154,8 +154,8 @@
             <Setter Property="Margin" Value="0,0,0,8"/>
         </Style>
         <Style x:Key="InfoPanelStyle" TargetType="Border" BasedOn="{StaticResource SettingsCardStyle}">
-            <Setter Property="Background" Value="#102E3E"/>
-            <Setter Property="BorderBrush" Value="#1879A6"/>
+            <Setter Property="Background" Value="{DynamicResource Brush.Control.Background}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource Brush.Accent}"/>
         </Style>
         <Style x:Key="GridFormatRadioStyle" TargetType="RadioButton">
             <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}"/>
@@ -163,7 +163,7 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="RadioButton">
-                        <Border x:Name="Card" Background="#1B252E" BorderBrush="#46525C" BorderThickness="1" CornerRadius="7" Padding="10" Margin="0,0,8,0">
+                        <Border x:Name="Card" Background="{DynamicResource Brush.Control.Background}" BorderBrush="{DynamicResource Brush.Control.Border}" BorderThickness="1" CornerRadius="7" Padding="10" Margin="0,0,8,0">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
@@ -241,7 +241,7 @@
         <Border Grid.Row="0" Background="{DynamicResource Brush.Ribbon.Background}" CornerRadius="10" Padding="20,14" Margin="0,0,0,10"
                 BorderBrush="{DynamicResource Brush.Ribbon.Border}" BorderThickness="1">
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                <Border Width="48" Height="48" CornerRadius="24" Background="#223C4A" Margin="0,0,16,0">
+                <Border Width="48" Height="48" CornerRadius="24" Background="{DynamicResource Brush.Control.Background}" BorderBrush="{DynamicResource Brush.Accent}" BorderThickness="1" Margin="0,0,16,0">
                     <Path Data="{StaticResource Icon.Options}" Style="{StaticResource RibbonIconPathStyle}" Width="26" Height="26"
                           Fill="{DynamicResource Brush.Accent}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                 </Border>
@@ -259,7 +259,252 @@
                     AutomationProperties.AutomationId="ZE.Options.Tabs">
             
             <!-- Tab 1: Measurement Units -->
-            <TabItem Header="Measurement Units" AutomationProperties.AutomationId="ZE.Options.Tab.Units">
+                    <!-- ==================== TAB 0: GENERAL SETTINGS ==================== -->
+        <TabItem Header="General Settings" AutomationProperties.AutomationId="ZE.Options.Tab.General">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel Margin="20,16">
+                    <!-- Header Banner Card -->
+                    <Border Style="{StaticResource InfoPanelStyle}" Margin="0,0,0,16">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Border Width="48" Height="48" CornerRadius="24" Background="{DynamicResource Brush.Control.Background}" BorderBrush="{DynamicResource Brush.Accent}" BorderThickness="1.5" Margin="0,0,16,0" VerticalAlignment="Center">
+                                <TextBlock Text="⚙" FontSize="24" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{DynamicResource Brush.Accent}"/>
+                            </Border>
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="General Preferences" Style="{StaticResource SectionTitleStyle}"/>
+                                <TextBlock Text="Configure core application behavior, viewport reticle, default measurement units, and drawing symbology." Style="{StaticResource HintTextStyle}"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <!-- Card 1: Interface & Language -->
+                    <Border Style="{StaticResource SettingsCardStyle}" Margin="0,0,0,14">
+                        <StackPanel>
+                            <TextBlock Text="Application &amp; Language" Style="{StaticResource SectionTitleStyle}"/>
+                            <TextBlock Text="Set your preferred display language and viewport guidance overlays." Style="{StaticResource HintTextStyle}" Margin="0,0,0,12"/>
+
+                            <Grid Margin="0,0,0,12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="220"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="User Interface Language:" Style="{StaticResource FieldLabelStyle}" VerticalAlignment="Center"/>
+                                <ComboBox Grid.Column="1" x:Name="GeneralLanguageCombo" Style="{StaticResource SettingsComboStyle}" Height="34" Width="260" HorizontalAlignment="Left" AutomationProperties.AutomationId="ZE.Options.General.Language">
+                                    <ComboBoxItem Content="English (Default)" Tag="en"/>
+                                    <ComboBoxItem Content="العربية (Arabic)" Tag="ar"/>
+                                </ComboBox>
+                            </Grid>
+
+                            <Separator Background="{DynamicResource Brush.Control.Border}" Margin="0,4,0,12"/>
+
+                            <CheckBox x:Name="GeneralCenterReticleCheck" Style="{StaticResource SwitchCheckBoxStyle}" Margin="0,0,0,10" IsChecked="True" AutomationProperties.AutomationId="ZE.Options.General.Reticle">
+                                <StackPanel Margin="4,0,0,0">
+                                    <TextBlock Text="Show Center Crosshair Reticle (⊕) in Viewport" FontWeight="SemiBold" FontSize="12" Foreground="{DynamicResource Brush.Text.Primary}"/>
+                                    <TextBlock Text="Displays an accurate optical target marker at the exact center of the 3D globe / 2D map." Style="{StaticResource HintTextStyle}"/>
+                                </StackPanel>
+                            </CheckBox>
+
+                            <CheckBox x:Name="GeneralCenterCoordsCheck" Style="{StaticResource SwitchCheckBoxStyle}" Margin="0,0,0,10" IsChecked="True" AutomationProperties.AutomationId="ZE.Options.General.CenterCoords">
+                                <StackPanel Margin="4,0,0,0">
+                                    <TextBlock Text="Display Real-Time Center Coordinates in Status Bar" FontWeight="SemiBold" FontSize="12" Foreground="{DynamicResource Brush.Text.Primary}"/>
+                                    <TextBlock Text="Shows formatted latitude, longitude, and ground elevation of the center reticle with 1-click copy." Style="{StaticResource HintTextStyle}"/>
+                                </StackPanel>
+                            </CheckBox>
+
+                            <CheckBox x:Name="GeneralCameraMotionCheck" Style="{StaticResource SwitchCheckBoxStyle}" Margin="0,0,0,4" IsChecked="True" AutomationProperties.AutomationId="ZE.Options.General.CameraMotion">
+                                <StackPanel Margin="4,0,0,0">
+                                    <TextBlock Text="Enable Smooth Camera Inertia &amp; Transitions" FontWeight="SemiBold" FontSize="12" Foreground="{DynamicResource Brush.Text.Primary}"/>
+                                    <TextBlock Text="Provides fluid Google Earth-style inertial pan, smooth zoom easing, and cinematic flight transitions." Style="{StaticResource HintTextStyle}"/>
+                                </StackPanel>
+                            </CheckBox>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Card 2: Measurement & 3D Calculations -->
+                    <Border Style="{StaticResource SettingsCardStyle}" Margin="0,0,0,14">
+                        <StackPanel>
+                            <TextBlock Text="Measurement &amp; 3D Calculations" Style="{StaticResource SectionTitleStyle}"/>
+                            <TextBlock Text="Choose default measurement units and enable true 3D surface slope distance calculation." Style="{StaticResource HintTextStyle}" Margin="0,0,0,12"/>
+
+                            <Grid Margin="0,0,0,12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                                    <TextBlock Text="Distance Unit" Style="{StaticResource FieldLabelStyle}"/>
+                                    <ComboBox x:Name="GeneralDistanceUnitCombo" Style="{StaticResource SettingsComboStyle}" Height="34" AutomationProperties.AutomationId="ZE.Options.General.DistanceUnit">
+                                        <ComboBoxItem Content="Auto Metric (m / km)" Tag="AutoMetric"/>
+                                        <ComboBoxItem Content="Meters (m)" Tag="Meters"/>
+                                        <ComboBoxItem Content="Kilometers (km)" Tag="Kilometers"/>
+                                        <ComboBoxItem Content="Feet (ft)" Tag="Feet"/>
+                                        <ComboBoxItem Content="Miles (mi)" Tag="Miles"/>
+                                        <ComboBoxItem Content="Nautical Miles (NM)" Tag="NauticalMiles"/>
+                                    </ComboBox>
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="1" Margin="4,0,4,0">
+                                    <TextBlock Text="Area Unit" Style="{StaticResource FieldLabelStyle}"/>
+                                    <ComboBox x:Name="GeneralAreaUnitCombo" Style="{StaticResource SettingsComboStyle}" Height="34" AutomationProperties.AutomationId="ZE.Options.General.AreaUnit">
+                                        <ComboBoxItem Content="Auto Metric (m² / ha / km²)" Tag="AutoMetric"/>
+                                        <ComboBoxItem Content="Square Meters (m²)" Tag="SquareMeters"/>
+                                        <ComboBoxItem Content="Hectares (ha)" Tag="Hectares"/>
+                                        <ComboBoxItem Content="Square Kilometers (km²)" Tag="SquareKilometers"/>
+                                        <ComboBoxItem Content="Acres (ac)" Tag="Acres"/>
+                                        <ComboBoxItem Content="Egyptian Feddan (فدان)" Tag="EgyptianFeddan"/>
+                                    </ComboBox>
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="2" Margin="8,0,0,0">
+                                    <TextBlock Text="Elevation Unit" Style="{StaticResource FieldLabelStyle}"/>
+                                    <ComboBox x:Name="GeneralElevationUnitCombo" Style="{StaticResource SettingsComboStyle}" Height="34" AutomationProperties.AutomationId="ZE.Options.General.ElevationUnit">
+                                        <ComboBoxItem Content="Meters (m)" Tag="Meters"/>
+                                        <ComboBoxItem Content="Feet (ft)" Tag="Feet"/>
+                                    </ComboBox>
+                                </StackPanel>
+                            </Grid>
+
+                            <Separator Background="{DynamicResource Brush.Control.Border}" Margin="0,4,0,12"/>
+
+                            <CheckBox x:Name="General3DMeasureCheck" Style="{StaticResource SwitchCheckBoxStyle}" Margin="0,0,0,4" IsChecked="True" AutomationProperties.AutomationId="ZE.Options.General.3DMeasure">
+                                <StackPanel Margin="4,0,0,0">
+                                    <TextBlock Text="Enable 3D Terrain-Aware Measurement (Slope Distance &amp; ΔZ)" FontWeight="SemiBold" FontSize="12" Foreground="{DynamicResource Brush.Text.Primary}"/>
+                                    <TextBlock Text="Accounts for terrain elevation when calculating distance between points: computes true 3D slope length and vertical difference." Style="{StaticResource HintTextStyle}"/>
+                                </StackPanel>
+                            </CheckBox>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Card 3: Default Drawing & Measurement Styling with Full Color Choice -->
+                    <Border Style="{StaticResource SettingsCardStyle}" Margin="0,0,0,14">
+                        <StackPanel>
+                            <TextBlock Text="Default Drawing &amp; Measurement Styling" Style="{StaticResource SectionTitleStyle}"/>
+                            <TextBlock Text="Customize default line colors, polygon fills, and survey measurement styles with full chromatic freedom." Style="{StaticResource HintTextStyle}" Margin="0,0,0,12"/>
+
+                            <Grid Margin="0,0,0,12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                                    <TextBlock Text="Default Drawing Line Color:" Style="{StaticResource FieldLabelStyle}"/>
+                                    <views:ColorPickerButton x:Name="GeneralLineColorPicker" Height="30" AutomationProperties.AutomationId="ZE.Options.General.LineColor"/>
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="1" Margin="10,0,0,0">
+                                    <TextBlock Text="Default Polygon Fill Color:" Style="{StaticResource FieldLabelStyle}"/>
+                                    <views:ColorPickerButton x:Name="GeneralFillColorPicker" Height="30" AutomationProperties.AutomationId="ZE.Options.General.FillColor"/>
+                                </StackPanel>
+                            </Grid>
+
+                            <Grid Margin="0,0,0,12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                                    <TextBlock Text="Measurement Outline Color:" Style="{StaticResource FieldLabelStyle}"/>
+                                    <views:ColorPickerButton x:Name="GeneralMeasureLineColorPicker" Height="30" AutomationProperties.AutomationId="ZE.Options.General.MeasureLineColor"/>
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="1" Margin="10,0,0,0">
+                                    <TextBlock Text="Measurement Translucent Fill Color:" Style="{StaticResource FieldLabelStyle}"/>
+                                    <views:ColorPickerButton x:Name="GeneralMeasureFillColorPicker" Height="30" AutomationProperties.AutomationId="ZE.Options.General.MeasureFillColor"/>
+                                </StackPanel>
+                            </Grid>
+
+                            <Grid Margin="0,0,0,4">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                                    <TextBlock Text="Default Point Marker Symbol:" Style="{StaticResource FieldLabelStyle}"/>
+                                    <ComboBox x:Name="GeneralPointSymbolCombo" Style="{StaticResource SettingsComboStyle}" Height="34" AutomationProperties.AutomationId="ZE.Options.General.PointSymbol">
+                                        <ComboBoxItem Content="📍 Classic Pushpin" Tag="Pin"/>
+                                        <ComboBoxItem Content="🎯 Survey Benchmark" Tag="Benchmark"/>
+                                        <ComboBoxItem Content="🔵 Solid Dot" Tag="Dot"/>
+                                        <ComboBoxItem Content="⭐ Star Placemark" Tag="Star"/>
+                                    </ComboBox>
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="1" Margin="10,0,0,0">
+                                    <TextBlock Text="Measurement Highlight Preview:" Style="{StaticResource FieldLabelStyle}"/>
+                                    <Border Background="{DynamicResource Brush.Control.Background}" BorderBrush="{DynamicResource Brush.Control.Border}" BorderThickness="1" CornerRadius="6" Padding="10,6">
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <Border Width="16" Height="16" Background="#FACC15" BorderBrush="#000000" BorderThickness="1.5" CornerRadius="3" Margin="0,0,8,0"/>
+                                            <TextBlock Text="Custom survey outline &amp; fill with live terrain snapping" FontSize="11" Foreground="{DynamicResource Brush.Text.Primary}" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Card 4: 3D Flight Navigation & Controls -->
+                    <Border Style="{StaticResource SettingsCardStyle}" Margin="0,0,0,14">
+                        <StackPanel>
+                            <TextBlock Text="3D Flight Navigation &amp; Simulation" Style="{StaticResource SectionTitleStyle}"/>
+                            <TextBlock Text="Configure flight steering mode, keyboard scancodes, and mouse virtual joystick." Style="{StaticResource HintTextStyle}" Margin="0,0,0,12"/>
+
+                            <Grid Margin="0,0,0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                                    <TextBlock Text="Flight Steering Mode:" Style="{StaticResource FieldLabelStyle}"/>
+                                    <ComboBox x:Name="FlightSteeringModeCombo" Style="{StaticResource SettingsComboStyle}" Height="34" AutomationProperties.AutomationId="ZE.Options.Flight.SteeringMode">
+                                        <ComboBoxItem Content="Keyboard (W/A/S/D &amp; Arrows)" Tag="Keyboard"/>
+                                        <ComboBoxItem Content="Mouse Steering (Virtual Joystick around Center)" Tag="Mouse"/>
+                                    </ComboBox>
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="1" Margin="10,0,0,0">
+                                    <TextBlock Text="Maximum Flight Cruise Speed:" Style="{StaticResource FieldLabelStyle}"/>
+                                    <ComboBox x:Name="FlightMaxSpeedCombo" Style="{StaticResource SettingsComboStyle}" Height="34" AutomationProperties.AutomationId="ZE.Options.Flight.MaxSpeed">
+                                        <ComboBoxItem Content="Jet High-Speed Cruise (1200 km/h)" Tag="1200"/>
+                                        <ComboBoxItem Content="Turboprop Speed (650 km/h)" Tag="650"/>
+                                        <ComboBoxItem Content="Scenic Slow Exploration (350 km/h)" Tag="350"/>
+                                    </ComboBox>
+                                </StackPanel>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Card 4: Startup & View Preferences -->
+                    <Border Style="{StaticResource SettingsCardStyle}" Margin="0,0,0,8">
+                        <StackPanel>
+                            <TextBlock Text="Startup &amp; View Preferences" Style="{StaticResource SectionTitleStyle}"/>
+                            <TextBlock Text="Specify the default camera viewpoint when launching Z EARTH." Style="{StaticResource HintTextStyle}" Margin="0,0,0,12"/>
+
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="220"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="Initial Startup Camera View:" Style="{StaticResource FieldLabelStyle}" VerticalAlignment="Center"/>
+                                <ComboBox Grid.Column="1" x:Name="GeneralStartupViewCombo" Style="{StaticResource SettingsComboStyle}" Height="34" Width="260" HorizontalAlignment="Left" AutomationProperties.AutomationId="ZE.Options.General.StartupView">
+                                    <ComboBoxItem Content="Default World View" Tag="World"/>
+                                    <ComboBoxItem Content="Last Saved Session Position" Tag="LastSession"/>
+                                </ComboBox>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+        </TabItem>
+
+        <TabItem Header="Measurement Units" AutomationProperties.AutomationId="ZE.Options.Tab.Units">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16">
                     <StackPanel>
                         <Border Style="{StaticResource SettingsCardStyle}" Padding="18,14" Margin="0,0,0,12">
@@ -280,7 +525,7 @@
                             <Border Grid.Column="0" Style="{StaticResource SettingsCardStyle}" MinHeight="320">
                                 <StackPanel>
                                     <Grid Margin="0,0,0,12"><Grid.ColumnDefinitions><ColumnDefinition Width="58"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                        <Border Width="48" Height="48" CornerRadius="24" Background="#12364A"><TextBlock Text="↔" FontSize="26" Foreground="{DynamicResource Brush.Accent}" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                                        <Border Width="48" Height="48" CornerRadius="24" Background="{DynamicResource Brush.Control.Background}" BorderBrush="{DynamicResource Brush.Accent}" BorderThickness="1"><TextBlock Text="↔" FontSize="26" Foreground="{DynamicResource Brush.Accent}" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
                                         <StackPanel Grid.Column="1"><TextBlock Text="Distance" Style="{StaticResource SectionTitleStyle}" FontSize="17"/><TextBlock Text="Horizontal distances, paths, ruler results and navigation readouts." Style="{StaticResource HintTextStyle}"/></StackPanel>
                                     </Grid>
                                     <TextBlock Text="Distance unit" Style="{StaticResource FieldLabelStyle}"/>
@@ -298,7 +543,7 @@
                             <Border Grid.Column="2" Style="{StaticResource SettingsCardStyle}" MinHeight="320">
                                 <StackPanel>
                                     <Grid Margin="0,0,0,12"><Grid.ColumnDefinitions><ColumnDefinition Width="58"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                        <Border Width="48" Height="48" CornerRadius="24" Background="#123D35"><TextBlock Text="⬡" FontSize="24" Foreground="#44D477" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                                        <Border Width="48" Height="48" CornerRadius="24" Background="{DynamicResource Brush.Control.Background}" BorderBrush="{DynamicResource Brush.Accent}" BorderThickness="1"><TextBlock Text="⬡" FontSize="24" Foreground="{DynamicResource Brush.Accent}" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
                                         <StackPanel Grid.Column="1"><TextBlock Text="Area" Style="{StaticResource SectionTitleStyle}" FontSize="17"/><TextBlock Text="Polygon measurements, regions, coverage and saved area results." Style="{StaticResource HintTextStyle}"/></StackPanel>
                                     </Grid>
                                     <TextBlock Text="Area unit" Style="{StaticResource FieldLabelStyle}"/>
@@ -316,7 +561,7 @@
                             <Border Grid.Column="4" Style="{StaticResource SettingsCardStyle}" MinHeight="320">
                                 <StackPanel>
                                     <Grid Margin="0,0,0,12"><Grid.ColumnDefinitions><ColumnDefinition Width="58"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                        <Border Width="48" Height="48" CornerRadius="24" Background="#12364A"><TextBlock Text="▲" FontSize="23" Foreground="{DynamicResource Brush.Accent}" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                                        <Border Width="48" Height="48" CornerRadius="24" Background="{DynamicResource Brush.Control.Background}" BorderBrush="{DynamicResource Brush.Accent}" BorderThickness="1"><TextBlock Text="▲" FontSize="23" Foreground="{DynamicResource Brush.Accent}" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
                                         <StackPanel Grid.Column="1"><TextBlock Text="Elevation" Style="{StaticResource SectionTitleStyle}" FontSize="17"/><TextBlock Text="Terrain samples, profiles, placemark altitude and eye height." Style="{StaticResource HintTextStyle}"/></StackPanel>
                                     </Grid>
                                     <TextBlock Text="Elevation unit" Style="{StaticResource FieldLabelStyle}"/>
@@ -363,7 +608,7 @@
                                     <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="48"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                                         <TextBlock Text="⚙" FontSize="30" Foreground="{DynamicResource Brush.Accent}" VerticalAlignment="Center"/><StackPanel Grid.Column="1"><TextBlock Text="Snap Behavior" Style="{StaticResource SectionTitleStyle}" FontSize="17"/><TextBlock Text="Configure the ground tolerance used by all supported tools." Style="{StaticResource HintTextStyle}"/></StackPanel>
                                     </Grid>
-                                    <Border Style="{StaticResource SettingsCardStyle}" Margin="0,18,0,0" Background="#1B252E">
+                                    <Border Style="{StaticResource SettingsCardStyle}" Margin="0,18,0,0" Background="{DynamicResource Brush.Control.Background}">
                                         <StackPanel>
                                             <TextBlock Text="Ground tolerance" Style="{StaticResource SectionTitleStyle}"/>
                                             <TextBlock Text="Maximum geodesic ground distance from a candidate to snap, in metres." Style="{StaticResource HintTextStyle}"/>
@@ -434,9 +679,9 @@
                                 </DockPanel>
                             </Border>
                             <StackPanel Grid.Column="2">
-                                <Border Style="{StaticResource SettingsCardStyle}" Margin="0,0,0,12"><StackPanel><TextBlock Text="Credits &amp; Provider Identity" Style="{StaticResource SectionTitleStyle}" FontSize="16"/><TextBlock Text="Attribution display" Style="{StaticResource FieldLabelStyle}" Margin="0,8,0,5"/><ComboBox x:Name="CreditsModeCombo" Style="{StaticResource SettingsComboStyle}" Margin="0,0,0,8"><ComboBoxItem Content="Compact provider row + details panel" Tag="Compact"/><ComboBoxItem Content="Expanded in-viewport text attribution" Tag="Expanded"/></ComboBox><CheckBox x:Name="ProviderLogosCheck" Content="Show optional provider identity marks" Margin="0,4"/><TextBlock Text="Required text credits remain visible even when optional marks are hidden." Style="{StaticResource HintTextStyle}" Margin="22,0,0,10"/><Border Background="#182129" BorderBrush="#46525C" BorderThickness="1" CornerRadius="7" Padding="12"><WrapPanel><TextBlock Text="Esri" FontWeight="Bold" Margin="0,0,20,0"/><TextBlock Text="OpenStreetMap" FontWeight="Bold" Margin="0,0,20,0"/><TextBlock Text="OpenTopoMap" FontWeight="Bold" Margin="0,0,20,0"/><TextBlock Text="Natural Earth" FontWeight="Bold"/></WrapPanel></Border></StackPanel>
+                                <Border Style="{StaticResource SettingsCardStyle}" Margin="0,0,0,12"><StackPanel><TextBlock Text="Credits &amp; Provider Identity" Style="{StaticResource SectionTitleStyle}" FontSize="16"/><TextBlock Text="Attribution display" Style="{StaticResource FieldLabelStyle}" Margin="0,8,0,5"/><ComboBox x:Name="CreditsModeCombo" Style="{StaticResource SettingsComboStyle}" Margin="0,0,0,8"><ComboBoxItem Content="Compact provider row + details panel" Tag="Compact"/><ComboBoxItem Content="Expanded in-viewport text attribution" Tag="Expanded"/></ComboBox><CheckBox x:Name="ProviderLogosCheck" Content="Show optional provider identity marks" Margin="0,4"/><TextBlock Text="Required text credits remain visible even when optional marks are hidden." Style="{StaticResource HintTextStyle}" Margin="22,0,0,10"/><Border Background="{DynamicResource Brush.Control.Background}" BorderBrush="{DynamicResource Brush.Control.Border}" BorderThickness="1" CornerRadius="7" Padding="12"><WrapPanel><TextBlock Text="Esri" FontWeight="Bold" Margin="0,0,20,0"/><TextBlock Text="OpenStreetMap" FontWeight="Bold" Margin="0,0,20,0"/><TextBlock Text="OpenTopoMap" FontWeight="Bold" Margin="0,0,20,0"/><TextBlock Text="Natural Earth" FontWeight="Bold"/></WrapPanel></Border></StackPanel>
                                 </Border>
-                                <Border Style="{StaticResource SettingsCardStyle}" Margin="0,0,0,12"><StackPanel><TextBlock Text="Output, Appearance &amp; Navigation" Style="{StaticResource SectionTitleStyle}" FontSize="16"/><TextBlock Text="Screenshot folder" Style="{StaticResource FieldLabelStyle}" Margin="0,8,0,5"/><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBox x:Name="ScreenshotDirectoryInput" Style="{StaticResource SettingsInputStyle}" ToolTip="Absolute local folder for saved screenshots"/><Button Grid.Column="1" Content="Browse…" Style="{StaticResource SecondaryButtonStyle}" Margin="8,0,0,0" Click="OnBrowseScreenshotFolderClick" AutomationProperties.Name="Browse screenshot folder"/></Grid><Grid Margin="0,12,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><StackPanel><TextBlock Text="Theme" Style="{StaticResource FieldLabelStyle}"/><ComboBox x:Name="ThemeCombo" Style="{StaticResource SettingsComboStyle}"><ComboBoxItem Content="Dark Charcoal" Tag="Dark"/><ComboBoxItem Content="Light High-Contrast" Tag="Light"/></ComboBox></StackPanel><StackPanel Grid.Column="2"><TextBlock Text="Language" Style="{StaticResource FieldLabelStyle}"/><ComboBox x:Name="LanguageCombo" Style="{StaticResource SettingsComboStyle}"><ComboBoxItem Content="English" Tag="en"/><ComboBoxItem Content="العربية" Tag="ar"/></ComboBox></StackPanel></Grid><CheckBox x:Name="SceneMarkersCheck" Content="Show saved scene locations as ground markers" Margin="0,12,0,0"/><TextBlock Text="Navigation zoom step" Style="{StaticResource FieldLabelStyle}" Margin="0,12,0,5"/><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="54"/></Grid.ColumnDefinitions><Slider x:Name="ZoomSensitivitySlider" Minimum="0.10" Maximum="0.60" Value="0.33" TickFrequency="0.05" IsSnapToTickEnabled="True"/><TextBlock Grid.Column="1" Text="{Binding Value, ElementName=ZoomSensitivitySlider, StringFormat='{}{0:P0}'}" HorizontalAlignment="Right" Foreground="{DynamicResource Brush.Accent}" FontWeight="SemiBold"/></Grid></StackPanel>
+                                <Border Style="{StaticResource SettingsCardStyle}" Margin="0,0,0,12"><StackPanel><TextBlock Text="Output, Appearance &amp; Navigation" Style="{StaticResource SectionTitleStyle}" FontSize="16"/><TextBlock Text="Screenshot folder" Style="{StaticResource FieldLabelStyle}" Margin="0,8,0,5"/><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBox x:Name="ScreenshotDirectoryInput" Style="{StaticResource SettingsInputStyle}" ToolTip="Absolute local folder for saved screenshots"/><Button Grid.Column="1" Content="Browse…" Style="{StaticResource SecondaryButtonStyle}" Margin="8,0,0,0" Click="OnBrowseScreenshotFolderClick" AutomationProperties.Name="Browse screenshot folder"/></Grid><Grid Margin="0,12,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><StackPanel><TextBlock Text="Theme" Style="{StaticResource FieldLabelStyle}"/><ComboBox x:Name="ThemeCombo" Style="{StaticResource SettingsComboStyle}"><ComboBoxItem Content="Dark Charcoal" Tag="Dark"/><ComboBoxItem Content="Light High-Contrast" Tag="Light"/></ComboBox></StackPanel><StackPanel Grid.Column="2"><TextBlock Text="Language" Style="{StaticResource FieldLabelStyle}"/><ComboBox x:Name="LanguageCombo" Style="{StaticResource SettingsComboStyle}"><ComboBoxItem Content="English" Tag="en"/><ComboBoxItem Content="Arabic" Tag="ar"/></ComboBox></StackPanel></Grid><CheckBox x:Name="SceneMarkersCheck" Content="Show saved scene locations as ground markers" Margin="0,12,0,0"/><TextBlock Text="Navigation zoom step" Style="{StaticResource FieldLabelStyle}" Margin="0,12,0,5"/><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="54"/></Grid.ColumnDefinitions><Slider x:Name="ZoomSensitivitySlider" Minimum="0.10" Maximum="0.60" Value="0.33" TickFrequency="0.05" IsSnapToTickEnabled="True"/><TextBlock Grid.Column="1" Text="{Binding Value, ElementName=ZoomSensitivitySlider, StringFormat='{}{0:P0}'}" HorizontalAlignment="Right" Foreground="{DynamicResource Brush.Accent}" FontWeight="SemiBold"/></Grid></StackPanel>
                                 </Border>
                                 <Border Style="{StaticResource InfoPanelStyle}"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="44"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Border Width="32" Height="32" CornerRadius="16" Background="{DynamicResource Brush.Accent}"><TextBlock Text="?" FontWeight="Bold" FontSize="17" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><StackPanel Grid.Column="1"><TextBlock Text="Basemap Information" Style="{StaticResource SectionTitleStyle}"/><TextBlock Text="Save Settings applies the selection to the live Cesium globe. Hosted services need internet access and may enforce quotas or fair-use terms. Z EARTH keeps required credits visible and does not cache hosted tiles for offline redistribution." Style="{StaticResource HintTextStyle}"/></StackPanel></Grid></Border>
                             </StackPanel>
@@ -469,6 +714,7 @@
                             <Border Grid.Column="0" Style="{StaticResource SettingsCardStyle}" Padding="12">
                                 <DockPanel><TextBlock DockPanel.Dock="Top" Text="Available Elevation Models" Style="{StaticResource SectionTitleStyle}" FontSize="16" Foreground="#65BCEB" Margin="4,0,4,10"/>
                                     <ListBox x:Name="TerrainProviderCombo" Style="{StaticResource GalleryListStyle}" ItemContainerStyle="{StaticResource GalleryItemStyle}" SelectionChanged="OnTerrainProviderSelectionChanged" MaxHeight="535" AutomationProperties.Name="Default elevation model gallery">
+                                        <ListBoxItem Tag="localDem"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="64"/><ColumnDefinition Width="*"/><ColumnDefinition Width="72"/></Grid.ColumnDefinitions><Border Style="{StaticResource TerrainThumbnailFrameStyle}" Background="{StaticResource TerrainThumbLocal}"/><StackPanel Grid.Column="1"><TextBlock Text="Local DEM / Bathymetry" FontWeight="Bold"/><TextBlock Text="GeoTIFF/IMG/DEM numeric raster" Style="{StaticResource HintTextStyle}"/></StackPanel><TextBlock Grid.Column="2" Text="Local" Foreground="#61C4F2" HorizontalAlignment="Right"/></Grid></ListBoxItem>
                                         <ListBoxItem Tag="demTerrain"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="64"/><ColumnDefinition Width="*"/><ColumnDefinition Width="72"/></Grid.ColumnDefinitions><Border Style="{StaticResource TerrainThumbnailFrameStyle}" Background="{StaticResource TerrainThumbDem}"/><StackPanel Grid.Column="1"><TextBlock Text="AWS Terrarium DEM" FontWeight="Bold"/><TextBlock Text="Global numeric land elevation" Style="{StaticResource HintTextStyle}"/></StackPanel><TextBlock Grid.Column="2" Text="No key" Foreground="#55D891" HorizontalAlignment="Right"/></Grid></ListBoxItem>
                                         <ListBoxItem Tag="copernicusGlo30"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="64"/><ColumnDefinition Width="*"/><ColumnDefinition Width="84"/></Grid.ColumnDefinitions><Border Style="{StaticResource TerrainThumbnailFrameStyle}" Background="{StaticResource TerrainThumbDem}"/><StackPanel Grid.Column="1"><TextBlock Text="Copernicus DEM GLO-30" FontWeight="Bold"/><TextBlock Text="Official CDSE Process API • 30 m DSM" Style="{StaticResource HintTextStyle}"/></StackPanel><TextBlock Grid.Column="2" Text="Free API" Foreground="#55D891" HorizontalAlignment="Right"/></Grid></ListBoxItem>
                                         <ListBoxItem Tag="srtm30"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="64"/><ColumnDefinition Width="*"/><ColumnDefinition Width="84"/></Grid.ColumnDefinitions><Border Style="{StaticResource TerrainThumbnailFrameStyle}" Background="{StaticResource TerrainThumbDem}"/><StackPanel Grid.Column="1"><TextBlock Text="SRTM-backed Terrain" FontWeight="Bold"/><TextBlock Text="AWS Terrain Tiles • ~30 m source regions" Style="{StaticResource HintTextStyle}"/></StackPanel><TextBlock Grid.Column="2" Text="No key" Foreground="#55D891" HorizontalAlignment="Right"/></Grid></ListBoxItem>
@@ -477,7 +723,6 @@
                                         <ListBoxItem Tag="worldBathymetry"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="64"/><ColumnDefinition Width="*"/><ColumnDefinition Width="72"/></Grid.ColumnDefinitions><Border Style="{StaticResource TerrainThumbnailFrameStyle}" Background="{StaticResource TerrainThumbBathymetry}"/><StackPanel Grid.Column="1"><TextBlock Text="Cesium World Bathymetry" FontWeight="Bold"/><TextBlock Text="Land + seabed relief; asset 2426648" Style="{StaticResource HintTextStyle}"/></StackPanel><TextBlock Grid.Column="2" Text="ion token" Foreground="#61C4F2" HorizontalAlignment="Right"/></Grid></ListBoxItem>
                                         <ListBoxItem Tag="gebco2026"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="64"/><ColumnDefinition Width="*"/><ColumnDefinition Width="84"/></Grid.ColumnDefinitions><Border Style="{StaticResource TerrainThumbnailFrameStyle}" Background="{StaticResource TerrainThumbGebco}"/><StackPanel Grid.Column="1"><TextBlock Text="GEBCO 2026 Bathymetry" FontWeight="Bold"/><TextBlock Text="Australian Antarctic Division mirror • 15 arc-second" Style="{StaticResource HintTextStyle}"/></StackPanel><TextBlock Grid.Column="2" Text="No key" Foreground="#55D891" HorizontalAlignment="Right"/></Grid></ListBoxItem>
                                         <ListBoxItem Tag="ellipsoid"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="64"/><ColumnDefinition Width="*"/><ColumnDefinition Width="72"/></Grid.ColumnDefinitions><Border Style="{StaticResource TerrainThumbnailFrameStyle}" Background="{StaticResource TerrainThumbEllipsoid}"/><StackPanel Grid.Column="1"><TextBlock Text="WGS84 Ellipsoid" FontWeight="Bold"/><TextBlock Text="Smooth globe; no elevation" Style="{StaticResource HintTextStyle}"/></StackPanel><TextBlock Grid.Column="2" Text="Offline" Foreground="#D6D9DC" HorizontalAlignment="Right"/></Grid></ListBoxItem>
-                                        <ListBoxItem Tag="localDem"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="64"/><ColumnDefinition Width="*"/><ColumnDefinition Width="72"/></Grid.ColumnDefinitions><Border Style="{StaticResource TerrainThumbnailFrameStyle}" Background="{StaticResource TerrainThumbLocal}"/><StackPanel Grid.Column="1"><TextBlock Text="Local DEM / Bathymetry" FontWeight="Bold"/><TextBlock Text="GeoTIFF/IMG/DEM numeric raster" Style="{StaticResource HintTextStyle}"/></StackPanel><TextBlock Grid.Column="2" Text="Local" Foreground="#61C4F2" HorizontalAlignment="Right"/></Grid></ListBoxItem>
                                         <ListBoxItem Tag="custom"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="64"/><ColumnDefinition Width="*"/><ColumnDefinition Width="72"/></Grid.ColumnDefinitions><Border Style="{StaticResource TerrainThumbnailFrameStyle}" Background="{StaticResource TerrainThumbCustom}"/><StackPanel Grid.Column="1"><TextBlock Text="Custom Quantized-Mesh Service" FontWeight="Bold"/><TextBlock Text="Authorized HTTPS terrain endpoint" Style="{StaticResource HintTextStyle}"/></StackPanel><TextBlock Grid.Column="2" Text="Online" Foreground="#61C4F2" HorizontalAlignment="Right"/></Grid></ListBoxItem>
                                     </ListBox>
                                 </DockPanel>
@@ -486,7 +731,7 @@
                             <Border Grid.Column="2" Style="{StaticResource SettingsCardStyle}">
                                 <StackPanel>
                                     <TextBlock Text="Source Configuration" Style="{StaticResource SectionTitleStyle}"/>
-                                    <Border Background="#17364A" BorderBrush="#2D739A" BorderThickness="1" CornerRadius="7" Padding="12" Margin="0,8,0,12"><StackPanel><TextBlock x:Name="TerrainSourceTitle" Text="AWS Terrarium DEM" FontWeight="Bold" FontSize="15"/><TextBlock x:Name="TerrainSourceSummary" Text="Global numeric land elevation from AWS Open Data." Style="{StaticResource HintTextStyle}" Margin="0,4,0,0"/></StackPanel></Border>
+                                    <Border Background="{DynamicResource Brush.Control.Background}" BorderBrush="{DynamicResource Brush.Control.Border}" BorderThickness="1" CornerRadius="7" Padding="12" Margin="0,8,0,12"><StackPanel><TextBlock x:Name="TerrainSourceTitle" Text="AWS Terrarium DEM" FontWeight="Bold" FontSize="15"/><TextBlock x:Name="TerrainSourceSummary" Text="Global numeric land elevation from AWS Open Data." Style="{StaticResource HintTextStyle}" Margin="0,4,0,0"/></StackPanel></Border>
                                     <TextBlock x:Name="TerrainRequirementsText" Text="No credentials are required for AWS Terrarium DEM."
                                                Style="{StaticResource HintTextStyle}" Margin="0,0,0,12"/>
 
@@ -590,7 +835,7 @@
                                         BorderBrush="{DynamicResource Brush.Control.Border}" BorderThickness="1"
                                         ToolTip="Restore the documented Map Grid defaults. Nothing is saved until Save Settings."/>
                                 <Border x:Name="GridStatePill" Grid.Column="3" CornerRadius="14" Padding="12,5"
-                                        Background="#22303A" BorderBrush="{DynamicResource Brush.Control.Border}"
+                                        Background="{DynamicResource Brush.Control.Background}" BorderBrush="{DynamicResource Brush.Control.Border}"
                                         BorderThickness="1" VerticalAlignment="Center"
                                         ToolTip="Controlled by View → Show Grid">
                                     <StackPanel Orientation="Horizontal">
@@ -630,6 +875,13 @@
                                     <CheckBox x:Name="LatitudeLinesCheck" Content="Show latitude lines (parallels)"
                                               Style="{StaticResource SwitchCheckBoxStyle}"
                                               Margin="0,0,0,6" Foreground="{DynamicResource Brush.Text.Primary}"/>
+                                    <CheckBox x:Name="UtmZonesVisibilityCheck" Content="Show UTM zone boundaries"
+                                              IsChecked="{Binding IsChecked, ElementName=UtmZonesCheck, Mode=TwoWay}"
+                                              Style="{StaticResource SwitchCheckBoxStyle}"
+                                              Margin="0,0,0,6" Foreground="{DynamicResource Brush.Text.Primary}"/>
+                                    <TextBlock Text="6° longitude lattice and latitude bands (-80° to 84°)."
+                                               TextWrapping="Wrap" FontSize="10.5" Margin="22,-2,0,8"
+                                               Foreground="{DynamicResource Brush.Text.Secondary}"/>
                                     <TextBlock Text="Labels are generated automatically for every enabled component. View → Show Grid overrides all of them."
                                                TextWrapping="Wrap" FontSize="10.5" Margin="0,2,0,0"
                                                Foreground="{DynamicResource Brush.Text.Secondary}"/>
@@ -738,6 +990,11 @@
                                     </StackPanel>
 
                                     <StackPanel Grid.Column="2">
+                                        <CheckBox x:Name="AutoAdaptiveGridCheck" Content="Automatic Adaptive Grid"
+                                                  FontWeight="SemiBold"
+                                                  Style="{StaticResource SwitchCheckBoxStyle}"
+                                                  Margin="0,0,0,6" Foreground="{DynamicResource Brush.Text.Primary}"
+                                                  Checked="OnAutoAdaptiveGridChecked" Unchecked="OnAutoAdaptiveGridUnchecked"/>
                                         <TextBlock Text="Longitude interval (0 = auto)" FontWeight="SemiBold"
                                                    Foreground="{DynamicResource Brush.Text.Primary}" Margin="0,0,0,4"/>
                                         <TextBox x:Name="LongitudeIntervalInput" Height="26" MaxLength="6"
@@ -809,7 +1066,7 @@
                                 </Grid>
                                 <Border Style="{StaticResource InfoPanelStyle}" Margin="0,10,0,0" Padding="10">
                                     <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="1.3*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                        <Border Height="170" CornerRadius="7" BorderBrush="#2D739A" BorderThickness="1" ClipToBounds="True" Background="#101C27">
+                                        <Border Height="170" CornerRadius="7" BorderBrush="{DynamicResource Brush.Control.Border}" BorderThickness="1" ClipToBounds="True" Background="{DynamicResource Brush.Control.Background}">
                                             <Grid AutomationProperties.Name="Dynamic map grid and UTM preview">
                                                 <!-- Image and overlays share one viewport so resizing cannot crop one independently of the other. -->
                                                 <Viewbox Stretch="Uniform" IsHitTestVisible="False">
@@ -882,6 +1139,127 @@
                                 </Border>
                             </StackPanel>
                         </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <TabItem Header="Cesium Ion" AutomationProperties.AutomationId="ZE.Options.Tab.Cesium">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16">
+                    <StackPanel>
+                        <Grid Margin="4,0,4,14">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="64"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <TextBlock Text="🌐" FontSize="36" VerticalAlignment="Center"/>
+                            <StackPanel Grid.Column="1">
+                                <TextBlock Text="Cesium Ion Platform &amp; 3D Geospatial Content" Style="{StaticResource SectionTitleStyle}" FontSize="19"/>
+                                <TextBlock Text="Connect your Cesium ion account to access global 3D elevation, bathymetry, photorealistic imagery, and OSM 3D buildings." Style="{StaticResource HintTextStyle}" FontSize="12"/>
+                            </StackPanel>
+                            <Border Grid.Column="2" x:Name="CesiumIonStatusPill" Background="{DynamicResource Brush.Control.Background}" BorderBrush="#2D608A" BorderThickness="1" CornerRadius="14" Padding="12,5" VerticalAlignment="Center">
+                                <StackPanel Orientation="Horizontal">
+                                    <Ellipse x:Name="CesiumIonStatusDot" Width="8" Height="8" Fill="#65BCEB" Margin="0,0,7,0" VerticalAlignment="Center"/>
+                                    <TextBlock x:Name="CesiumIonStatusText" Text="Configured" FontWeight="SemiBold"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="1.1*"/><ColumnDefinition Width="14"/><ColumnDefinition Width="0.9*"/></Grid.ColumnDefinitions>
+                            <!-- Left: Token & Account -->
+                            <StackPanel Grid.Column="0">
+                                <Border Style="{StaticResource SettingsCardStyle}" Margin="0,0,0,14">
+                                    <StackPanel>
+                                        <TextBlock Text="Cesium ion Authentication" Style="{StaticResource SectionTitleStyle}"/>
+                                        <TextBlock Text="Paste your personal access token from ion.cesium.com. Tokens are encrypted using Windows DPAPI protection for your user account." Style="{StaticResource HintTextStyle}" Margin="0,4,0,10"/>
+
+                                        <TextBlock Text="Cesium ion access token" Style="{StaticResource FieldLabelStyle}"/>
+                                        <Grid Margin="0,0,0,10">
+                                            <PasswordBox x:Name="DedicatedIonTokenBox" Height="38" Padding="8,5" Background="{DynamicResource Brush.Control.Background}" Foreground="{DynamicResource Brush.Text.Primary}" BorderBrush="{DynamicResource Brush.Control.Border}" PasswordChanged="OnDedicatedIonTokenPasswordChanged" AutomationProperties.Name="Cesium ion access token"/>
+                                            <TextBox x:Name="DedicatedIonTokenVisibleBox" Style="{StaticResource SettingsInputStyle}" Visibility="Collapsed" TextChanged="OnDedicatedIonTokenVisibleChanged"/>
+                                            <Button Content="👁" HorizontalAlignment="Right" Width="42" Margin="0,1,1,1" Style="{StaticResource SecondaryButtonStyle}" Click="OnToggleDedicatedTokenVisibilityClick" AutomationProperties.Name="Show or hide Cesium ion token"/>
+                                        </Grid>
+
+                                        <Grid Margin="0,4,0,10">
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="10"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                            <Button Content="Verify Token" Style="{StaticResource PrimaryButtonStyle}" Click="OnVerifyIonTokenClick"/>
+                                            <Button Grid.Column="2" Content="Get Cesium ion Token ↗" Style="{StaticResource SecondaryButtonStyle}" Click="OnOpenCesiumIonClick"/>
+                                        </Grid>
+                                        <TextBlock x:Name="IonVerifyResultText" Text="Tokens are verified live against Cesium ion asset endpoints." Style="{StaticResource HintTextStyle}"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Style="{StaticResource InfoPanelStyle}">
+                                    <StackPanel>
+                                        <TextBlock Text="Cesium ion Ecosystem &amp; Free Tier" Style="{StaticResource SectionTitleStyle}"/>
+                                        <TextBlock Text="• Free Community accounts include 5 GB storage and 75,000 monthly tile requests." Style="{StaticResource HintTextStyle}" Margin="0,6,0,2"/>
+                                        <TextBlock Text="• Cesium World Terrain (Asset 1) provides multi-resolution quantized-mesh DEM." Style="{StaticResource HintTextStyle}" Margin="0,2"/>
+                                        <TextBlock Text="• Cesium OSM Buildings (Asset 96188) renders 350M+ 3D buildings globally." Style="{StaticResource HintTextStyle}" Margin="0,2"/>
+                                        <TextBlock Text="• Bing Maps Aerial with Labels (Asset 2) provides satellite view with road labels." Style="{StaticResource HintTextStyle}" Margin="0,2"/>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+
+                            <!-- Right: Assets Catalog -->
+                            <Border Grid.Column="2" Style="{StaticResource SettingsCardStyle}">
+                                <StackPanel>
+                                    <TextBlock Text="Available Ion Curated Assets" Style="{StaticResource SectionTitleStyle}"/>
+                                    <TextBlock Text="Select an asset to configure or activate:" Style="{StaticResource HintTextStyle}" Margin="0,4,0,10"/>
+
+                                    <ListBox x:Name="CesiumIonAssetsList" Style="{StaticResource GalleryListStyle}" ItemContainerStyle="{StaticResource GalleryItemStyle}" MaxHeight="450">
+                                        <ListBoxItem Tag="1" IsSelected="True">
+                                            <Grid Margin="4,2">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                <StackPanel>
+                                                    <TextBlock Text="Cesium World Terrain" FontWeight="Bold"/>
+                                                    <TextBlock Text="Asset ID: 1 • High-res global land terrain" Style="{StaticResource HintTextStyle}"/>
+                                                </StackPanel>
+                                                <TextBlock Grid.Column="1" Text="Terrain" Foreground="#61C4F2" VerticalAlignment="Center"/>
+                                            </Grid>
+                                        </ListBoxItem>
+                                        <ListBoxItem Tag="2426648">
+                                            <Grid Margin="4,2">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                <StackPanel>
+                                                    <TextBlock Text="Cesium World Bathymetry" FontWeight="Bold"/>
+                                                    <TextBlock Text="Asset ID: 2426648 • Land + Seabed relief" Style="{StaticResource HintTextStyle}"/>
+                                                </StackPanel>
+                                                <TextBlock Grid.Column="1" Text="Terrain" Foreground="#61C4F2" VerticalAlignment="Center"/>
+                                            </Grid>
+                                        </ListBoxItem>
+                                        <ListBoxItem Tag="2">
+                                            <Grid Margin="4,2">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                <StackPanel>
+                                                    <TextBlock Text="Bing Maps Aerial with Labels" FontWeight="Bold"/>
+                                                    <TextBlock Text="Asset ID: 2 • Satellite with roads and labels" Style="{StaticResource HintTextStyle}"/>
+                                                </StackPanel>
+                                                <TextBlock Grid.Column="1" Text="Imagery" Foreground="#55D891" VerticalAlignment="Center"/>
+                                            </Grid>
+                                        </ListBoxItem>
+                                        <ListBoxItem Tag="96188">
+                                            <Grid Margin="4,2">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                <StackPanel>
+                                                    <TextBlock Text="Cesium OSM Buildings" FontWeight="Bold"/>
+                                                    <TextBlock Text="Asset ID: 96188 • 350M+ 3D Buildings" Style="{StaticResource HintTextStyle}"/>
+                                                </StackPanel>
+                                                <TextBlock Grid.Column="1" Text="3D Tiles" Foreground="#E5A93C" VerticalAlignment="Center"/>
+                                            </Grid>
+                                        </ListBoxItem>
+                                        <ListBoxItem Tag="3954">
+                                            <Grid Margin="4,2">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                <StackPanel>
+                                                    <TextBlock Text="Sentinel-2 10m Imagery" FontWeight="Bold"/>
+                                                    <TextBlock Text="Asset ID: 3954 • Global cloud-free optical" Style="{StaticResource HintTextStyle}"/>
+                                                </StackPanel>
+                                                <TextBlock Grid.Column="1" Text="Imagery" Foreground="#55D891" VerticalAlignment="Center"/>
+                                            </Grid>
+                                        </ListBoxItem>
+                                    </ListBox>
+
+                                    <Button Content="Activate Selected Asset" Style="{StaticResource PrimaryButtonStyle}" Margin="0,14,0,0" Click="OnActivateIonAssetClick"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
                     </StackPanel>
                 </ScrollViewer>
             </TabItem>

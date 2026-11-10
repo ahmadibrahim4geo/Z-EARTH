@@ -70,11 +70,11 @@ public static class KmlStyleResolver
             var icon = style.Elements().FirstOrDefault(e => e.Name.LocalName == "IconStyle");
             var label = style.Elements().FirstOrDefault(e => e.Name.LocalName == "LabelStyle");
             var color = Child(item.ItemType == PlaceItemType.Path ? line
-                        : item.ItemType == PlaceItemType.Polygon ? poly : icon, "color");
+                        : (item.ItemType == PlaceItemType.Polygon || item.ItemType == PlaceItemType.Circle || item.ItemType == PlaceItemType.Ellipse) ? poly : icon, "color");
             if (TryParseKmlColor(color, out var css, out var alpha))
             {
                 item.ColorHex = css;
-                if (item.ItemType == PlaceItemType.Polygon)
+                if (item.ItemType == PlaceItemType.Polygon || item.ItemType == PlaceItemType.Circle || item.ItemType == PlaceItemType.Ellipse)
                     item.ExtendedData["FillOpacity"] = alpha.ToString("0.####", CultureInfo.InvariantCulture);
                 else if (alpha < 1)
                     item.ExtendedData["KmlAlpha"] = alpha.ToString("0.####", CultureInfo.InvariantCulture);

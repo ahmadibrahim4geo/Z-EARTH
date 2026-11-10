@@ -165,6 +165,56 @@ namespace ZEarth.Domain.Search
                         ? "Online geocoder timed out. Local results are still available."
                         : $"Online geocoder unavailable: {ex.Message}";
                 }
+
+                // Nominatim fallback if Photon returned no results and not cancelled
+                if (results.Count(r => !r.IsLocal) == 0 && !ct.IsCancellationRequested)
+                {
+                    try
+                    {
+                        string encoded = Uri.EscapeDataString(trimmedQuery);
+                        string nomUrl = $"https://nominatim.openstreetmap.org/search?q={encoded}&format=geojson&limit=5";
+                        using var nomReq = new HttpRequestMessage(HttpMethod.Get, nomUrl);
+                        nomReq.Headers.UserAgent.ParseAdd("ZEarth-Desktop-GIS/2.0 (Windows desktop application)");
+                        using var nomResp = await _httpClient.SendAsync(nomReq, ct).ConfigureAwait(false);
+                        if (nomResp.IsSuccessStatusCode)
+                        {
+                            var nomJson = await nomResp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+                            using var nomDoc = JsonDocument.Parse(nomJson);
+                            if (nomDoc.RootElement.TryGetProperty("features", out var nomFeats))
+                            {
+                                foreach (var feat in nomFeats.EnumerateArray())
+                                {
+                                    var geom = feat.GetProperty("geometry");
+                                    var coords = geom.GetProperty("coordinates");
+                                    double lon = coords[0].GetDouble();
+                                    double lat = coords[1].GetDouble();
+                                    var props = feat.GetProperty("properties");
+                                    string name = props.TryGetProperty("display_name", out var dn) ? dn.GetString() ?? trimmedQuery : trimmedQuery;
+                                    results.Add(new SearchResultItem
+                                    {
+                                        Title = name.Split(',')[0].Trim(),
+                                        Subtitle = $"{name} • Nominatim",
+                                        Longitude = lon,
+                                        Latitude = lat,
+                                        Altitude = 15000.0,
+                                        Source = "OSM Nominatim Geocoder",
+                                        SourceBadge = "Online",
+                                        Icon = "🌍",
+                                        IsLocal = false
+                                    });
+                                }
+                            }
+                        }
+                    }
+                    catch (OperationCanceledException) when (ct.IsCancellationRequested)
+                    {
+                        throw;
+                    }
+                    catch
+                    {
+                        // Silent fallback - local results remain available
+                    }
+                }
             }
 
             return results;
@@ -173,8 +223,9 @@ namespace ZEarth.Domain.Search
         /// <summary>
         /// Searches by coordinates with X strictly above Y in the UI layout.
         /// Handles geographic WGS84 (Lon/Lat) in DD or DMS, and projected coordinates (Easting/Northing) via PROJ.
+        /// Automatically detects UTM metric coordinates or WGS 84 geographic coordinates.
         /// </summary>
-        public SearchResultItem SearchByCoordinates(string xText, string yText, int epsgCode = 4326)
+        public SearchResultItem SearchByCoordinates(string xText, string yText, int epsgCode = 4326, double? hintLon = null, double? hintLat = null)
         {
             if (string.IsNullOrWhiteSpace(xText))
                 throw new CoordinateValidationException("X coordinate field cannot be empty.");
@@ -184,18 +235,65 @@ namespace ZEarth.Domain.Search
             double x = ParseCoordinateValue(xText, isLongitudeOrEasting: true);
             double y = ParseCoordinateValue(yText, isLongitudeOrEasting: false);
 
+            // Auto-detect UTM metric coordinates (e.g. Easting ~100k-900k, Northing ~0-10,000k)
+            bool isUtmMetric = (x >= 1000.0 || y >= 1000.0) &&
+                               ((x >= 50000.0 && x <= 950000.0 && y >= 0.0 && y <= 10000000.0) ||
+                                (y >= 50000.0 && y <= 950000.0 && x >= 0.0 && x <= 10000000.0) ||
+                                (x > 180.0 && x <= 10000000.0) || (y > 90.0 && y <= 10000000.0));
+
+            if ((epsgCode == 4326 || epsgCode == 0 || epsgCode == 4979) && isUtmMetric)
+            {
+                double easting = x;
+                double northing = y;
+                bool swapped = false;
+                if (x > 950000.0 && y >= 50000.0 && y <= 950000.0)
+                {
+                    easting = y;
+                    northing = x;
+                    swapped = true;
+                }
+
+                if (easting < 50000.0 || easting > 950000.0 || northing < 0.0 || northing > 10000000.0)
+                {
+                    throw new CoordinateValidationException(
+                        $"Detected UTM metric coordinates, but values are out of bounds.\n" +
+                        $"Easting: {easting:F1}m (valid: 100,000–900,000m), Northing: {northing:F1}m (valid: 0–10,000,000m).");
+                }
+
+                double refLon = hintLon ?? 31.0;
+                double refLat = hintLat ?? 30.0;
+                int zone = (int)Math.Floor((refLon + 180.0) / 6.0) + 1;
+                if (zone < 1) zone = 1;
+                if (zone > 60) zone = 60;
+                bool isNorth = refLat >= 0;
+                int detectedEpsg = isNorth ? (32600 + zone) : (32700 + zone);
+
+                var (wgsLon, wgsLat) = CoordinateTransformService.Transform(easting, northing, detectedEpsg, 4326);
+                if (double.IsNaN(wgsLon) || double.IsNaN(wgsLat) || wgsLon < -180 || wgsLon > 180 || wgsLat < -90 || wgsLat > 90)
+                {
+                    throw new CoordinateValidationException($"UTM to WGS84 conversion produced invalid coordinates: Lon {wgsLon}, Lat {wgsLat}");
+                }
+
+                return new SearchResultItem
+                {
+                    Title = $"UTM Zone {zone}{(isNorth ? "N" : "S")}: {easting:F0}m E, {northing:F0}m N",
+                    Subtitle = $"Auto-detected UTM (EPSG:{detectedEpsg}) • WGS 84 ({wgsLon:F5}°, {wgsLat:F5}°)" + (swapped ? " [Normalized X/Y]" : ""),
+                    Longitude = wgsLon,
+                    Latitude = wgsLat,
+                    Altitude = 3000.0,
+                    Source = $"UTM Zone {zone}{(isNorth ? "N" : "S")} (Auto)",
+                    SourceBadge = $"UTM {zone}{(isNorth ? "N" : "S")}",
+                    Icon = "🎯",
+                    IsLocal = true
+                };
+            }
+
             // Range validation per CRS
-            if (epsgCode == 4326 || epsgCode == 4979)
+            if (epsgCode == 4326 || epsgCode == 4979 || epsgCode == 0)
             {
                 // Geographic: X = Longitude [-180, 180], Y = Latitude [-90, 90]
                 if (x < -180.0 || x > 180.0)
                 {
-                    if (y >= -180.0 && y <= 180.0 && x >= -90.0 && x <= 90.0)
-                    {
-                        throw new CoordinateValidationException(
-                            $"X (Longitude) value {x:F4}° is out of valid range [-180°, +180°].\n" +
-                            $"Notice: Y value {y:F4}° is within longitude bounds while X is within latitude bounds. Did you swap X (Longitude) and Y (Latitude)?");
-                    }
                     throw new CoordinateValidationException($"X (Longitude) must be between -180.0° and +180.0°. Received: {x}");
                 }
 

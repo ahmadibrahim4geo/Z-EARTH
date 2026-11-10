@@ -10,6 +10,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
 using Microsoft.Win32;
+using ZEarth.App.Services;
 using ZEarth.Domain;
 using ZEarth.Domain.Measurement;
 using ZEarth.Domain.Units;
@@ -20,13 +21,26 @@ namespace ZEarth.App.Views
 
     public partial class ElevationProfileDialog : Window
     {
+        public event Action<double, double>? SampleHovered;
+        public event Action? SampleHoverCleared;
+
         private readonly List<ProfileSample> _samples = new();
         private Line? _hoverLine;
         private Ellipse? _hoverDot;
+        private bool _isDocked;
+        private Rect _floatingBounds;
+        private double _exaggerationFactor = -1.0; // -1 for Auto-Fit
 
         public ElevationProfileDialog(IEnumerable<CoordinatePoint>? pathPoints = null)
         {
             InitializeComponent();
+            LocalizationService.Instance.ApplyWindow(this);
+            DockToggleButton.Content = LocalizationService.Instance.IsArabic ? "📌 تثبيت بالأسفل" : "📌 Dock to Bottom";
+            Closed += (_, _) =>
+            {
+                SampleHoverCleared?.Invoke();
+                DetachMainWindowEvents();
+            };
             GenerateProfileSamples(pathPoints);
             ComputeStatisticsAndDraw();
         }
@@ -35,6 +49,13 @@ namespace ZEarth.App.Views
         public ElevationProfileDialog(IEnumerable<ProfileSample> measuredSamples, string provenance)
         {
             InitializeComponent();
+            LocalizationService.Instance.ApplyWindow(this);
+            DockToggleButton.Content = LocalizationService.Instance.IsArabic ? "📌 تثبيت بالأسفل" : "📌 Dock to Bottom";
+            Closed += (_, _) =>
+            {
+                SampleHoverCleared?.Invoke();
+                DetachMainWindowEvents();
+            };
             var values = measuredSamples?.ToList() ?? new List<ProfileSample>();
             if (values.Count >= 2 && values.All(p =>
                 double.IsFinite(p.DistanceMeters) && double.IsFinite(p.ElevationMeters) &&
@@ -42,9 +63,103 @@ namespace ZEarth.App.Views
             {
                 _samples.AddRange(values);
             }
-            ProfileTitleText.Text = "Terrain Elevation Profile (DEM samples)";
-            ProfileSourceText.Text = provenance ?? "Active DEM height source; height datum is provider-specific.";
+            ProfileTitleText.Text = LocalizationService.Instance.IsArabic ? "الملف التضاريسي للارتفاعات (عينات DEM)" : "Terrain Elevation Profile (DEM samples)";
+            ProfileSourceText.Text = provenance ?? (LocalizationService.Instance.IsArabic ? "مصدر ارتفاع DEM النشط؛ مرجع الارتفاع خاص بالمزود." : "Active DEM height source; height datum is provider-specific.");
             ComputeStatisticsAndDraw();
+        }
+
+        private void OnExaggerationChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (ExaggerationCombo?.SelectedItem is ComboBoxItem item && item.Tag is string tag)
+            {
+                if (tag == "auto") _exaggerationFactor = -1.0;
+                else if (double.TryParse(tag, NumberStyles.Any, CultureInfo.InvariantCulture, out var val)) _exaggerationFactor = val;
+                DrawGraph();
+            }
+        }
+
+        private void OnDockToggleClick(object sender, RoutedEventArgs e)
+        {
+            var mainWindow = Application.Current?.MainWindow;
+            if (mainWindow == null) return;
+
+            if (!_isDocked)
+            {
+                _floatingBounds = new Rect(Left, Top, Width, Height);
+                _isDocked = true;
+                DockToggleButton.Content = LocalizationService.Instance.IsArabic ? "🗗 نافذة عائمة" : "🗗 Float Window";
+
+                AttachMainWindowEvents(mainWindow);
+                UpdateDockedPosition(mainWindow);
+            }
+            else
+            {
+                _isDocked = false;
+                DetachMainWindowEvents();
+                DockToggleButton.Content = LocalizationService.Instance.IsArabic ? "📌 تثبيت بالأسفل" : "📌 Dock to Bottom";
+                if (_floatingBounds.Width > 0 && _floatingBounds.Height > 0)
+                {
+                    Left = _floatingBounds.Left;
+                    Top = _floatingBounds.Top;
+                    Width = _floatingBounds.Width;
+                    Height = _floatingBounds.Height;
+                }
+                else
+                {
+                    Width = 760;
+                    Height = 520;
+                    WindowStartupLocation = WindowStartupLocation.CenterOwner;
+                }
+            }
+        }
+
+        private void AttachMainWindowEvents(Window mainWindow)
+        {
+            mainWindow.LocationChanged += OnMainWindowMovedOrResized;
+            mainWindow.SizeChanged += OnMainWindowMovedOrResized;
+        }
+
+        private void DetachMainWindowEvents()
+        {
+            var mainWindow = Application.Current?.MainWindow;
+            if (mainWindow != null)
+            {
+                mainWindow.LocationChanged -= OnMainWindowMovedOrResized;
+                mainWindow.SizeChanged -= OnMainWindowMovedOrResized;
+            }
+        }
+
+        private void OnMainWindowMovedOrResized(object? sender, EventArgs e)
+        {
+            var mainWindow = Application.Current?.MainWindow;
+            if (mainWindow != null) UpdateDockedPosition(mainWindow);
+        }
+
+        private void UpdateDockedPosition(Window mainWindow)
+        {
+            if (!_isDocked) return;
+            try
+            {
+                var viewport = mainWindow.FindName("ViewportBorder") as FrameworkElement;
+                if (viewport != null && viewport.IsVisible)
+                {
+                    Point screenPos = viewport.PointToScreen(new Point(0, 0));
+                    double dockHeight = Math.Min(340, Math.Max(260, mainWindow.ActualHeight * 0.40));
+                    Left = screenPos.X;
+                    Top = screenPos.Y + viewport.ActualHeight - dockHeight;
+                    Width = Math.Max(400, viewport.ActualWidth);
+                    Height = dockHeight;
+                    return;
+                }
+            }
+            catch { }
+
+            double fallbackHeight = Math.Min(340, Math.Max(260, mainWindow.ActualHeight * 0.40));
+            double leftOffset = mainWindow.ActualWidth > 800 ? 320 : 0;
+            Left = mainWindow.Left + leftOffset;
+            Top = mainWindow.Top + mainWindow.ActualHeight - fallbackHeight - 34;
+            Width = Math.Max(400, mainWindow.ActualWidth - leftOffset);
+            Height = fallbackHeight;
         }
 
         private void GenerateProfileSamples(IEnumerable<CoordinatePoint>? rawPoints)
@@ -146,7 +261,25 @@ namespace ZEarth.App.Views
 
             double minElev = _samples.Min(s => s.ElevationMeters);
             double maxElev = _samples.Max(s => s.ElevationMeters);
-            double elevRange = Math.Max(10.0, maxElev - minElev);
+            double delta = maxElev - minElev;
+            double chartMin, chartMax, chartRange;
+
+            if (_exaggerationFactor <= 0) // Auto-Fit mode
+            {
+                double pad = delta > 0.001 ? Math.Max(0.15, delta * 0.15) : 1.0;
+                chartMin = minElev - pad;
+                chartMax = maxElev + pad;
+                chartRange = chartMax - chartMin;
+            }
+            else
+            {
+                double midElev = (minElev + maxElev) / 2.0;
+                double baseSpan = Math.Max(6.0, delta * 1.5) / _exaggerationFactor;
+                chartMin = midElev - (baseSpan / 2.0);
+                chartMax = midElev + (baseSpan / 2.0);
+                chartRange = chartMax - chartMin;
+            }
+
             double totalDist = _samples.Last().DistanceMeters;
             if (totalDist <= 0.01) totalDist = 1.0;
 
@@ -154,7 +287,7 @@ namespace ZEarth.App.Views
             int yTicks = 4;
             for (int i = 0; i <= yTicks; i++)
             {
-                double yVal = minElev + (i * (elevRange / yTicks));
+                double yVal = chartMin + (i * (chartRange / yTicks));
                 double yPos = paddingTop + plotH - (i * (plotH / yTicks));
 
                 var gridLine = new Line
@@ -169,9 +302,10 @@ namespace ZEarth.App.Views
                 };
                 GraphCanvas.Children.Add(gridLine);
 
+                string tickFormat = chartRange < 1.0 ? "F2" : (chartRange < 10.0 ? "F1" : "F0");
                 var yText = new TextBlock
                 {
-                    Text = $"{yVal:F0} m",
+                    Text = $"{yVal.ToString(tickFormat, CultureInfo.InvariantCulture)} m",
                     FontSize = 9.5,
                     Foreground = new SolidColorBrush(Color.FromRgb(150, 150, 150)),
                     HorizontalAlignment = HorizontalAlignment.Right
@@ -207,7 +341,8 @@ namespace ZEarth.App.Views
             foreach (var s in _samples)
             {
                 double normX = s.DistanceMeters / totalDist;
-                double normY = (s.ElevationMeters - minElev) / elevRange;
+                double normY = (s.ElevationMeters - chartMin) / chartRange;
+                normY = Math.Clamp(normY, 0.0, 1.0);
 
                 double px = paddingLeft + (normX * plotW);
                 double py = paddingTop + plotH - (normY * plotH);
@@ -312,6 +447,7 @@ namespace ZEarth.App.Views
             _hoverDot.Visibility = Visibility.Visible;
 
             HoverInfoText.Text = $"Distance: {UnitService.Instance.FormatDistance(nearest.DistanceMeters)} | Elevation: {UnitService.Instance.FormatElevation(nearest.ElevationMeters)} | Coordinates: {nearest.Latitude:F5}° N, {nearest.Longitude:F5}° E";
+            SampleHovered?.Invoke(nearest.Longitude, nearest.Latitude);
         }
 
         private void OnCanvasMouseLeave(object sender, MouseEventArgs e)
@@ -319,6 +455,7 @@ namespace ZEarth.App.Views
             if (_hoverLine != null) _hoverLine.Visibility = Visibility.Collapsed;
             if (_hoverDot != null) _hoverDot.Visibility = Visibility.Collapsed;
             HoverInfoText.Text = "Hover over the profile chart to inspect exact distance, elevation, and coordinates.";
+            SampleHoverCleared?.Invoke();
         }
 
         private void OnExportCsvClick(object sender, RoutedEventArgs e)

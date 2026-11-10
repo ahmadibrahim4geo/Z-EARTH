@@ -19,11 +19,13 @@ namespace ZEarth.App.Views
 {
     public enum OptionsDialogTab
     {
-        MeasurementUnits = 0,
-        SpatialSnapping = 1,
-        BasemapDisplay = 2,
-        TerrainModels = 3,
-        MapGrid = 4
+        GeneralSettings = 0,
+        MeasurementUnits = 1,
+        SpatialSnapping = 2,
+        BasemapDisplay = 3,
+        TerrainModels = 4,
+        MapGrid = 5,
+        CesiumIon = 6
     }
 
     public partial class OptionsDialog : Window
@@ -44,7 +46,7 @@ namespace ZEarth.App.Views
         private static readonly string[] GridLabelSizes = GridSettingsDefaults.LabelSizes;
 
         public OptionsDialog(GlobeBridge? globeBridge = null, bool openGridTab = false)
-            : this(globeBridge, openGridTab ? OptionsDialogTab.MapGrid : OptionsDialogTab.MeasurementUnits)
+            : this(globeBridge, openGridTab ? OptionsDialogTab.MapGrid : OptionsDialogTab.GeneralSettings)
         {
         }
 
@@ -143,6 +145,24 @@ namespace ZEarth.App.Views
             SelectComboByTag(GridLabelFormatCombo, format);
         }
 
+        private void OnAutoAdaptiveGridChecked(object sender, RoutedEventArgs e)
+        {
+            if (LongitudeIntervalInput == null || LatitudeIntervalInput == null) return;
+            LongitudeIntervalInput.Text = "0";
+            LatitudeIntervalInput.Text = "0";
+            LongitudeIntervalInput.IsEnabled = false;
+            LatitudeIntervalInput.IsEnabled = false;
+        }
+
+        private void OnAutoAdaptiveGridUnchecked(object sender, RoutedEventArgs e)
+        {
+            if (LongitudeIntervalInput == null || LatitudeIntervalInput == null) return;
+            LongitudeIntervalInput.IsEnabled = true;
+            LatitudeIntervalInput.IsEnabled = true;
+            if (LongitudeIntervalInput.Text == "0") LongitudeIntervalInput.Text = "10";
+            if (LatitudeIntervalInput.Text == "0") LatitudeIntervalInput.Text = "10";
+        }
+
         private void SyncGridFormatCards()
         {
             if (GridLabelFormatCombo == null) return;
@@ -219,6 +239,24 @@ namespace ZEarth.App.Views
         {
             var settings = SettingsService.Instance.Settings;
 
+            // General Settings
+            SelectComboByTag(GeneralLanguageCombo, settings.Language);
+            GeneralCenterReticleCheck.IsChecked = settings.ShowCenterReticle;
+            GeneralCenterCoordsCheck.IsChecked = settings.ShowCenterReadout;
+            GeneralCameraMotionCheck.IsChecked = settings.SmoothCameraAnimations;
+            SelectComboByTag(GeneralDistanceUnitCombo, settings.DistanceUnit);
+            SelectComboByTag(GeneralAreaUnitCombo, settings.AreaUnit);
+            SelectComboByTag(GeneralElevationUnitCombo, settings.ElevationUnit);
+            General3DMeasureCheck.IsChecked = settings.Enable3DMeasurement;
+            GeneralLineColorPicker.ColorHex = settings.DefaultDrawingLineColor;
+            GeneralFillColorPicker.ColorHex = settings.DefaultDrawingFillColor;
+            GeneralMeasureLineColorPicker.ColorHex = settings.DefaultMeasurementLineColor;
+            GeneralMeasureFillColorPicker.ColorHex = settings.DefaultMeasurementFillColor;
+            SelectComboByTag(GeneralPointSymbolCombo, settings.DefaultPointPinStyle);
+            SelectComboByTag(GeneralStartupViewCombo, settings.StartupViewMode);
+            SelectComboByTag(FlightSteeringModeCombo, settings.FlightSteeringMode);
+            SelectComboByTag(FlightMaxSpeedCombo, settings.FlightMaxSpeedKmH.ToString());
+
             // Distance
             SelectComboByTag(DistanceUnitCombo, settings.DistanceUnit);
             // Area
@@ -239,7 +277,10 @@ namespace ZEarth.App.Views
             SelectComboByTag(DefaultBasemapCombo, settings.DefaultBasemap);
             SelectComboByTag(TerrainProviderCombo, settings.TerrainProviderId);
             ScreenshotDirectoryInput.Text = settings.ScreenshotDirectory;
-            CesiumIonTokenBox.Password = settings.CesiumIonToken ?? string.Empty;
+            var ionToken = settings.GetDecryptedCesiumIonToken() ?? string.Empty;
+            CesiumIonTokenBox.Password = ionToken;
+            DedicatedIonTokenBox.Password = ionToken;
+            UpdateCesiumIonStatusPill();
             CopernicusAccessTokenBox.Password = settings.CopernicusAccessToken ?? string.Empty;
             CustomTerrainUrlBox.Text = settings.CustomTerrainUrl ?? string.Empty;
             SelectComboByTag(LocalTerrainVerticalUnitCombo, settings.LocalTerrainVerticalUnit);
@@ -258,6 +299,7 @@ namespace ZEarth.App.Views
             SyncGridFormatCards();
             LongitudeIntervalInput.Text = settings.LongitudeIntervalDegrees.ToString(CultureInfo.InvariantCulture);
             LatitudeIntervalInput.Text = settings.LatitudeIntervalDegrees.ToString(CultureInfo.InvariantCulture);
+            AutoAdaptiveGridCheck.IsChecked = settings.LongitudeIntervalDegrees == 0 && settings.LatitudeIntervalDegrees == 0;
             SelectComboByTag(UtmLabelModeCombo, settings.UtmLabelMode);
             SelectComboByTag(UtmLabelPlacementCombo, settings.UtmLabelPlacement);
             MajorColorPicker.ColorHex = settings.GridMajorColor;
@@ -360,7 +402,10 @@ namespace ZEarth.App.Views
             if (_updatingTokenVisibility || CesiumIonTokenVisibleBox == null) return;
             _updatingTokenVisibility = true;
             CesiumIonTokenVisibleBox.Text = CesiumIonTokenBox.Password;
+            if (DedicatedIonTokenBox != null) DedicatedIonTokenBox.Password = CesiumIonTokenBox.Password;
+            if (DedicatedIonTokenVisibleBox != null) DedicatedIonTokenVisibleBox.Text = CesiumIonTokenBox.Password;
             _updatingTokenVisibility = false;
+            UpdateCesiumIonStatusPill();
         }
 
         private void OnCesiumTokenVisibleChanged(object sender, TextChangedEventArgs e)
@@ -368,7 +413,10 @@ namespace ZEarth.App.Views
             if (_updatingTokenVisibility || CesiumIonTokenBox == null) return;
             _updatingTokenVisibility = true;
             CesiumIonTokenBox.Password = CesiumIonTokenVisibleBox.Text;
+            if (DedicatedIonTokenBox != null) DedicatedIonTokenBox.Password = CesiumIonTokenVisibleBox.Text;
+            if (DedicatedIonTokenVisibleBox != null) DedicatedIonTokenVisibleBox.Text = CesiumIonTokenVisibleBox.Text;
             _updatingTokenVisibility = false;
+            UpdateCesiumIonStatusPill();
         }
 
         private void OnToggleTokenVisibilityClick(object sender, RoutedEventArgs e)
@@ -380,6 +428,120 @@ namespace ZEarth.App.Views
             CesiumIonTokenBox.Visibility = show ? Visibility.Collapsed : Visibility.Visible;
             _updatingTokenVisibility = false;
             (show ? (Control)CesiumIonTokenVisibleBox : CesiumIonTokenBox).Focus();
+        }
+
+        private void OnDedicatedIonTokenPasswordChanged(object sender, RoutedEventArgs e)
+        {
+            if (_updatingTokenVisibility) return;
+            _updatingTokenVisibility = true;
+            if (DedicatedIonTokenVisibleBox != null) DedicatedIonTokenVisibleBox.Text = DedicatedIonTokenBox.Password;
+            if (CesiumIonTokenBox != null) CesiumIonTokenBox.Password = DedicatedIonTokenBox.Password;
+            if (CesiumIonTokenVisibleBox != null) CesiumIonTokenVisibleBox.Text = DedicatedIonTokenBox.Password;
+            _updatingTokenVisibility = false;
+            UpdateCesiumIonStatusPill();
+        }
+
+        private void OnDedicatedIonTokenVisibleChanged(object sender, TextChangedEventArgs e)
+        {
+            if (_updatingTokenVisibility) return;
+            _updatingTokenVisibility = true;
+            if (DedicatedIonTokenBox != null) DedicatedIonTokenBox.Password = DedicatedIonTokenVisibleBox.Text;
+            if (CesiumIonTokenBox != null) CesiumIonTokenBox.Password = DedicatedIonTokenVisibleBox.Text;
+            if (CesiumIonTokenVisibleBox != null) CesiumIonTokenVisibleBox.Text = DedicatedIonTokenVisibleBox.Text;
+            _updatingTokenVisibility = false;
+            UpdateCesiumIonStatusPill();
+        }
+
+        private void OnToggleDedicatedTokenVisibilityClick(object sender, RoutedEventArgs e)
+        {
+            var show = DedicatedIonTokenVisibleBox.Visibility != Visibility.Visible;
+            _updatingTokenVisibility = true;
+            DedicatedIonTokenVisibleBox.Text = DedicatedIonTokenBox.Password;
+            DedicatedIonTokenVisibleBox.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+            DedicatedIonTokenBox.Visibility = show ? Visibility.Collapsed : Visibility.Visible;
+            _updatingTokenVisibility = false;
+            (show ? (Control)DedicatedIonTokenVisibleBox : DedicatedIonTokenBox).Focus();
+        }
+
+        private void UpdateCesiumIonStatusPill()
+        {
+            if (CesiumIonStatusText == null || CesiumIonStatusDot == null) return;
+            var token = DedicatedIonTokenBox?.Password?.Trim() ?? CesiumIonTokenBox?.Password?.Trim();
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                CesiumIonStatusText.Text = "Not configured";
+                CesiumIonStatusDot.Fill = new SolidColorBrush(Color.FromRgb(239, 83, 80));
+            }
+            else
+            {
+                CesiumIonStatusText.Text = "Token set";
+                CesiumIonStatusDot.Fill = new SolidColorBrush(Color.FromRgb(74, 222, 128));
+            }
+        }
+
+        private async void OnVerifyIonTokenClick(object sender, RoutedEventArgs e)
+        {
+            var token = DedicatedIonTokenBox.Password.Trim();
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                IonVerifyResultText.Text = "Enter a Cesium ion token first.";
+                UpdateCesiumIonStatusPill();
+                return;
+            }
+            IonVerifyResultText.Text = "Verifying token against Cesium ion asset 1...";
+            if (_globeBridge != null)
+            {
+                var ok = await _globeBridge.SetTerrainProviderAsync("worldTerrain", null, token);
+                if (ok)
+                {
+                    IonVerifyResultText.Text = "✓ Token successfully validated! Access granted to Cesium World Terrain.";
+                    CesiumIonStatusText.Text = "Active & Verified";
+                    CesiumIonStatusDot.Fill = new SolidColorBrush(Color.FromRgb(74, 222, 128));
+                }
+                else
+                {
+                    IonVerifyResultText.Text = "✗ Token rejected by Cesium ion engine or asset unavailable.";
+                    CesiumIonStatusText.Text = "Invalid Token";
+                    CesiumIonStatusDot.Fill = new SolidColorBrush(Color.FromRgb(239, 83, 80));
+                }
+            }
+            else
+            {
+                IonVerifyResultText.Text = "✓ Token format valid. (Embedded globe engine offline)";
+            }
+        }
+
+        private async void OnActivateIonAssetClick(object sender, RoutedEventArgs e)
+        {
+            var token = DedicatedIonTokenBox.Password.Trim();
+            var item = CesiumIonAssetsList.SelectedItem as ListBoxItem;
+            var assetId = item?.Tag?.ToString() ?? "1";
+            if (_globeBridge == null)
+            {
+                IonVerifyResultText.Text = "Embedded globe engine is unavailable.";
+                return;
+            }
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                IonVerifyResultText.Text = "A Cesium ion access token is required to load this asset.";
+                return;
+            }
+            if (assetId == "1")
+            {
+                IonVerifyResultText.Text = "Activating Cesium World Terrain (Asset 1)...";
+                await _globeBridge.SetTerrainProviderAsync("worldTerrain", null, token);
+                IonVerifyResultText.Text = "Cesium World Terrain activated on globe!";
+            }
+            else if (assetId == "2426648")
+            {
+                IonVerifyResultText.Text = "Activating Cesium World Bathymetry (Asset 2426648)...";
+                await _globeBridge.SetTerrainProviderAsync("worldBathymetry", null, token);
+                IonVerifyResultText.Text = "Cesium World Bathymetry activated on globe!";
+            }
+            else
+            {
+                IonVerifyResultText.Text = $"Asset {assetId} selected for project configuration.";
+            }
         }
 
         private void SetTerrainConnectionState(bool? success, string message)
@@ -637,8 +799,10 @@ namespace ZEarth.App.Views
                 return;
             }
 
-            var terrainProvider = GetSelectedTag(TerrainProviderCombo, "demTerrain");
-            var terrainToken = CesiumIonTokenBox.Password.Trim();
+            var terrainProvider = GetSelectedTag(TerrainProviderCombo, "localDem");
+            var terrainToken = !string.IsNullOrWhiteSpace(DedicatedIonTokenBox.Password)
+                ? DedicatedIonTokenBox.Password.Trim()
+                : CesiumIonTokenBox.Password.Trim();
             string? customTerrainUrl = null;
             if (terrainProvider == "localDem")
             {
@@ -715,6 +879,34 @@ namespace ZEarth.App.Views
             settings.SnapEdges = SnapEdgesCheck.IsChecked == true;
             settings.SnapIntersections = SnapIntersectionsCheck.IsChecked == true;
 
+            // Save General Settings
+            if (GeneralLanguageCombo.SelectedItem is ComboBoxItem langItem && langItem.Tag is string lang)
+            {
+                settings.Language = lang;
+                LocalizationService.Instance.SetLanguage(lang);
+            }
+            settings.ShowCenterReticle = GeneralCenterReticleCheck.IsChecked == true;
+            settings.ShowCenterCrosshair = settings.ShowCenterReticle;
+            settings.ShowCenterReadout = GeneralCenterCoordsCheck.IsChecked == true;
+            settings.SmoothCameraAnimations = GeneralCameraMotionCheck.IsChecked == true;
+            if (GeneralDistanceUnitCombo.SelectedItem is ComboBoxItem dItem && dItem.Tag is string dUnitStr)
+                settings.DistanceUnit = dUnitStr;
+            if (GeneralAreaUnitCombo.SelectedItem is ComboBoxItem aItem && aItem.Tag is string aUnitStr)
+                settings.AreaUnit = aUnitStr;
+            if (GeneralElevationUnitCombo.SelectedItem is ComboBoxItem eItem && eItem.Tag is string eUnitStr)
+                settings.ElevationUnit = eUnitStr;
+            settings.Enable3DMeasurement = General3DMeasureCheck.IsChecked == true;
+            settings.DefaultDrawingLineColor = GridColor.NormalizeOrFallback(GeneralLineColorPicker.ColorHex, settings.DefaultDrawingLineColor);
+            settings.DefaultDrawingFillColor = GridColor.NormalizeOrFallback(GeneralFillColorPicker.ColorHex, settings.DefaultDrawingFillColor);
+            settings.DefaultMeasurementLineColor = GridColor.NormalizeOrFallback(GeneralMeasureLineColorPicker.ColorHex, settings.DefaultMeasurementLineColor);
+            settings.DefaultMeasurementFillColor = GridColor.NormalizeOrFallback(GeneralMeasureFillColorPicker.ColorHex, settings.DefaultMeasurementFillColor);
+            settings.DefaultPointPinStyle = (GeneralPointSymbolCombo.SelectedItem as ComboBoxItem)?.Tag as string ?? settings.DefaultPointPinStyle;
+            settings.StartupViewMode = (GeneralStartupViewCombo.SelectedItem as ComboBoxItem)?.Tag as string ?? settings.StartupViewMode;
+            if ((FlightSteeringModeCombo.SelectedItem as ComboBoxItem)?.Tag is string steering)
+                settings.FlightSteeringMode = steering;
+            if (int.TryParse((FlightMaxSpeedCombo.SelectedItem as ComboBoxItem)?.Tag as string, out var maxSpeed))
+                settings.FlightMaxSpeedKmH = maxSpeed;
+
             // Save basemap, theme, language, graticules & display
             settings.DefaultBasemap = GetSelectedTag(DefaultBasemapCombo, ZEarth.Domain.Imagery.ImageryRegistry.ProviderEsriHybrid);
             settings.TerrainProviderId = terrainProvider;
@@ -722,6 +914,7 @@ namespace ZEarth.App.Views
             settings.LocalTerrainVerticalUnit = GetSelectedTag(LocalTerrainVerticalUnitCombo, "Meters");
             settings.ScreenshotDirectory = screenshotDirectory;
             settings.CesiumIonToken = string.IsNullOrWhiteSpace(terrainToken) ? null : terrainToken;
+            settings.SetAndEncryptCesiumIonToken(terrainToken);
             settings.CopernicusAccessToken = string.IsNullOrWhiteSpace(copernicusToken) ? null : copernicusToken;
             settings.CustomTerrainUrl = customTerrainUrl;
             settings.Theme = GetSelectedTag(ThemeCombo, "Dark");

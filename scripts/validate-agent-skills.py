@@ -10,8 +10,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SKILLS = ROOT / ".github" / "skills"
 SNAPSHOT = ROOT / "docs" / "GIS_SKILLS_SNAPSHOT.json"
-PINNED_SKILL_COUNT = 30
-PINNED_REFERENCE_COUNT = 76
+PINNED_SKILL_COUNT = 34
+PINNED_REFERENCE_COUNT = 81
 
 
 def git_blob_sha(path: Path) -> str:

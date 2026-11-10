@@ -21,13 +21,35 @@
         <!-- Header -->
         <Border Grid.Row="0" Background="{DynamicResource Brush.Ribbon.Background}" CornerRadius="6" Padding="12" Margin="0,0,0,12"
                 BorderBrush="{DynamicResource Brush.Ribbon.Border}" BorderThickness="1">
-            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                <Path Data="{StaticResource Icon.ElevationProfile}" Style="{StaticResource RibbonIconPathStyle}" Width="22" Height="22" Margin="0,0,10,0"/>
-                <StackPanel>
-                    <TextBlock x:Name="ProfileTitleText" Text="Path Vertex Elevation (DEM Sampling Pending)" FontWeight="Bold" FontSize="14" Foreground="{DynamicResource Brush.Text.Primary}"/>
-                    <TextBlock x:Name="ProfileSourceText" Text="Distance versus stored path vertex Z (NOT sampled from active DEM)." FontSize="11" Foreground="{DynamicResource Brush.Text.Secondary}"/>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <Path Data="{StaticResource Icon.ElevationProfile}" Style="{StaticResource RibbonIconPathStyle}" Width="22" Height="22" Margin="0,0,10,0"/>
+                    <StackPanel>
+                        <TextBlock x:Name="ProfileTitleText" Text="Path Vertex Elevation (DEM Sampling Pending)" FontWeight="Bold" FontSize="14" Foreground="{DynamicResource Brush.Text.Primary}"/>
+                        <TextBlock x:Name="ProfileSourceText" Text="Distance versus stored path vertex Z (NOT sampled from active DEM)." FontSize="11" Foreground="{DynamicResource Brush.Text.Secondary}"/>
+                    </StackPanel>
                 </StackPanel>
-            </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="Exaggeration:" FontSize="11" Foreground="{DynamicResource Brush.Text.Secondary}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                    <ComboBox x:Name="ExaggerationCombo" Width="110" Height="26" FontSize="10.5" SelectionChanged="OnExaggerationChanged" Margin="0,0,10,0">
+                        <ComboBoxItem Content="Auto-Fit" Tag="auto" IsSelected="True"/>
+                        <ComboBoxItem Content="1x (Normal)" Tag="1"/>
+                        <ComboBoxItem Content="2x" Tag="2"/>
+                        <ComboBoxItem Content="5x" Tag="5"/>
+                        <ComboBoxItem Content="10x" Tag="10"/>
+                        <ComboBoxItem Content="20x" Tag="20"/>
+                    </ComboBox>
+                    <Button x:Name="DockToggleButton" Content="📌 Dock to Bottom"
+                            Padding="10,4" VerticalAlignment="Center" Cursor="Hand"
+                            Background="{DynamicResource Brush.Control.Background}" Foreground="{DynamicResource Brush.Text.Primary}"
+                            BorderBrush="{DynamicResource Brush.Control.Border}" BorderThickness="1"
+                            Click="OnDockToggleClick"/>
+                </StackPanel>
+            </Grid>
         </Border>
 
         <!-- Summary Statistics Cards -->

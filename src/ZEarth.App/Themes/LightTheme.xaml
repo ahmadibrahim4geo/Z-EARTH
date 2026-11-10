@@ -80,29 +80,127 @@
         </Setter>
     </Style>
 
+
     <!-- Context Menu Style -->
     <Style TargetType="ContextMenu">
         <Setter Property="Background" Value="#FFFFFF"/>
         <Setter Property="BorderBrush" Value="{StaticResource Brush.Control.Border}"/>
         <Setter Property="BorderThickness" Value="1"/>
-        <Setter Property="Padding" Value="2"/>
+        <Setter Property="Padding" Value="4,4"/>
         <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ContextMenu">
+                    <Border Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="4"
+                            Padding="{TemplateBinding Padding}">
+                        <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle"/>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
     </Style>
 
-    <!-- MenuItem Style -->
+
+    <!-- Context Menu Separator -->
+    <Style TargetType="Separator">
+        <Setter Property="Height" Value="1"/>
+        <Setter Property="Margin" Value="4,3"/>
+        <Setter Property="Background" Value="{StaticResource Brush.Control.Border}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Separator">
+                    <Rectangle Height="1" Fill="{TemplateBinding Background}" Margin="{TemplateBinding Margin}"/>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+
+    <!-- MenuItem Style without default Aero white icon gutter -->
     <Style TargetType="MenuItem">
         <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}"/>
-        <Setter Property="Padding" Value="8,5"/>
+        <Setter Property="Background" Value="Transparent"/>
         <Setter Property="FontSize" Value="12"/>
-        <Style.Triggers>
-            <Trigger Property="IsHighlighted" Value="True">
-                <Setter Property="Background" Value="{StaticResource Brush.Control.Background}"/>
-            </Trigger>
-            <Trigger Property="IsEnabled" Value="False">
-                <Setter Property="Foreground" Value="{StaticResource Brush.Text.Disabled}"/>
-            </Trigger>
-        </Style.Triggers>
+        <Setter Property="Padding" Value="8,5"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="MenuItem">
+                    <Border x:Name="ItemBorder"
+                            Background="{TemplateBinding Background}"
+                            BorderThickness="0"
+                            CornerRadius="3"
+                            Padding="{TemplateBinding Padding}"
+                            SnapsToDevicePixels="True">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="22" SharedSizeGroup="MenuItemIconColumnGroup"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto" SharedSizeGroup="MenuItemGestureColumnGroup"/>
+                                <ColumnDefinition Width="14"/>
+                            </Grid.ColumnDefinitions>
+
+                            <ContentPresenter x:Name="IconPresenter"
+                                              Grid.Column="0"
+                                              ContentSource="Icon"
+                                              VerticalAlignment="Center"
+                                              HorizontalAlignment="Center"
+                                              Margin="0,0,6,0"/>
+
+                            <ContentPresenter Grid.Column="1"
+                                              ContentSource="Header"
+                                              RecognizesAccessKey="True"
+                                              VerticalAlignment="Center"/>
+
+                            <TextBlock Grid.Column="2"
+                                       Text="{TemplateBinding InputGestureText}"
+                                       Foreground="{DynamicResource Brush.Text.Secondary}"
+                                       Margin="16,0,6,0"
+                                       VerticalAlignment="Center"/>
+
+                            <Path x:Name="SubmenuArrow"
+                                  Grid.Column="3"
+                                  Data="M 0 0 L 4 4 L 0 8 Z"
+                                  Fill="{DynamicResource Brush.Text.Secondary}"
+                                  VerticalAlignment="Center"
+                                  HorizontalAlignment="Right"
+                                  Visibility="Collapsed"/>
+
+                            <Popup x:Name="PART_Popup"
+                                   AllowsTransparency="True"
+                                   Focusable="False"
+                                   IsOpen="{Binding IsSubmenuOpen, RelativeSource={RelativeSource TemplatedParent}}"
+                                   Placement="Right"
+                                   PopupAnimation="Fade">
+                                <Border Background="#FFFFFF"
+                                        BorderBrush="{StaticResource Brush.Control.Border}"
+                                        BorderThickness="1"
+                                        CornerRadius="4"
+                                        Padding="4">
+                                    <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle"/>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="HasItems" Value="True">
+                            <Setter TargetName="SubmenuArrow" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                        <Trigger Property="IsHighlighted" Value="True">
+                            <Setter TargetName="ItemBorder" Property="Background" Value="{DynamicResource Brush.Control.Background}"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Disabled}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
     </Style>
+
+
 
     <!-- CheckBox Style -->
     <Style TargetType="CheckBox">
@@ -111,6 +209,7 @@
         <Setter Property="VerticalContentAlignment" Value="Center"/>
         <Setter Property="Cursor" Value="Hand"/>
     </Style>
+
 
     <!-- TextBox Style (Search / Inputs) -->
     <Style x:Key="SearchTextBoxStyle" TargetType="TextBox">
@@ -145,6 +244,11 @@
         </Setter>
     </Style>
 
+    <!-- Default Implicit TextBox Style for entire Light Theme -->
+    <Style TargetType="TextBox" BasedOn="{StaticResource SearchTextBoxStyle}"/>
+
+
+
     <!-- Quick Access Toolbar Button -->
     <Style x:Key="QuickAccessBtnStyle" TargetType="Button">
         <Setter Property="Background" Value="Transparent"/>
@@ -176,6 +280,8 @@
             </Setter.Value>
         </Setter>
     </Style>
+
+
 
     <!-- Large Ribbon Button (Icon top, Label bottom) -->
     <Style x:Key="RibbonLargeBtnStyle" TargetType="Button">
@@ -216,6 +322,8 @@
         </Setter>
     </Style>
 
+
+
     <!-- Small Horizontal Ribbon Button (Icon left, Label right) -->
     <Style x:Key="RibbonSmallBtnStyle" TargetType="Button">
         <Setter Property="Background" Value="Transparent"/>
@@ -254,6 +362,8 @@
         </Setter>
     </Style>
 
+
+
     <!-- Sidebar Panel Tab Button (Places / Layers selector) -->
     <Style x:Key="SidebarTabBtnStyle" TargetType="RadioButton">
         <Setter Property="Background" Value="{StaticResource Brush.Control.Background}"/>
@@ -287,6 +397,58 @@
         </Setter>
     </Style>
 
+
+
+    <Style x:Key="ScrollThumbVerticalStyleLight" TargetType="{x:Type Thumb}">
+        <Setter Property="OverridesDefaultStyle" Value="true"/>
+        <Setter Property="IsTabStop" Value="false"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type Thumb}">
+                    <Border x:Name="thumbBorder" Background="#94A3B8" BorderBrush="#CBD5E1" BorderThickness="1"
+                            CornerRadius="4" Margin="2,1"/>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="true">
+                            <Setter TargetName="thumbBorder" Property="Background" Value="#0284C7"/>
+                            <Setter TargetName="thumbBorder" Property="BorderBrush" Value="#38BDF8"/>
+                        </Trigger>
+                        <Trigger Property="IsDragging" Value="true">
+                            <Setter TargetName="thumbBorder" Property="Background" Value="#0369A1"/>
+                            <Setter TargetName="thumbBorder" Property="BorderBrush" Value="#0284C7"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+
+
+    <Style x:Key="ScrollThumbHorizontalStyleLight" TargetType="{x:Type Thumb}">
+        <Setter Property="OverridesDefaultStyle" Value="true"/>
+        <Setter Property="IsTabStop" Value="false"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type Thumb}">
+                    <Border x:Name="thumbBorder" Background="#94A3B8" BorderBrush="#CBD5E1" BorderThickness="1"
+                            CornerRadius="4" Margin="1,2"/>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="true">
+                            <Setter TargetName="thumbBorder" Property="Background" Value="#0284C7"/>
+                            <Setter TargetName="thumbBorder" Property="BorderBrush" Value="#38BDF8"/>
+                        </Trigger>
+                        <Trigger Property="IsDragging" Value="true">
+                            <Setter TargetName="thumbBorder" Property="Background" Value="#0369A1"/>
+                            <Setter TargetName="thumbBorder" Property="BorderBrush" Value="#0284C7"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+
+
     <!-- Restored WPF's orientation-aware native ScrollBar template (horizontal and vertical).
          The old custom Track forced vertical direction and an 8px thumb in both axes. -->
     <Style TargetType="ScrollBar">
@@ -296,6 +458,56 @@
         <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}"/>
         <Setter Property="Focusable" Value="True"/>
     </Style>
+
+
+
+    <!-- High-Contrast TabItem Style -->
+    <Style TargetType="TabItem">
+        <Setter Property="Background" Value="#E2E8F0"/>
+        <Setter Property="Foreground" Value="#475569"/>
+        <Setter Property="BorderBrush" Value="{StaticResource Brush.Ribbon.Border}"/>
+        <Setter Property="BorderThickness" Value="1,1,1,0"/>
+        <Setter Property="Padding" Value="14,8"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TabItem">
+                    <Border x:Name="Bd"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="5,5,0,0"
+                            Margin="0,0,3,0"
+                            Padding="{TemplateBinding Padding}">
+                        <ContentPresenter x:Name="Content"
+                                          ContentSource="Header"
+                                          HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"
+                                          RecognizesAccessKey="True"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="#F8FAFC"/>
+                            <Setter Property="Foreground" Value="#0F172A"/>
+                        </Trigger>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="#FFFFFF"/>
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource Brush.Accent}"/>
+                            <Setter TargetName="Bd" Property="BorderThickness" Value="1,2,1,0"/>
+                            <Setter Property="Foreground" Value="{StaticResource Brush.Accent}"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Foreground" Value="{StaticResource Brush.Text.Disabled}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+
 
     <!-- ComboBox Item Style (Light Theme) -->
     <Style TargetType="ComboBoxItem">
@@ -337,6 +549,8 @@
             </Setter.Value>
         </Setter>
     </Style>
+
+
 
     <!-- ComboBox ToggleButton Style (Light Theme) -->
     <ControlTemplate x:Key="ComboBoxToggleButtonTemplate" TargetType="ToggleButton">
@@ -426,6 +640,7 @@
         </Setter>
     </Style>
 
+
     <!-- TreeView Expand / Collapse Toggle -->
     <Style x:Key="ExpandCollapseToggleStyle" TargetType="{x:Type ToggleButton}">
         <Setter Property="Focusable" Value="False"/>
@@ -462,6 +677,8 @@
             </Setter.Value>
         </Setter>
     </Style>
+
+
 
     <!-- TreeViewItem Professional Styling (Eliminates Bright Cyan OS Hover - WCAG compliant) -->
     <Style TargetType="{x:Type TreeViewItem}">
@@ -536,6 +753,8 @@
         </Setter>
     </Style>
 
+
+
     <!-- Status Bar Clickable Item Button -->
     <Style x:Key="StatusBarBtnStyle" TargetType="Button">
         <Setter Property="Background" Value="Transparent"/>
@@ -561,5 +780,7 @@
             </Setter.Value>
         </Setter>
     </Style>
+
+
 
 </ResourceDictionary>

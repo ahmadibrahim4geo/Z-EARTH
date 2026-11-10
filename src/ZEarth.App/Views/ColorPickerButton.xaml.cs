@@ -25,10 +25,18 @@ namespace ZEarth.App.Views
 
         private static readonly string[] Palette =
         {
-            "#FF3B30", "#FF9500", "#FFD60A", "#34C759", "#00C7BE", "#32ADE6",
-            "#1E90FF", "#5E5CE6", "#AF52DE", "#FF00FF", "#FF2D55", "#A2845E",
-            "#FFFFFF", "#D1D5DB", "#9CA3AF", "#6B7280", "#374151", "#111827",
-            "#F97316", "#84CC16", "#06B6D4", "#3B82F6", "#8B5CF6", "#EC4899"
+            // Row 1: Vivid Primary & Vibrant Accents
+            "#EF4444", "#F97316", "#F59E0B", "#FACC15", "#84CC16", "#10B981", "#06B6D4", "#3B82F6",
+            // Row 2: Deep Saturated Shades
+            "#DC2626", "#EA580C", "#D97706", "#CA8A04", "#65A30D", "#059669", "#0891B2", "#2563EB",
+            // Row 3: Violet, Purple & Magenta Spectrum
+            "#6366F1", "#8B5CF6", "#A855F7", "#D946EF", "#EC4899", "#F43F5E", "#E11D48", "#9333EA",
+            // Row 4: Pastels & Light Tones
+            "#FCA5A5", "#FDBA74", "#FDE047", "#86EFAC", "#67E8F9", "#93C5FD", "#C4B5FD", "#F9A8D4",
+            // Row 5: Earth, Terrain & Surveying Tones
+            "#78350F", "#92400E", "#B45309", "#854D0E", "#3F6212", "#14532D", "#155E75", "#1E3A8A",
+            // Row 6: Monochrome & Grayscale Spectrum
+            "#FFFFFF", "#F3F4F6", "#E5E7EB", "#D1D5DB", "#9CA3AF", "#6B7280", "#374151", "#000000"
         };
 
         public ColorPickerButton()
@@ -57,8 +65,8 @@ namespace ZEarth.App.Views
             {
                 var button = new Button
                 {
-                    Width = 26,
-                    Height = 26,
+                    Width = 24,
+                    Height = 24,
                     Margin = new Thickness(2),
                     Background = new SolidColorBrush(ParseColor(hex)),
                     BorderBrush = new SolidColorBrush(Color.FromArgb(90, 0, 0, 0)),

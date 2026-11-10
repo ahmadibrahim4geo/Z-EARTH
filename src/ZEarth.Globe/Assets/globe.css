@@ -20,6 +20,25 @@ html, body {
   height: 100%;
 }
 
+.feature-info-panel {
+  position: absolute; z-index: 950; width: min(360px, calc(100% - 16px));
+  max-height: min(360px, calc(100% - 16px)); overflow: auto;
+  padding: 12px; border: 1px solid #5e6268; border-radius: 8px;
+  background: #25272a; color: #f1f3f5; box-shadow: 0 5px 18px #0008;
+  font-size: 13px; user-select: text;
+}
+.feature-info-panel[hidden] { display: none; }
+.feature-info-panel * { user-select: text; }
+.feature-info-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+.feature-info-heading strong { overflow-wrap: anywhere; }
+.feature-info-heading button { background: transparent; color: inherit; border: 0; font-size: 22px; cursor: pointer; }
+.feature-info-panel table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.feature-info-panel th, .feature-info-panel td { text-align: start; vertical-align: top; border-top: 1px solid #555b62; padding: 6px 4px; overflow-wrap: anywhere; }
+.feature-info-panel th { width: 38%; color: #c5d5e2; }
+body.light-theme .feature-info-panel { background: #fff; color: #19232d; border-color: #a9b1ba; box-shadow: 0 5px 18px #0004; }
+body.light-theme .feature-info-panel th, body.light-theme .feature-info-panel td { border-color: #cbd2da; }
+body.light-theme .feature-info-panel th { color: #374e61; }
+
 #cesium-container {
   position: absolute;
   top: 0;
@@ -1803,4 +1822,157 @@ body.light-theme .save-title-meta {
 
 body.light-theme .save-legend-items {
   color: #334155;
+}
+
+/* ==================== SOUTH-EAST OVERVIEW MAP (GOOGLE EARTH PRO STYLE) ==================== */
+.overview-map-container {
+  position: absolute;
+  bottom: 24px;
+  right: 12px;
+  width: 220px;
+  background: rgba(15, 23, 42, 0.94);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1.5px solid #38bdf8;
+  border-radius: 6px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.7);
+  z-index: 95;
+  overflow: hidden;
+  user-select: none;
+  font-family: 'Segoe UI', -apple-system, sans-serif;
+}
+
+.overview-map-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 3px 8px;
+  background: #1e293b;
+  border-bottom: 1px solid #334155;
+}
+
+.overview-map-title {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #38bdf8;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.overview-map-close {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+}
+
+.overview-map-close:hover {
+  color: #f87171;
+}
+
+.overview-map-body {
+  position: relative;
+  width: 220px;
+  height: 110px;
+  background: #0c4a6e;
+  cursor: crosshair;
+}
+
+#overview-map-canvas {
+  width: 220px;
+  height: 110px;
+  display: block;
+}
+
+.overview-viewport-box {
+  position: absolute;
+  border: 2px solid #ef4444;
+  background: rgba(239, 68, 68, 0.28);
+  box-sizing: border-box;
+  pointer-events: none;
+  transition: all 0.05s ease-out;
+}
+
+body.light-theme .overview-map-container {
+  background: rgba(255, 255, 255, 0.95);
+  border-color: #0284c7;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+}
+
+body.light-theme .overview-map-header {
+  background: #f1f5f9;
+  border-bottom-color: #cbd5e1;
+}
+
+body.light-theme .overview-map-title {
+  color: #0369a1;
+}
+
+body.light-theme .overview-map-close {
+  color: #64748b;
+}
+
+.snap-pulse-ring {
+  position: absolute;
+  top: -7px;
+  left: -7px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1.5px solid #38bdf8;
+  animation: snap-pulse 1.4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes snap-pulse {
+  0% { transform: scale(0.85); opacity: 0.9; }
+  50% { transform: scale(1.35); opacity: 0.35; }
+  100% { transform: scale(0.85); opacity: 0.9; }
+}
+
+.measure-copy-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.measure-copy-btn {
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 1px solid #3c4048;
+  background: #2a2e37;
+  color: #e2e8f0;
+  transition: all 0.15s ease;
+}
+
+.measure-copy-btn:hover {
+  background: #38bdf8;
+  color: #0f172a;
+  border-color: #38bdf8;
+}
+
+.measure-copy-btn.copied {
+  background: #10b981;
+  color: #ffffff;
+  border-color: #10b981;
+}
+
+/* Optical Center Viewport Crosshair Reticle (⊕) */
+.center-reticle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 40px;
+  height: 40px;
+  pointer-events: none;
+  z-index: 997;
+  transition: opacity 0.2s ease, transform 0.2s ease;
 }

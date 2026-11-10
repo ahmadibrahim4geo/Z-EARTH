@@ -249,6 +249,24 @@ namespace ZEarth.Domain.Layers
                 StatusMessage = "Configured (availability checked at runtime)"
             });
 
+            _layers.Add(new ReferenceLayerItem
+            {
+                Id = "ref_world_countries",
+                Category = ReferenceLayerCategory.BordersAndLabels,
+                CategoryName = "Borders & Labels",
+                Name = "World Country Boundaries (Offline Vector)",
+                Description = "Complete offline sovereign country polygons and boundaries from Natural Earth 110m.",
+                Provider = "Natural Earth Cultural 110m (Bundled Offline)",
+                Attribution = "Natural Earth (Public Domain)",
+                Url = "bundled://world-countries-data.js",
+                LayerType = "WorldCountries",
+                IsBuiltIn = true,
+                IsConfigured = true,
+                IsVisible = false,
+                Status = ReferenceLayerStatus.Active,
+                StatusMessage = "Bundled offline vector (active, no internet required)"
+            });
+
             // Category 2: Places & Geographic Names
             _layers.Add(new ReferenceLayerItem
             {
@@ -257,15 +275,33 @@ namespace ZEarth.Domain.Layers
                 CategoryName = "Places & Geographic Names",
                 Name = "Populated Places & Capitals",
                 Description = "World capitals, major cities, settlements, and geographic place names.",
-                Provider = "Carto Voyager Places & Geographic Names",
-                Attribution = "© OpenStreetMap contributors • © CARTO",
-                Url = "https://basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}.png",
+                Provider = "Esri World Reference Boundaries & Places",
+                Attribution = "Source: Esri, Maxar, Earthstar Geographics, and GIS User Community",
+                Url = "https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
                 LayerType = "RasterTile",
                 IsBuiltIn = true,
                 IsConfigured = true,
                 IsVisible = false,
                 Status = ReferenceLayerStatus.Active,
-                StatusMessage = "Ready (Carto Voyager Online)"
+                StatusMessage = "Ready (Esri Reference Labels Online)"
+            });
+
+            _layers.Add(new ReferenceLayerItem
+            {
+                Id = "ref_world_gazetteer",
+                Category = ReferenceLayerCategory.PlacesAndNames,
+                CategoryName = "Places & Geographic Names",
+                Name = "World Gazetteer (Mountains, Valleys & Towns)",
+                Description = "Global geographic physical and cultural place names including mountain peaks, valleys, wadis, oases and settlements.",
+                Provider = "GeoNames / Natural Earth Physical",
+                Attribution = "GeoNames (CC BY 4.0) • Natural Earth (Public Domain)",
+                Url = "https://download.geonames.org/export/dump/",
+                LayerType = "WorldGazetteer",
+                IsBuiltIn = true,
+                IsConfigured = true,
+                IsVisible = false,
+                Status = ReferenceLayerStatus.Active,
+                StatusMessage = "Ready (World Gazetteer Physical & Populated)"
             });
 
             // Category 3: Roads & Transportation
@@ -361,6 +397,24 @@ namespace ZEarth.Domain.Layers
                 IsVisible = false,
                 Status = ReferenceLayerStatus.Active,
                 StatusMessage = "Ready (NASA GIBS global daily layer)"
+            });
+
+            _layers.Add(new ReferenceLayerItem
+            {
+                Id = "ref_weather_stations",
+                Category = ReferenceLayerCategory.Weather,
+                CategoryName = "Weather",
+                Name = "Global Live Weather Stations (NOAA METAR)",
+                Description = "Worldwide airport and meteorological surface stations reporting real-time temperatures, wind, humidity, and barometric pressure.",
+                Provider = "NOAA Aviation Weather Center (AWC)",
+                Attribution = "NOAA / National Weather Service (Public Domain)",
+                Url = "https://aviationweather.gov/api/data/metar?format=geojson",
+                LayerType = "WeatherStationsGeoJson",
+                IsBuiltIn = true,
+                IsConfigured = true,
+                IsVisible = false,
+                Status = ReferenceLayerStatus.Active,
+                StatusMessage = "Ready (NOAA Real-time METAR Feed)"
             });
 
             // Category 5: Gallery & Knowledge

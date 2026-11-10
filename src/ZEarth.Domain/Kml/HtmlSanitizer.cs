@@ -1,5 +1,8 @@
 using System;
 using System.Text.RegularExpressions;
+using System.Collections.Generic;
+using System.Net;
+using System.Text;
 
 namespace ZEarth.Domain.Kml
 {
@@ -9,6 +12,16 @@ namespace ZEarth.Domain.Kml
     /// </summary>
     public static class HtmlSanitizer
     {
+        private static readonly HashSet<string> PreviewTags = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "p", "br", "hr", "div", "span", "strong", "b", "em", "i", "u",
+            "ul", "ol", "li", "table", "thead", "tbody", "tfoot", "tr", "th", "td",
+            "h1", "h2", "h3", "h4", "pre", "code", "blockquote"
+        };
+        private static readonly Regex PreviewTokenRegex = new(@"<[^>]*>", RegexOptions.Compiled,
+            TimeSpan.FromSeconds(1));
+        private static readonly Regex PreviewTagRegex = new(@"^<\s*(/?)\s*([a-zA-Z][a-zA-Z0-9]*)\b[^>]*>$",
+            RegexOptions.Compiled, TimeSpan.FromSeconds(1));
         private static readonly Regex ScriptTagRegex = new(@"<script[\s\S]*?>[\s\S]*?<\/script>", RegexOptions.IgnoreCase | RegexOptions.Compiled);
         private static readonly Regex IframeTagRegex = new(@"<iframe[\s\S]*?>[\s\S]*?<\/iframe>", RegexOptions.IgnoreCase | RegexOptions.Compiled);
         private static readonly Regex ObjectTagRegex = new(@"<object[\s\S]*?>[\s\S]*?<\/object>", RegexOptions.IgnoreCase | RegexOptions.Compiled);
@@ -39,6 +52,31 @@ namespace ZEarth.Domain.Kml
             sanitized = SrcJavascriptRegex.Replace(sanitized, string.Empty);
 
             return sanitized;
+        }
+
+        /// <summary>Render only passive structural HTML; imported attributes, CSS,
+        /// links, scripts and external resources never enter the browser preview.
+        /// The original description is preserved independently for saving/export.</summary>
+        public static string SanitizeForPreview(string? rawHtml)
+        {
+            if (string.IsNullOrEmpty(rawHtml)) return string.Empty;
+            var source = ScriptTagRegex.Replace(rawHtml, string.Empty);
+            source = IframeTagRegex.Replace(source, string.Empty);
+            source = ObjectTagRegex.Replace(source, string.Empty);
+            var result = new StringBuilder();
+            var offset = 0;
+            foreach (Match token in PreviewTokenRegex.Matches(source))
+            {
+                result.Append(WebUtility.HtmlEncode(WebUtility.HtmlDecode(source.Substring(offset, token.Index - offset))));
+                var tag = PreviewTagRegex.Match(token.Value);
+                if (tag.Success && PreviewTags.Contains(tag.Groups[2].Value))
+                {
+                    result.Append('<').Append(tag.Groups[1].Value).Append(tag.Groups[2].Value.ToLowerInvariant()).Append('>');
+                }
+                offset = token.Index + token.Length;
+            }
+            result.Append(WebUtility.HtmlEncode(WebUtility.HtmlDecode(source.Substring(offset))));
+            return result.ToString();
         }
 
         public static string WrapInSafeDocument(string sanitizedContent, bool isDarkTheme = true)

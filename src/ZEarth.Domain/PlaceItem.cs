@@ -13,6 +13,7 @@ namespace ZEarth.Domain
         Polygon,
         GroundOverlay,
         Circle,
+        Ellipse,
         SavedScene
     }
 
@@ -82,6 +83,7 @@ namespace ZEarth.Domain
             PlaceItemType.Path => "〰",
             PlaceItemType.Polygon => "⬡",
             PlaceItemType.Circle => "◯",
+            PlaceItemType.Ellipse => "⬭",
             PlaceItemType.GroundOverlay => "🖼",
             _ => "●"
         };

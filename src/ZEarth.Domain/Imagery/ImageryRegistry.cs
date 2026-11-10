@@ -145,11 +145,11 @@ namespace ZEarth.Domain.Imagery
             {
                 Category = BasemapCategory.Cartographic,
                 ProviderGroup = "CARTO",
-                UrlTemplate = "https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
+                UrlTemplate = "https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}",
                 Order = 3,
                 IsVisible = false,
                 Opacity = 1.0,
-                ExtentDescription = "Global (Levels 0-19)",
+                ExtentDescription = "Global (Levels 0-16)",
                 StatusMessage = "Configured (provider connectivity and fair-use conditions apply)"
             });
 
@@ -165,11 +165,11 @@ namespace ZEarth.Domain.Imagery
             {
                 Category = BasemapCategory.Cartographic,
                 ProviderGroup = "CARTO",
-                UrlTemplate = "https://basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
+                UrlTemplate = "https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}",
                 Order = 4,
                 IsVisible = false,
                 Opacity = 1.0,
-                ExtentDescription = "Global (Levels 0-19)",
+                ExtentDescription = "Global (Levels 0-16)",
                 StatusMessage = "Configured (provider connectivity and fair-use conditions apply)"
             });
 
@@ -182,7 +182,7 @@ namespace ZEarth.Domain.Imagery
             {
                 Category = BasemapCategory.Cartographic,
                 ProviderGroup = "CARTO",
-                UrlTemplate = "https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png",
+                UrlTemplate = "https://services.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",
                 Order = 6,
                 IsVisible = false,
                 ExtentDescription = "Global modern cartography",

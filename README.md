@@ -37,6 +37,32 @@ These are **runtime code changes to ZEarth itself**, not additional GIS skills. 
 
 Implementation: [GPX parser](src/ZEarth.Domain/Gps/GpxService.cs) · [GPS playback](src/ZEarth.Globe/Assets/gps-track-playback.js) · [flight navigation](src/ZEarth.Globe/Assets/flight-simulator.js) · [grid labels](src/ZEarth.Globe/Assets/graticule-geometry.js) · [NASA GIBS](src/ZEarth.Globe/Assets/nasa-gibs-imagery.js) · [terrain path sampler](src/ZEarth.Domain/Terrain/TerrainProfilePathBuilder.cs). Source-specific unit/JS tests are exercised in [CI](.github/workflows/build-and-test.yml); **real application functionality must still be tested on a Windows desktop with WebView2 and GPU**.
 
+## Download & Run Z EARTH (Windows x64)
+
+### 📥 Direct Download Links
+- **Latest Windows Portable Preview (.ZIP):** Download directly from the latest successful [GitHub Actions Main Build Artifacts](https://github.com/ahmadibrahim4geo/Z-EARTH/actions/workflows/build-and-test.yml) (Artifact: `Z-EARTH-v2.2.4-win-x64-portable-preview`). Extract and run `Z EARTH.exe`.
+- **Releases Page:** Check the [GitHub Releases](https://github.com/ahmadibrahim4geo/Z-EARTH/releases) for packaged builds and changelog archives.
+- **Single Canonical Preview Guide:** See [docs/PORTABLE_PREVIEW.md](docs/PORTABLE_PREVIEW.md) for full verification and integrity details.
+
+---
+
+## Latest Major Application Updates — November 2026
+
+These are verified **runtime code enhancements and critical fixes to Z EARTH**:
+
+| Feature Area | Implemented Upgrades | Technical Details |
+| --- | --- | --- |
+| **Explorer & Layout** | • Bi-directional drag-to-resize splitters between Places and Layers.<br>• Enhanced vertical workspace splitter between Explorer sidebar and Globe viewport with smooth hover feedback.<br>• Search stays firmly docked at top. | [`MainWindow.xaml`](src/ZEarth.App/Views/MainWindow.xaml) |
+| **Dark Theme & Contrast** | • Replaced illegible white input boxes in Dark Mode with charcoal `#202226` background, `#45484E` border, `#FFFFFF` crisp text, and `#22A8DE` caret.<br>• Redesigned search tabs into high-contrast segmented pills (`#22A8DE` active badge with bold white text). | [`DarkTheme.xaml`](src/ZEarth.App/Themes/DarkTheme.xaml) |
+| **Device Location** | • One-click saving of "My Device Location" as a first-class `PlaceItem` into `My Places`.<br>• Fully editable: rename, change icon/color in Properties, view GPS accuracy & timestamp, or delete at any time. | [`MainViewModel.cs`](src/ZEarth.App/ViewModels/MainViewModel.cs) |
+| **Smart Coordinate Search** | • Automatic detection of **WGS 84 geographic degrees** (DD/DMS) vs. **UTM metric coordinates** (Easting/Northing in meters).<br>• Automatic UTM zone deduction from current view center and transformation via `CoordinateTransformService`.<br>• Collapsed manual projection dropdown; fixed tab selection to switch on a single click. | [`SearchService.cs`](src/ZEarth.Domain/Search/SearchService.cs) |
+| **Modern Save Dialog** | • Replaced legacy Win32 `MessageBox.Show` with a custom branded dark GIS confirmation dialog (`#1E2024` theme, full Arabic/English bilingual strings, primary/cancel buttons). | [`ModernSaveConfirmationDialog.cs`](src/ZEarth.App/Views/ModernSaveConfirmationDialog.cs) |
+| **Flight Simulator** | • **Arabic Keyboard Support:** Full key mapping for Arabic input layouts (`ص`, `س`, `ش`, `ي`, `ث`, `ض`, `ح`, `ة`) with hardware `keyCode` fallbacks.<br>• **Intuitive Camera Pitch:** `Up Arrow` / `W` & mouse forward pitch camera **UP**; `Down Arrow` / `S` & mouse backward pitch camera **DOWN**.<br>• **Unbounded Speed & Turbo:** Open throttle acceleration, altitude-scaled speed, and `Shift` turbo boost (2.5x). | [`flight-simulator.js`](src/ZEarth.Globe/Assets/flight-simulator.js) |
+| **Grid & References** | • Independent `UTM Zone Boundaries` toggle in Options under "Grid Visibility".<br>• Major Geographic Reference lines display official feature names only without appending degree numbers (e.g. "Equator", "Tropic of Cancer", "Prime Meridian", with full Arabic localization).<br>• **Automatic Adaptive Grid:** Dynamic multi-scale grid subdivision on zooming in. | [`OptionsDialog.xaml`](src/ZEarth.App/Views/OptionsDialog.xaml)<br>[`cesium-engine.js`](src/ZEarth.Globe/Assets/cesium-engine.js) |
+| **Reference Layers** | • **World Gazetteer:** Display distance extended to 35,000 km (visible from global view).<br>• **Weather Stations:** Display distance extended to 25,000 km (NOAA METAR).<br>• **OpenStreetMap Overpass:** Dynamic querying on `camera.moveEnd` without 12° abort failures.<br>• **NASA GIBS:** Fallback date set to yesterday's complete UTC images (eliminating 404s).<br>• **USGS Earthquakes:** Labeled with magnitudes, titles, and surface clamping up to 15,000 km.<br>• **Fly To Regional View (`✈`):** Direct navigation to 65 km altitude over local features. | [`cesium-engine.js`](src/ZEarth.Globe/Assets/cesium-engine.js) |
+
+---
+
 ## Download the Windows EXE (Portable Preview)
 
 The GitHub source repository previously **did not publish its compiled .exe**; green Actions builds only uploaded unit-test logs. The [Windows portable preview guide](docs/PORTABLE_PREVIEW.md) now explains how to download the **latest successful main-branch Actions artifact** named `Z-EARTH-v2.2.4-win-x64-portable-preview`, extract it, and launch `Z EARTH.exe` with bundled Cesium assets.
@@ -70,11 +96,11 @@ Launch `dist/Z EARTH-Preview/Z EARTH.exe` **only after** tests and package valid
 | `src/ZEarth.Domain/` | Geospatial data, CRS/GDAL, KML/KMZ, SQLite, snapping, geometry |
 | `tests/ZEarth.Tests/` | Automated unit/component tests; many use **FakeGlobeEngine** |
 | `scripts/` | Safe build, Windows screenshot harnesses, reproducibility |
-| `.github/skills/` | **30 pinned GIS Development Skills** (single skill source; no local duplicates) |
+| `.github/skills/` | **34 pinned GIS Development Skills** (single skill source; no local duplicates) |
 
 ## GIS Development Skills — single development-agent source
 
-The **only active skills** in `.github/skills/` are the **30 verified source-matched GIS Development Skills specialists**, pinned with **76 references** from upstream [GIS Development Skills](https://github.com/ahmadibrahim4geo/GIS-Development-Skills) `main` commit `222699fb04a8d6ea2583f13e5e37dbfc6a0f55cd`. The 33 duplicated local Z EARTH/CesiumJS specialist skills have been removed, not used as fallback. Original history remains recoverable from Git. No executable, Cesium assets, or application behavior has been changed by this documentation migration.
+The **only active skills** in `.github/skills/` are the **34 verified source-matched GIS Development Skills specialists**, pinned with **81 references** from upstream [GIS Development Skills](https://github.com/ahmadibrahim4geo/GIS-Development-Skills) `main` commit `e0c4880922a70ccf5975ad5174eb34d5fb23838f`. The 33 duplicated local Z EARTH/CesiumJS specialist skills have been removed, not used as fallback. Original history remains recoverable from Git. No executable, Cesium assets, or application behavior has been changed by this documentation migration.
 
 Start from [root agent instructions](AGENTS.md), then [the GIS router](.github/skills/gis-development/SKILL.md), selecting the relevant upstream specialist. The actual Z EARTH implementation requirements remain in [Google Earth parity](docs/GOOGLE_EARTH_PRO_PARITY.md), [KML/Explorer acceptance](docs/KML_EXPLORER_ACCEPTANCE_2026-10-25.md), [terrain/grid acceptance](docs/TERRAIN_GRID_ACCEPTANCE.md), and [historical imagery contract](docs/HISTORICAL_IMAGERY_TIMELINE.md). For safety/verification use `gis-security-guardian`, `completion-evidence` and true native test results.
 
@@ -111,4 +137,4 @@ See [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md) and [LEGAL_AND_PRIVACY_NO
 
 ## Development skills source snapshot
 
-The single reviewed [GIS Development Skills](https://github.com/ahmadibrahim4geo/GIS-Development-Skills) skill catalog includes 30 specialists and 76 source references, pinned to upstream `main` commit `222699fb04a8d6ea2583f13e5e37dbfc6a0f55cd`. All duplicate Z EARTH/CesiumJS skills were removed from the active skill directory. See [migration documentation](docs/GIS_SKILLS_INTEGRATION.md) and [checksums](docs/GIS_SKILLS_SNAPSHOT.json).
+The single reviewed [GIS Development Skills](https://github.com/ahmadibrahim4geo/GIS-Development-Skills) skill catalog includes 34 specialists and 81 source references, pinned to upstream `main` commit `e0c4880922a70ccf5975ad5174eb34d5fb23838f`. All duplicate Z EARTH/CesiumJS skills were removed from the active skill directory. See [migration documentation](docs/GIS_SKILLS_INTEGRATION.md) and [checksums](docs/GIS_SKILLS_SNAPSHOT.json).

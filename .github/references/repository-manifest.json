@@ -2,11 +2,12 @@
   "schema_version": "1.0-zearth",
   "scope": "Only pinned upstream GIS Development Skills agents; all local Z EARTH and CesiumJS duplicate skills retired; not the source repository website manifest.",
   "source_repository": "ahmadibrahim4geo/GIS-Development-Skills",
-  "source_commit": "222699fb04a8d6ea2583f13e5e37dbfc6a0f55cd",
-  "skill_count": 30,
+  "source_commit": "e0c4880922a70ccf5975ad5174eb34d5fb23838f",
+  "skill_count": 34,
   "skill_ids": [
     "agent-development-journal",
     "arcgis-toolbox-engineering",
+    "clean-room-reference-implementation",
     "completion-evidence",
     "coordinate-reference-systems",
     "geospatial-ai-agents",
@@ -15,6 +16,7 @@
     "geospatial-data-discovery",
     "geospatial-data-processing",
     "geospatial-web-mapping",
+    "gis-architecture-visualization",
     "gis-cartography-symbology",
     "gis-data-flow-diagnostics",
     "gis-desktop-application-development",
@@ -28,19 +30,21 @@
     "gis-ui-ux-design-testing",
     "global-mapper-development",
     "kml-kmz-engineering",
+    "mcp-integration-and-tool-orchestration",
     "prompt-intent-orchestrator",
     "qgis-engine-integration",
     "qgis-plugin-development",
     "remote-sensing-pipelines",
     "spatial-databases",
     "system-capabilities-and-permissions",
-    "terrain-hydrology-lidar"
+    "terrain-hydrology-lidar",
+    "visual-asset-discovery-integration"
   ],
-  "reference_count": 77,
+  "reference_count": 81,
   "generated_from": [
     ".github/skills/*/SKILL.md",
     ".github/references/",
     "docs/GIS_SKILLS_SNAPSHOT.json"
   ],
-  "note": "Only the 30 source-matched active generic skills are allowed. Historic local specialists are removed from the active tree; product requirements are in Z EARTH docs and executable tests."
+  "note": "Only the 34 source-matched active generic skills are allowed. Historic local specialists are removed from the active tree; product requirements are in Z EARTH docs and executable tests."
 }

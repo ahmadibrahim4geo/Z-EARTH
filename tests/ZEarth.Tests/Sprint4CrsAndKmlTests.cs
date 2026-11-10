@@ -277,5 +277,37 @@ namespace ZEarth.Tests
                 }
             }
         }
+
+        [TestMethod]
+        public void KmlParser_ExtractsSimpleDataAndResolvesSmartName()
+        {
+            string kml = @"<?xml version=""1.0"" encoding=""UTF-8""?>
+<kml xmlns=""http://www.opengis.net/kml/2.2"">
+  <Document>
+    <Placemark>
+      <ExtendedData>
+        <SchemaData schemaUrl=""#mySchema"">
+          <SimpleData name=""facilityID"">FAC-99124</SimpleData>
+          <SimpleData name=""Feature_Name"">مشروع خفض منسوب المياه</SimpleData>
+          <SimpleData name=""Type"">Pipeline</SimpleData>
+        </SchemaData>
+      </ExtendedData>
+      <Point>
+        <coordinates>31.2357,30.0444,15.0</coordinates>
+      </Point>
+    </Placemark>
+  </Document>
+</kml>";
+
+            var doc = System.Xml.Linq.XDocument.Parse(kml);
+            var root = KmlParser.ParseDocument(doc, "Test Root");
+            Assert.AreEqual(1, root.Children.Count);
+            var p = root.Children[0];
+            Assert.AreEqual("مشروع خفض منسوب المياه", p.Name);
+            Assert.IsTrue(p.ExtendedData.ContainsKey("facilityID"));
+            Assert.AreEqual("FAC-99124", p.ExtendedData["facilityID"]);
+            Assert.IsTrue(p.ExtendedData.ContainsKey("Feature_Name"));
+            Assert.AreEqual("Pipeline", p.ExtendedData["Type"]);
+        }
     }
 }

@@ -25,10 +25,6 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Python bytecode
-__pycache__/
-*.py[cod]
-
 # OS / Temp
 Thumbs.db
 ehthumbs.db
@@ -40,3 +36,13 @@ $RECYCLE.BIN/
 
 # Local, privacy-sensitive per-project agent history; never commit personal logs
 .agent-development-log/
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Local test & evidence outputs
+.test-temp/
+native-evidence/
+reference-evidence/
+ui-icon-evidence/

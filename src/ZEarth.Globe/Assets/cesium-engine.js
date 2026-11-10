@@ -72,6 +72,27 @@
   // Always retain trackball/grab behavior at the supported planetary heights.
   controller.minimumTrackBallHeight = controller.maximumZoomDistance;
 
+  // Viewport engine locale state (pure English vs pure Arabic UI)
+  const EngineLocale = {
+    isArabic: false
+  };
+
+  function updateEngineLocale(isArabic) {
+    EngineLocale.isArabic = Boolean(isArabic);
+    const qiblaTitle = document.getElementById('qibla-title');
+    if (qiblaTitle) qiblaTitle.textContent = isArabic ? 'القبلة' : 'Qibla';
+    const qiblaWarning = document.getElementById('qibla-warning');
+    if (qiblaWarning) qiblaWarning.textContent = isArabic ? 'وجه نحو الأرض' : 'Point at Earth';
+    const btnNorthReset = document.getElementById('btn-north-reset');
+    if (btnNorthReset) {
+      btnNorthReset.textContent = isArabic ? 'الشمال لأعلى' : 'North Up';
+      btnNorthReset.title = isArabic ? 'إعادة ضبط الشمال لأعلى' : 'Reset North Up (N)';
+    }
+    if (typeof WorldGazetteerManager !== 'undefined' && WorldGazetteerManager && WorldGazetteerManager.setLocale) {
+      WorldGazetteerManager.setLocale(EngineLocale.isArabic);
+    }
+  }
+
   // Camera state memory for recovery and stress protection
   let lastSafeCamera = {
     position: Cesium.Cartesian3.fromDegrees(HOME_LON, HOME_LAT, HOME_ALT),
@@ -79,6 +100,9 @@
     pitch: -Cesium.Math.PI_OVER_TWO + 0.0001,
     roll: 0.0
   };
+
+  let WeatherStationsManager = null;
+  let WorldGazetteerManager = null;
 
   // Horizon & subterranean guard: enforce altitude bounds and recover from NaN singularities
   viewer.scene.postRender.addEventListener(() => {
@@ -220,29 +244,29 @@
         17
       );
 
-      // D. CartoDB Dark Matter
+      // D. CartoDB Dark Matter / Dark Canvas (Free Esri Dark Canvas to avoid API Key watermarks)
       registerTileLayer(
         'carto-dark',
         'CartoDB Dark Matter',
-        'https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
-        '© OpenStreetMap, © CARTO',
-        19
+        'https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+        '© Esri, HERE, Garmin, © OpenStreetMap contributors',
+        16
       );
 
-      // E. CartoDB Positron (Light)
+      // E. CartoDB Positron / Light Canvas (Free Esri Light Canvas to avoid API Key watermarks)
       registerTileLayer(
         'carto-light',
         'CartoDB Positron (Light)',
-        'https://basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
-        '© OpenStreetMap, © CARTO',
-        19
+        'https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+        '© Esri, HERE, Garmin, © OpenStreetMap contributors',
+        16
       );
 
       registerTileLayer(
         'carto-voyager',
         'CARTO Voyager',
-        'https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
-        '© OpenStreetMap contributors • © CARTO',
+        'https://services.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
+        '© Esri, HERE, Garmin, USGS, © OpenStreetMap contributors',
         19
       );
 
@@ -373,6 +397,17 @@
     setBasemap(id, notifyHost = true) {
       if (!id) id = 'offline-vector';
       id = String(id).trim().toLowerCase();
+      if (id === 'none' || id === 'off') {
+        this.activeBasemap = 'off';
+        for (const [key, base] of Object.entries(this.baseLayers)) {
+          if (base && base.layer) base.layer.show = false;
+        }
+        if (this.labelsLayer) this.labelsLayer.show = false;
+        viewer.scene.globe.baseColor = Cesium.Color.fromCssColorString('#0b192c');
+        viewer.scene.requestRender();
+        if (notifyHost) sendHostMessage({ event: 'basemap.changed', basemap: 'off' });
+        return true;
+      }
       if (id === 'offline' || id === 'naturalearth') id = 'offline-vector';
       if (id === 'osm' || id === 'openstreetmap') id = 'osm-standard';
       if (id === 'esri' || id === 'satellite' || id === 'hybrid') id = 'esri-hybrid';
@@ -435,6 +470,76 @@
       else this.setBasemap(mode);
     },
 
+    activeOverpassLayers: new Map(),
+
+    async queryOverpassFeatures(config, west, east, south, north) {
+      const bbox = `${south},${west},${north},${east}`;
+      const query = String(config.query || '').replaceAll('{bbox}', bbox);
+      if (!query) return null;
+      const response = await fetch(`${config.url}?data=${encodeURIComponent(query)}`);
+      if (!response.ok) return null;
+      const payload = await response.json();
+      const features = [];
+      for (const element of (payload.elements || [])) {
+        if (!Array.isArray(element.geometry) || element.geometry.length < 2) continue;
+        const coordinates = element.geometry.map(p => [p.lon, p.lat]);
+        const first = coordinates[0];
+        const last = coordinates[coordinates.length - 1];
+        const closed = coordinates.length >= 4 && first[0] === last[0] && first[1] === last[1];
+        features.push({
+          type: 'Feature',
+          id: `${element.type}/${element.id}`,
+          properties: { ...(element.tags || {}), osm_id: element.id, osm_type: element.type },
+          geometry: { type: closed ? 'Polygon' : 'LineString', coordinates: closed ? [coordinates] : coordinates }
+        });
+      }
+      return features;
+    },
+
+    async updateOverpassLayer(config) {
+      const rect = viewer.camera.computeViewRectangle(viewer.scene.globe.ellipsoid);
+      if (!rect) return { success: true, pendingZoom: true };
+      const west = Cesium.Math.toDegrees(rect.west);
+      const east = Cesium.Math.toDegrees(rect.east);
+      const south = Cesium.Math.toDegrees(rect.south);
+      const north = Cesium.Math.toDegrees(rect.north);
+      const lonSpan = east >= west ? east - west : 360 - west + east;
+      const latSpan = north - south;
+      if (lonSpan > 12 || latSpan > 12) {
+        return { success: true, id: config.id, pendingZoom: true };
+      }
+      const features = await this.queryOverpassFeatures(config, west, east, south, north);
+      if (!features) return { success: true, id: config.id };
+
+      const existing = this.overlayLayers.get(config.id);
+      if (existing && existing.dataSource) {
+        viewer.dataSources.remove(existing.dataSource, true);
+      }
+
+      const geojson = { type: 'FeatureCollection', features };
+      const strokeColor = config.id.includes('water') ? '#38bdf8' : (config.id.includes('building') ? '#fbbf24' : '#22c55e');
+      const source = await Cesium.GeoJsonDataSource.load(geojson, {
+        clampToGround: true,
+        stroke: Cesium.Color.fromCssColorString(strokeColor),
+        fill: Cesium.Color.fromCssColorString(strokeColor).withAlpha(0.25),
+        strokeWidth: 2
+      });
+      source.name = config.name || config.id;
+      await viewer.dataSources.add(source);
+      this.overlayLayers.set(config.id, { id: config.id, name: config.name, dataSource: source, attribution: config.attribution || '', opacity: config.opacity ?? 1.0 });
+      this.updateAttribution();
+      viewer.scene.requestRender();
+      return { success: true, id: config.id, featureCount: features.length };
+    },
+
+    onCameraMoveEnd() {
+      if (this.activeOverpassLayers && this.activeOverpassLayers.size > 0) {
+        for (const [id, config] of this.activeOverpassLayers.entries()) {
+          this.updateOverpassLayer(config).catch(() => {});
+        }
+      }
+    },
+
     addCustomLayer(config) {
       if (!config || !config.id || !config.url) return { success: false, error: 'Invalid config' };
       if (this.overlayLayers.has(config.id)) {
@@ -464,7 +569,8 @@
           let tilingScheme;
           let maximumLevel = config.maximumLevel;
           if (normalizedType === 'wmtsgibs') {
-            const date = config.dateOrTimestamp || new Date().toISOString().slice(0, 10);
+            const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+            const date = config.dateOrTimestamp || yesterday;
             templateUrl = templateUrl
               .replace('{Time}', date)
               .replace('{TileMatrix}', '{z}')
@@ -513,60 +619,98 @@
     async addReferenceLayer(config) {
       if (!config || !config.id) return { success: false, error: 'Invalid reference layer' };
       if (config.visible === false) {
+        if (config.id === 'ref_weather_stations' && WeatherStationsManager) {
+          WeatherStationsManager.setEnabled(false);
+        }
+        if (config.id === 'ref_world_gazetteer' && WorldGazetteerManager) {
+          WorldGazetteerManager.setEnabled(false);
+        }
         return { success: true, removed: this.removeLayer(config.id), id: config.id };
       }
 
       const normalizedType = String(config.layerType || config.type || '').toLowerCase();
-      if (normalizedType === 'overpassgeojson') {
+
+      if (config.id === 'ref_weather_stations' || normalizedType === 'weatherstationsgeojson') {
+        if (WeatherStationsManager) {
+          WeatherStationsManager.setEnabled(true);
+          return { success: true, id: config.id };
+        }
+      }
+
+      if (config.id === 'ref_world_gazetteer' || normalizedType === 'worldgazetteer') {
+        if (WorldGazetteerManager) {
+          WorldGazetteerManager.setEnabled(true);
+          return { success: true, id: config.id };
+        }
+      }
+
+      if (config.id === 'ref_world_countries' || normalizedType === 'worldcountries') {
+        this.removeLayer(config.id);
+        if (window.ZEARTH_WORLD_COUNTRIES) {
+          try {
+            const source = await Cesium.GeoJsonDataSource.load(window.ZEARTH_WORLD_COUNTRIES, {
+              clampToGround: true,
+              stroke: Cesium.Color.fromCssColorString('#38bdf8'),
+              fill: Cesium.Color.fromCssColorString('#0284c7').withAlpha(0.12),
+              strokeWidth: 2
+            });
+            source.name = 'World Country Boundaries';
+            await viewer.dataSources.add(source);
+            source.show = true;
+            this.overlayLayers.set(config.id, {
+              id: config.id,
+              name: 'World Country Boundaries',
+              dataSource: source,
+              attribution: 'Natural Earth 110m (Public Domain)'
+            });
+            viewer.scene.requestRender();
+            return { success: true, id: config.id };
+          } catch (e) {
+            return { success: false, error: String(e) };
+          }
+        }
+      }
+
+      if (normalizedType === 'userlocalvector') {
         this.removeLayer(config.id);
         try {
-          const rect = viewer.camera.computeViewRectangle(viewer.scene.globe.ellipsoid);
-          if (!rect) throw new Error('Move the globe over the study area, then enable this layer.');
-          const west = Cesium.Math.toDegrees(rect.west);
-          const east = Cesium.Math.toDegrees(rect.east);
-          const south = Cesium.Math.toDegrees(rect.south);
-          const north = Cesium.Math.toDegrees(rect.north);
-          const lonSpan = east >= west ? east - west : 360 - west + east;
-          const latSpan = north - south;
-          if (lonSpan > 12 || latSpan > 12) {
-            throw new Error('Zoom in to a regional view (under 12°) before loading detailed OpenStreetMap features.');
-          }
-          const bbox = `${south},${west},${north},${east}`;
-          const query = String(config.query || '').replaceAll('{bbox}', bbox);
-          if (!query) throw new Error('Reference-layer query is missing.');
-          const response = await fetch(`${config.url}?data=${encodeURIComponent(query)}`);
-          if (!response.ok) throw new Error(`Overpass returned HTTP ${response.status}`);
-          const payload = await response.json();
-          const features = [];
-          for (const element of (payload.elements || [])) {
-            if (!Array.isArray(element.geometry) || element.geometry.length < 2) continue;
-            const coordinates = element.geometry.map(p => [p.lon, p.lat]);
-            const first = coordinates[0];
-            const last = coordinates[coordinates.length - 1];
-            const closed = coordinates.length >= 4 && first[0] === last[0] && first[1] === last[1];
-            features.push({
-              type: 'Feature',
-              id: `${element.type}/${element.id}`,
-              properties: { ...(element.tags || {}), osm_id: element.id, osm_type: element.type },
-              geometry: { type: closed ? 'Polygon' : 'LineString', coordinates: closed ? [coordinates] : coordinates }
+          const loadPayload = config.geojson || config.url;
+          if (loadPayload) {
+            const source = await Cesium.GeoJsonDataSource.load(loadPayload, {
+              clampToGround: true,
+              stroke: Cesium.Color.fromCssColorString('#38bdf8'),
+              fill: Cesium.Color.fromCssColorString('#38bdf8').withAlpha(0.25),
+              strokeWidth: 2,
+              markerColor: Cesium.Color.fromCssColorString('#38bdf8')
             });
+            source.name = config.name || config.id;
+            await viewer.dataSources.add(source);
+            source.show = true;
+            this.overlayLayers.set(config.id, {
+              id: config.id,
+              name: config.name,
+              dataSource: source,
+              attribution: config.attribution || 'User Local Layer',
+              opacity: typeof config.opacity === 'number' ? config.opacity : 1.0
+            });
+            this.updateAttribution();
+            viewer.scene.requestRender();
+            return { success: true, id: config.id };
           }
-          const geojson = { type: 'FeatureCollection', features };
-          const source = await Cesium.GeoJsonDataSource.load(geojson, {
-            clampToGround: true,
-            stroke: Cesium.Color.fromCssColorString('#22c55e'),
-            fill: Cesium.Color.fromCssColorString('#22c55e').withAlpha(0.22),
-            strokeWidth: 2
-          });
-          source.name = config.name || config.id;
-          await viewer.dataSources.add(source);
-          this.overlayLayers.set(config.id, { id: config.id, name: config.name, dataSource: source, attribution: config.attribution || '', opacity: config.opacity ?? 1.0 });
-          this.updateAttribution();
-          viewer.scene.requestRender();
-          return { success: true, id: config.id, featureCount: features.length };
         } catch (e) {
           sendHostMessage({ event: 'imagery.error', layerId: config.id, message: String(e?.message || e) });
           return { success: false, error: String(e?.message || e) };
+        }
+      }
+
+      if (normalizedType === 'overpassgeojson') {
+        this.removeLayer(config.id);
+        if (!this.activeOverpassLayers) this.activeOverpassLayers = new Map();
+        this.activeOverpassLayers.set(config.id, config);
+        try {
+          return await this.updateOverpassLayer(config);
+        } catch (e) {
+          return { success: true, id: config.id, pendingZoom: true };
         }
       }
 
@@ -574,8 +718,11 @@
         this.removeLayer(config.id);
         try {
           const center = getScreenCenterGround();
-          if (!center.valid) throw new Error('Center the globe on a ground location first.');
-          const coord = `${center.latitude}|${center.longitude}`;
+          const cam = viewer.camera.positionCartographic;
+          const lat = center.valid ? center.latitude : Cesium.Math.toDegrees(cam.latitude);
+          const lon = center.valid ? center.longitude : Cesium.Math.toDegrees(cam.longitude);
+          if (!Number.isFinite(lat) || !Number.isFinite(lon)) throw new Error('Center the globe on a ground location first.');
+          const coord = `${lat}|${lon}`;
           let requestUrl;
           if (normalizedType === 'wikimediageosearch') {
             requestUrl = `${config.url}?action=query&generator=geosearch&ggsprimary=all&ggsnamespace=6&ggslimit=75&ggsradius=10000&ggscoord=${encodeURIComponent(coord)}&prop=imageinfo|coordinates&iiprop=url&iiurlwidth=96&format=json&origin=*`;
@@ -591,17 +738,17 @@
             : (payload?.query?.geosearch || []);
           for (const page of pages) {
             const coordinate = page.coordinates?.[0] || page;
-            const lat = Number(coordinate.lat);
-            const lon = Number(coordinate.lon);
-            if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
+            const itemLat = Number(coordinate.lat);
+            const itemLon = Number(coordinate.lon);
+            if (!Number.isFinite(itemLat) || !Number.isFinite(itemLon)) continue;
             const title = String(page.title || 'Nearby place');
             const thumb = page.imageinfo?.[0]?.thumburl;
             source.entities.add({
               name: title,
-              position: Cesium.Cartesian3.fromDegrees(lon, lat, 40),
+              position: Cesium.Cartesian3.fromDegrees(itemLon, itemLat, 40),
               point: thumb ? undefined : { pixelSize: 9, color: Cesium.Color.fromCssColorString('#38bdf8'), outlineColor: Cesium.Color.WHITE, outlineWidth: 2, heightReference: Cesium.HeightReference.CLAMP_TO_GROUND },
               billboard: thumb ? { image: thumb, width: 48, height: 48, verticalOrigin: Cesium.VerticalOrigin.BOTTOM, heightReference: Cesium.HeightReference.CLAMP_TO_GROUND, disableDepthTestDistance: 0 } : undefined,
-              label: { text: title, font: '11px Segoe UI, sans-serif', fillColor: Cesium.Color.WHITE, outlineColor: Cesium.Color.BLACK, outlineWidth: 3, style: Cesium.LabelStyle.FILL_AND_OUTLINE, pixelOffset: new Cesium.Cartesian2(0, thumb ? -54 : -14), distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 600000), disableDepthTestDistance: 0 },
+              label: { text: title, font: '11px Segoe UI, sans-serif', fillColor: Cesium.Color.WHITE, outlineColor: Cesium.Color.BLACK, outlineWidth: 3, style: Cesium.LabelStyle.FILL_AND_OUTLINE, pixelOffset: new Cesium.Cartesian2(0, thumb ? -54 : -14), distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 3000000), disableDepthTestDistance: 0 },
               description: normalizedType === 'wikimediageosearch'
                 ? `<a href="https://commons.wikimedia.org/wiki/${encodeURIComponent(title)}">Open on Wikimedia Commons</a>`
                 : `<a href="https://en.wikipedia.org/wiki/${encodeURIComponent(title.replaceAll(' ', '_'))}">Open on Wikipedia</a>`
@@ -629,6 +776,24 @@
             markerColor: Cesium.Color.fromCssColorString('#ef4444'),
             markerSize: 18
           });
+          for (const entity of source.entities.values) {
+            const props = entity.properties;
+            const title = props?.title ? props.title.getValue() : (entity.name || 'Feature');
+            entity.name = title;
+            if (entity.billboard) {
+              entity.billboard.heightReference = Cesium.HeightReference.CLAMP_TO_GROUND;
+            }
+            entity.label = {
+              text: title,
+              font: '11px Segoe UI, sans-serif',
+              fillColor: Cesium.Color.WHITE,
+              outlineColor: Cesium.Color.BLACK,
+              outlineWidth: 3,
+              style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+              pixelOffset: new Cesium.Cartesian2(0, -18),
+              distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 15000000)
+            };
+          }
           source.name = config.name || config.id;
           await viewer.dataSources.add(source);
           source.show = true;
@@ -656,6 +821,15 @@
     },
 
     removeLayer(id) {
+      if (id === 'ref_weather_stations' && WeatherStationsManager) {
+        WeatherStationsManager.setEnabled(false);
+      }
+      if (id === 'ref_world_gazetteer' && WorldGazetteerManager) {
+        WorldGazetteerManager.setEnabled(false);
+      }
+      if (this.activeOverpassLayers) {
+        this.activeOverpassLayers.delete(id);
+      }
       if (this.overlayLayers.has(id)) {
         const item = this.overlayLayers.get(id);
         if (item && item.layer) {
@@ -922,6 +1096,34 @@
         const u = column - x0, v = row - y0;
         const height = (a * (1 - u) + b * u) * (1 - v) + (c * (1 - u) + d * u) * v;
         return { ...point, height };
+      }));
+    },
+
+    async sampleBackground30mDem(points) {
+      const level = 12, n = 2 ** level, size = this.gridSize;
+      return Promise.all(points.map(async point => {
+        if (Math.abs(point.latitude) > 85.05112878) return { ...point, height: 0 };
+        const normalized = ((point.longitude + 180) % 360 + 360) % 360;
+        const globalX = normalized / 360 * n;
+        const lat = point.latitude * Math.PI / 180;
+        const globalY = (1 - Math.log(Math.tan(lat) + 1 / Math.cos(lat)) / Math.PI) / 2 * n;
+        const x = Math.max(0, Math.min(n - 1, Math.floor(globalX)));
+        const y = Math.max(0, Math.min(n - 1, Math.floor(globalY)));
+        const column = Math.max(0, Math.min(size - 1, (globalX - x) * (size - 1)));
+        const row = Math.max(0, Math.min(size - 1, (globalY - y) * (size - 1)));
+        const x0 = Math.floor(column), x1 = Math.min(size - 1, x0 + 1);
+        const y0 = Math.floor(row), y1 = Math.min(size - 1, y0 + 1);
+        try {
+          const heights = await this.loadTerrariumTile(x, y, level);
+          const a = heights[y0 * size + x0], b = heights[y0 * size + x1];
+          const c = heights[y1 * size + x0], d = heights[y1 * size + x1];
+          if (![a, b, c, d].every(Number.isFinite)) return { ...point, height: 0 };
+          const u = column - x0, v = row - y0;
+          const height = (a * (1 - u) + b * u) * (1 - v) + (c * (1 - u) + d * u) * v;
+          return { ...point, height: Math.round(height * 10) / 10 };
+        } catch {
+          return { ...point, height: 0 };
+        }
       }));
     },
 
@@ -1335,11 +1537,114 @@
   const placemarkEntities = [];
   let lastPlacemarkSignature = '';
 
+  function shapeArabicText(text) {
+    if (!text || !/[\u0600-\u06ff\u0750-\u077f\u08a0-\u08ff]/.test(text)) return String(text || '');
+
+    const CHAR_MAP = {
+      0x0621: [0xfe80, 0xfe80, 0xfe80, 0xfe80],
+      0x0622: [0xfe81, 0xfe82, 0xfe81, 0xfe82],
+      0x0623: [0xfe83, 0xfe84, 0xfe83, 0xfe84],
+      0x0624: [0xfe85, 0xfe86, 0xfe85, 0xfe86],
+      0x0625: [0xfe87, 0xfe88, 0xfe87, 0xfe88],
+      0x0626: [0xfe89, 0xfe8a, 0xfe8b, 0xfe8c],
+      0x0627: [0xfe8d, 0xfe8e, 0xfe8d, 0xfe8e],
+      0x0628: [0xfe8f, 0xfe90, 0xfe91, 0xfe92],
+      0x0629: [0xfe93, 0xfe94, 0xfe93, 0xfe94],
+      0x062a: [0xfe95, 0xfe96, 0xfe97, 0xfe98],
+      0x062b: [0xfe99, 0xfe9a, 0xfe9b, 0xfe9c],
+      0x062c: [0xfe9d, 0xfe9e, 0xfe9f, 0xfea0],
+      0x062d: [0xfea1, 0xfea2, 0xfea3, 0xfea4],
+      0x062e: [0xfea5, 0xfea6, 0xfea7, 0xfea8],
+      0x062f: [0xfea9, 0xfeaa, 0xfea9, 0xfeaa],
+      0x0630: [0xfeab, 0xfeac, 0xfeab, 0xfeac],
+      0x0631: [0xfead, 0xfeae, 0xfead, 0xfeae],
+      0x0632: [0xfeaf, 0xfeb0, 0xfeaf, 0xfeb0],
+      0x0633: [0xfeb1, 0xfeb2, 0xfeb3, 0xfeb4],
+      0x0634: [0xfeb5, 0xfeb6, 0xfeb7, 0xfeb8],
+      0x0635: [0xfeb9, 0xfeba, 0xfebb, 0xfebc],
+      0x0636: [0xfebd, 0xfebe, 0xfebf, 0xfec0],
+      0x0637: [0xfec1, 0xfec2, 0xfec3, 0xfec4],
+      0x0638: [0xfec5, 0xfec6, 0xfec7, 0xfec8],
+      0x0639: [0xfec9, 0xfeca, 0xfecb, 0xfecc],
+      0x063a: [0xfecd, 0xfece, 0xfecf, 0xfed0],
+      0x0641: [0xfed1, 0xfed2, 0xfed3, 0xfed4],
+      0x0642: [0xfed5, 0xfed6, 0xfed7, 0xfed8],
+      0x0643: [0xfed9, 0xfeda, 0xfedb, 0xfedc],
+      0x0644: [0xfedd, 0xfede, 0xfedf, 0xfee0],
+      0x0645: [0xfee1, 0xfee2, 0xfee3, 0xfee4],
+      0x0646: [0xfee5, 0xfee6, 0xfee7, 0xfee8],
+      0x0647: [0xfee9, 0xfeea, 0xfeeb, 0xfeec],
+      0x0648: [0xfeed, 0xfeee, 0xfeed, 0xfeee],
+      0x0649: [0xfeef, 0xfef0, 0xfeef, 0xfef0],
+      0x064a: [0xfef1, 0xfef2, 0xfef3, 0xfef4],
+      0x067e: [0xfb56, 0xfb57, 0xfb58, 0xfb59],
+      0x0686: [0xfb7a, 0xfb7b, 0xfb7c, 0xfb7d],
+      0x0698: [0xfb8a, 0xfb8b, 0xfb8a, 0xfb8b],
+      0x06af: [0xfb92, 0xfb93, 0xfb94, 0xfb95]
+    };
+
+    const RIGHT_ONLY = new Set([
+      0x0621, 0x0622, 0x0623, 0x0624, 0x0625, 0x0627, 0x062f, 0x0630, 0x0631, 0x0632, 0x0648, 0x0649, 0x0629, 0x0698
+    ]);
+
+    const LAM_ALEF = {
+      0x0622: [0xfef5, 0xfef6],
+      0x0623: [0xfef7, 0xfef8],
+      0x0625: [0xfef9, 0xfefa],
+      0x0627: [0xfefb, 0xfefc]
+    };
+
+    const clean = String(text).replace(/[\u064B-\u065F\u0670]/g, '');
+    const codes = [];
+    for (let i = 0; i < clean.length; i++) codes.push(clean.charCodeAt(i));
+
+    const reshaped = [];
+    for (let i = 0; i < codes.length; i++) {
+      const c = codes[i];
+      const prev = i > 0 ? codes[i - 1] : 0;
+      const next = i < codes.length - 1 ? codes[i + 1] : 0;
+
+      if (c === 0x0644 && LAM_ALEF[next]) {
+        const connectsBefore = CHAR_MAP[prev] && !RIGHT_ONLY.has(prev);
+        reshaped.push(String.fromCharCode(LAM_ALEF[next][connectsBefore ? 1 : 0]));
+        i++;
+        continue;
+      }
+
+      if (!CHAR_MAP[c]) {
+        reshaped.push(String.fromCharCode(c));
+        continue;
+      }
+
+      const connectsBefore = CHAR_MAP[prev] && !RIGHT_ONLY.has(prev);
+      const connectsAfter = CHAR_MAP[next] && (CHAR_MAP[c] && !RIGHT_ONLY.has(c));
+
+      let form = 0;
+      if (connectsBefore && connectsAfter) form = 3;
+      else if (connectsBefore) form = 1;
+      else if (connectsAfter) form = 2;
+
+      reshaped.push(String.fromCharCode(CHAR_MAP[c][form]));
+    }
+
+    const reshapedStr = reshaped.join('');
+    const tokens = [];
+    const tokenRegex = /([\u0600-\u06ff\ufb50-\ufdff\ufe70-\ufeff]+|[0-9]+|[^\u0600-\u06ff\ufb50-\ufdff\ufe70-\ufeff0-9\s]+|\s+)/g;
+    let match;
+    while ((match = tokenRegex.exec(reshapedStr)) !== null) {
+      tokens.push(match[0]);
+    }
+
+    return tokens.reverse().map(tok => {
+      if (/[\ufb50-\ufdff\ufe70-\ufeff]/.test(tok)) {
+        return [...tok].reverse().join('');
+      }
+      return tok;
+    }).join('');
+  }
+
   function isolatedLabelText(value) {
-    const text = String(value || '');
-    return /[\u0600-\u06ff\u0750-\u077f\u08a0-\u08ff]/.test(text)
-      ? `\u2067${text}\u2069`
-      : text;
+    return shapeArabicText(value);
   }
 
   function getHeightReference(altitudeMode) {
@@ -1351,45 +1656,107 @@
 
   function createFeatureSymbolCanvas(shape, color) {
     const canvas = document.createElement('canvas');
-    canvas.width = 40;
-    canvas.height = 40;
+    canvas.width = 44;
+    canvas.height = 44;
     const ctx = canvas.getContext('2d');
-    const css = color?.toCssColorString ? color.toCssColorString() : '#22a8de';
-    const kind = String(shape || 'Circle').toLowerCase();
+    let css = color?.toCssColorString ? color.toCssColorString() : '#22a8de';
+    let kind = String(shape || 'circle').toLowerCase();
+
+    // Check color override from pin color keys (e.g. pin-red, pin-blue)
+    if (kind.startsWith('pin-')) {
+      const colorPart = kind.substring(4);
+      const colorMap = {
+        'red': '#EF4444', 'blue': '#3B82F6', 'green': '#10B981', 'yellow': '#F59E0B',
+        'purple': '#8B5CF6', 'orange': '#F97316', 'pink': '#EC4899', 'cyan': '#06B6D4', 'white': '#F9FAFB'
+      };
+      if (colorMap[colorPart]) css = colorMap[colorPart];
+      kind = 'pin';
+    }
+
     ctx.fillStyle = css;
     ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 3;
+    ctx.lineWidth = 2.5;
     ctx.lineJoin = 'round';
     ctx.beginPath();
-    if (kind === 'square') {
-      ctx.rect(6, 6, 28, 28);
-    } else if (kind === 'triangle') {
-      ctx.moveTo(20, 4); ctx.lineTo(36, 34); ctx.lineTo(4, 34); ctx.closePath();
-    } else if (kind === 'star') {
+
+    if (kind === 'square' || kind === 'shape-square') {
+      ctx.rect(7, 7, 30, 30);
+      ctx.fill();
+      ctx.stroke();
+    } else if (kind === 'triangle' || kind === 'shape-triangle') {
+      ctx.moveTo(22, 6); ctx.lineTo(38, 38); ctx.lineTo(6, 38); ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    } else if (kind === 'diamond' || kind === 'shape-diamond') {
+      ctx.moveTo(22, 5); ctx.lineTo(39, 22); ctx.lineTo(22, 39); ctx.lineTo(5, 22); ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    } else if (kind === 'star' || kind === 'shape-star') {
       for (let i = 0; i < 10; i++) {
-        const radius = i % 2 === 0 ? 17 : 7;
+        const radius = i % 2 === 0 ? 18 : 8;
         const angle = -Math.PI / 2 + i * Math.PI / 5;
-        const x = 20 + Math.cos(angle) * radius;
-        const y = 20 + Math.sin(angle) * radius;
+        const x = 22 + Math.cos(angle) * radius;
+        const y = 22 + Math.sin(angle) * radius;
         if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
       }
       ctx.closePath();
-    } else if (kind === 'pin') {
-      ctx.moveTo(20, 37);
-      ctx.bezierCurveTo(17, 30, 7, 24, 7, 15);
-      ctx.arc(20, 15, 13, Math.PI, 0, false);
-      ctx.bezierCurveTo(33, 24, 23, 30, 20, 37);
+      ctx.fill();
+      ctx.stroke();
+    } else if (kind === 'target' || kind === 'shape-target') {
+      ctx.arc(22, 22, 18, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(22, 22, 11, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = css; ctx.beginPath(); ctx.arc(22, 22, 5, 0, Math.PI * 2); ctx.fill();
+    } else if (kind === 'cross' || kind === 'shape-cross') {
+      ctx.arc(22, 22, 17, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.moveTo(22, 10); ctx.lineTo(22, 34); ctx.moveTo(10, 22); ctx.lineTo(34, 22); ctx.stroke();
+    } else if (kind === 'flag' || kind === 'shape-flag') {
+      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(10, 40); ctx.lineTo(10, 8); ctx.stroke();
+      ctx.fillStyle = css; ctx.beginPath(); ctx.moveTo(10, 8); ctx.lineTo(36, 16); ctx.lineTo(10, 24); ctx.closePath();
+      ctx.fill(); ctx.stroke();
+    } else if (kind === 'pin' || kind.startsWith('paddle')) {
+      ctx.moveTo(22, 40);
+      ctx.bezierCurveTo(18, 32, 8, 26, 8, 16);
+      ctx.arc(22, 16, 14, Math.PI, 0, false);
+      ctx.bezierCurveTo(36, 26, 26, 32, 22, 40);
       ctx.closePath();
-    } else {
-      ctx.arc(20, 20, 14, 0, Math.PI * 2);
-    }
-    ctx.fill();
-    ctx.stroke();
-    if (kind === 'pin') {
+      ctx.fill();
+      ctx.stroke();
       ctx.fillStyle = '#ffffff';
       ctx.beginPath();
-      ctx.arc(20, 15, 4.5, 0, Math.PI * 2);
+      ctx.arc(22, 16, 5, 0, Math.PI * 2);
       ctx.fill();
+    } else if (kind.startsWith('num-') || kind.startsWith('letter-')) {
+      const char = (kind.startsWith('num-') ? kind.substring(4) : kind.substring(7)).toUpperCase();
+      ctx.arc(22, 22, 17, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 16px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(char, 22, 22);
+    } else if (kind.startsWith('fac-')) {
+      ctx.arc(22, 22, 17, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '16px "Segoe UI Emoji", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      const iconChar = kind.includes('airport') ? '✈' :
+                       kind.includes('hospital') ? '✚' :
+                       kind.includes('school') ? '🏫' :
+                       kind.includes('gas') ? '⛽' :
+                       kind.includes('restaurant') ? '🍴' :
+                       kind.includes('hotel') ? '🏨' :
+                       kind.includes('bank') ? '🏦' : '🅿';
+      ctx.fillText(iconChar, 22, 23);
+    } else {
+      ctx.arc(22, 22, 16, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
     }
     return canvas;
   }
@@ -1420,27 +1787,57 @@
           }
         }
 
+        const fillMode = String(p.fillMode || 'both').toLowerCase();
+        const showFill = fillMode !== 'outlineonly' && fillMode !== 'outline';
+        const showOutline = fillMode !== 'fillonly' && fillMode !== 'fill';
+        const fillAlpha = Number.isFinite(Number(p.fillOpacity)) ? Math.max(0, Math.min(1, Number(p.fillOpacity))) : 0.4;
+        let polyMaterial = colorVal.withAlpha(fillAlpha);
+        if (p.fillColor && typeof p.fillColor === 'string' && p.fillColor.startsWith('#')) {
+          polyMaterial = Cesium.Color.fromCssColorString(p.fillColor).withAlpha(fillAlpha);
+        }
+
         ent = viewer.entities.add({
           id: p.id,
           name: p.name,
           polygon: {
             hierarchy: new Cesium.PolygonHierarchy(outerPositions, holes),
-            material: colorVal.withAlpha(Number.isFinite(Number(p.fillOpacity)) ? Math.max(0, Math.min(1, Number(p.fillOpacity))) : 0.4),
-            outline: true,
+            fill: showFill,
+            material: polyMaterial,
+            outline: showOutline,
             outlineColor: colorVal,
-            outlineWidth: Number(p.outlineWidth || 2),
+            outlineWidth: Number(p.outlineWidth || p.lineWidth || 2),
             heightReference: getHeightReference(p.altitudeMode)
           }
         });
       } else if (p.type === 'path' && Array.isArray(p.coordinates) && p.coordinates.length >= 2) {
         const positions = p.coordinates.map(c => Cesium.Cartesian3.fromDegrees(c.lon, c.lat, c.alt || 0));
+        let lineMaterial = colorVal;
+        const linePat = String(p.linePattern || 'solid').toLowerCase();
+        if (linePat === 'dashed') {
+          lineMaterial = new Cesium.PolylineDashMaterialProperty({
+            color: colorVal,
+            dashLength: 16.0
+          });
+        } else if (linePat === 'dotted') {
+          lineMaterial = new Cesium.PolylineDashMaterialProperty({
+            color: colorVal,
+            dashLength: 8.0,
+            dashPattern: 255
+          });
+        } else if (linePat === 'dashdot') {
+          lineMaterial = new Cesium.PolylineDashMaterialProperty({
+            color: colorVal,
+            dashLength: 24.0,
+            dashPattern: 3855
+          });
+        }
         ent = viewer.entities.add({
           id: p.id,
           name: p.name,
           polyline: {
             positions: positions,
             width: Number(p.lineWidth || 3),
-            material: colorVal,
+            material: lineMaterial,
             clampToGround: String(p.altitudeMode || 'ClampToGround').toLowerCase() !== 'absolute'
           }
         });
@@ -1455,6 +1852,26 @@
           ellipse: {
             semiMajorAxis: radius,
             semiMinorAxis: radius,
+            material: colorVal.withAlpha(Number.isFinite(Number(p.fillOpacity)) ? Number(p.fillOpacity) : 0.35),
+            outline: true,
+            outlineColor: colorVal,
+            heightReference: getHeightReference(p.altitudeMode)
+          }
+        });
+      } else if (p.type === 'ellipse' && Number(p.semiMajorAxis) > 0) {
+        const lon = Number(p.lon || 0);
+        const lat = Number(p.lat || 0);
+        const semiMajor = Math.max(0.1, Number(p.semiMajorAxis));
+        const semiMinor = Math.max(0.1, Number(p.semiMinorAxis || semiMajor));
+        const bearing = Number(p.bearingDegrees || 0);
+        ent = viewer.entities.add({
+          id: p.id,
+          name: p.name,
+          position: Cesium.Cartesian3.fromDegrees(lon, lat, Number(p.alt || 0)),
+          ellipse: {
+            semiMajorAxis: semiMajor,
+            semiMinorAxis: semiMinor,
+            rotation: Cesium.Math.toRadians(360 - bearing),
             material: colorVal.withAlpha(Number.isFinite(Number(p.fillOpacity)) ? Number(p.fillOpacity) : 0.35),
             outline: true,
             outlineColor: colorVal,
@@ -1529,6 +1946,7 @@
 
       if (ent) {
         ent._zearthId = p.id;
+        ent._zearthFeatureInfo = { name: p.name, type: p.type, attributes: p.attributes || {} };
         placemarkEntities.push(ent);
       }
     }
@@ -1553,6 +1971,8 @@
     glyphEl: document.getElementById('snap-glyph'),
     markerEl: document.getElementById('snap-marker'),
     tooltipEl: document.getElementById('snap-tooltip'),
+    tetherSvg: document.getElementById('snap-tether-svg'),
+    tetherLine: document.getElementById('snap-tether-line'),
 
     setConfig: function (cfg) {
       if (!cfg) return;
@@ -1566,10 +1986,12 @@
       if (typeof cfg.snapIntersections === 'boolean') this.snapIntersections = cfg.snapIntersections;
     },
 
-    showGlyph: function (screenX, screenY, type, label) {
+    showGlyph: function (screenX, screenY, type, label, mousePos) {
       if (!this.glyphEl) {
         this.glyphEl = document.getElementById('snap-glyph');
         this.tooltipEl = document.getElementById('snap-tooltip');
+        this.tetherSvg = document.getElementById('snap-tether-svg');
+        this.tetherLine = document.getElementById('snap-tether-line');
       }
       if (!this.glyphEl) return;
       this.glyphEl.style.left = `${screenX}px`;
@@ -1579,14 +2001,27 @@
       if (this.tooltipEl) {
         this.tooltipEl.textContent = label || `Snap: ${type}`;
       }
+      if (this.tetherSvg && this.tetherLine && mousePos && Number.isFinite(mousePos.x) && Number.isFinite(mousePos.y)) {
+        this.tetherLine.setAttribute('x1', String(mousePos.x));
+        this.tetherLine.setAttribute('y1', String(mousePos.y));
+        this.tetherLine.setAttribute('x2', String(screenX));
+        this.tetherLine.setAttribute('y2', String(screenY));
+        this.tetherSvg.style.display = 'block';
+      } else if (this.tetherSvg) {
+        this.tetherSvg.style.display = 'none';
+      }
     },
 
     hideGlyph: function () {
       if (!this.glyphEl) {
         this.glyphEl = document.getElementById('snap-glyph');
+        this.tetherSvg = document.getElementById('snap-tether-svg');
       }
       if (this.glyphEl) {
         this.glyphEl.style.display = 'none';
+      }
+      if (this.tetherSvg) {
+        this.tetherSvg.style.display = 'none';
       }
       this.activeSnap = null;
     },
@@ -1719,7 +2154,7 @@
 
         if (bestTarget) {
           this.activeSnap = bestTarget;
-          this.showGlyph(bestTarget.screenX, bestTarget.screenY, bestTarget.type, bestTarget.label);
+          this.showGlyph(bestTarget.screenX, bestTarget.screenY, bestTarget.type, bestTarget.label, screenPos);
           return { snapped: true, ...bestTarget };
         }
       }
@@ -1746,7 +2181,7 @@
 
         if (bestTarget) {
           this.activeSnap = bestTarget;
-          this.showGlyph(bestTarget.screenX, bestTarget.screenY, bestTarget.type, bestTarget.label);
+          this.showGlyph(bestTarget.screenX, bestTarget.screenY, bestTarget.type, bestTarget.label, screenPos);
           return { snapped: true, ...bestTarget };
         }
       }
@@ -1777,7 +2212,7 @@
 
         if (bestTarget) {
           this.activeSnap = bestTarget;
-          this.showGlyph(bestTarget.screenX, bestTarget.screenY, bestTarget.type, bestTarget.label);
+          this.showGlyph(bestTarget.screenX, bestTarget.screenY, bestTarget.type, bestTarget.label, screenPos);
           return { snapped: true, ...bestTarget };
         }
       }
@@ -1813,7 +2248,7 @@
 
         if (bestTarget) {
           this.activeSnap = bestTarget;
-          this.showGlyph(bestTarget.screenX, bestTarget.screenY, bestTarget.type, bestTarget.label);
+          this.showGlyph(bestTarget.screenX, bestTarget.screenY, bestTarget.type, bestTarget.label, screenPos);
           return { snapped: true, ...bestTarget };
         }
       }
@@ -1824,48 +2259,95 @@
   };
 
   // 4.6. Interactive Drawing Engine with Snapping Integration (ZE-040, ZE-041, ZE-045)
+  
+
+  // 4.6. Interactive Drawing Engine with Snapping Integration (ZE-040, ZE-041, ZE-045)
   const DrawingManager = {
-    activeMode: null, // 'point' | 'path' | 'polygon' | 'rectangle' | 'circle'
+    activeMode: null, // 'point' | 'path' | 'polygon' | 'rectangle' | 'circle' | 'ellipse'
     vertices: [],
     tempPoints: [],
     previewEntity: null,
+    guideEntities: [],
     handler: null,
     style: { color: '#22A8DE', width: 3, opacity: 0.4 },
 
     pickGroundPosition: function (screenPos) {
-      const ray = viewer.camera.getPickRay(screenPos);
-      if (!ray) return null;
-      let pos = viewer.scene.globe.pick(ray, viewer.scene);
-      if (!pos) {
-        pos = viewer.camera.pickEllipsoid(screenPos, viewer.scene.globe.ellipsoid);
-      }
-      return pos;
+      return pickGroundAtScreenPosition(screenPos);
     },
 
     getRectanglePositions: function (edge) {
       if (!edge || !this.vertices.length) return [];
       const start = Cesium.Cartographic.fromCartesian(this.vertices[0]);
-      const finish = Cesium.Cartographic.fromCartesian(edge);
-      if (!start || !finish) return [];
+      if (!start) return [];
       const lon1 = Cesium.Math.toDegrees(start.longitude);
-      const lon2 = Cesium.Math.toDegrees(finish.longitude);
       const lat1 = Cesium.Math.toDegrees(start.latitude);
+
+      if (this.vertices.length >= 2) {
+        const p2 = Cesium.Cartographic.fromCartesian(this.vertices[1]);
+        const p3 = Cesium.Cartographic.fromCartesian(edge);
+        if (p2 && p3) {
+          const lon2 = Cesium.Math.toDegrees(p2.longitude);
+          const lat2 = Cesium.Math.toDegrees(p2.latitude);
+          const lon3 = Cesium.Math.toDegrees(p3.longitude);
+          const lat3 = Cesium.Math.toDegrees(p3.latitude);
+          const oriented = globalThis.ZEarthGeometry?.computeOrientedRectangle(lon1, lat1, lon2, lat2, lon3, lat3);
+          if (oriented && oriented.corners) {
+            return Cesium.Cartesian3.fromDegreesArray(oriented.corners);
+          }
+        }
+      }
+
+      const finish = Cesium.Cartographic.fromCartesian(edge);
+      if (!finish) return [];
+      const lon2 = Cesium.Math.toDegrees(finish.longitude);
       const lat2 = Cesium.Math.toDegrees(finish.latitude);
       const degrees = globalThis.ZEarthGeometry?.rectangleCorners(lon1, lat1, lon2, lat2);
       return degrees ? Cesium.Cartesian3.fromDegreesArray(degrees) : [];
+    },
+
+    getCircleRadius: function (edge) {
+      if (!edge || this.vertices.length === 0) return 0.1;
+      const center = Cesium.Cartographic.fromCartesian(this.vertices[0]);
+      const target = Cesium.Cartographic.fromCartesian(edge);
+      const geodesic = new Cesium.EllipsoidGeodesic(center, target, Cesium.Ellipsoid.WGS84);
+      return Math.max(0.1, geodesic.surfaceDistance || 0.1);
+    },
+
+    getEllipseParameters: function (edgeOrMinor) {
+      if (this.vertices.length < 2) return null;
+      const cCenter = Cesium.Cartographic.fromCartesian(this.vertices[0]);
+      const cMajor = Cesium.Cartographic.fromCartesian(this.vertices[1]);
+      const geodesicMajor = new Cesium.EllipsoidGeodesic(cCenter, cMajor, Cesium.Ellipsoid.WGS84);
+      const semiMajor = Math.max(0.1, geodesicMajor.surfaceDistance || 0.1);
+      const bearing = globalThis.ZEarthGeometry ? globalThis.ZEarthGeometry.calculateBearing(
+        Cesium.Math.toDegrees(cCenter.longitude), Cesium.Math.toDegrees(cCenter.latitude),
+        Cesium.Math.toDegrees(cMajor.longitude), Cesium.Math.toDegrees(cMajor.latitude)
+      ) : 0.0;
+
+      let semiMinor = 0.1;
+      if (edgeOrMinor) {
+        const cMinor = Cesium.Cartographic.fromCartesian(edgeOrMinor);
+        const geodesicMinor = new Cesium.EllipsoidGeodesic(cCenter, cMinor, Cesium.Ellipsoid.WGS84);
+        semiMinor = Math.max(0.1, Math.min(semiMajor, geodesicMinor.surfaceDistance || 0.1));
+      }
+      return { semiMajor, semiMinor, bearing };
     },
 
     start: function (type, styleOptions) {
       this.cancel();
       this.activeMode = type || 'point';
       this.vertices = [];
+      this.tempPoints = [];
+      this.guideEntities = [];
       this.style = Object.assign({ color: '#22A8DE', width: 3, opacity: 0.4 }, styleOptions);
 
       document.body.style.cursor = 'crosshair';
 
       this.handler = new Cesium.ScreenSpaceEventHandler(viewer.canvas);
 
-      // Left Click: Place vertex with snap support (ZE-045)
+      let currentMousePos = null;
+
+      // Left Click: Place vertex with snap support
       this.handler.setInputAction((click) => {
         const snap = SnapManager.query(click.position);
         const cartesian = snap.snapped ? snap.cartesian : this.pickGroundPosition(click.position);
@@ -1942,12 +2424,25 @@
         });
         this.tempPoints.push(ptEnt);
 
-        // Two diagonal corners completely define a geographic rectangle.
-        if (this.activeMode === 'rectangle' && this.vertices.length === 2) {
+        // Oriented 3-Point Rectangle finishes on 3 vertices (P1, P2 baseline, P3 width)
+        if (this.activeMode === 'rectangle' && this.vertices.length === 3) {
           this.finish();
           return;
         }
 
+        // Circle finishes on 2 vertices
+        if (this.activeMode === 'circle' && this.vertices.length === 2) {
+          this.finish();
+          return;
+        }
+
+        // Ellipse finishes on 3 vertices
+        if (this.activeMode === 'ellipse' && this.vertices.length === 3) {
+          this.finish();
+          return;
+        }
+
+        // Setup dynamic preview entities on first vertex
         if (this.vertices.length === 1) {
           if (this.activeMode === 'path') {
             this.previewEntity = viewer.entities.add({
@@ -1981,23 +2476,110 @@
               }
             });
           } else if (this.activeMode === 'circle') {
+            // Live radius guide line
+            const radiusGuide = viewer.entities.add({
+              polyline: {
+                positions: new Cesium.CallbackProperty(() => {
+                  if (!currentMousePos || this.vertices.length === 0) return [];
+                  return [this.vertices[0], currentMousePos];
+                }, false),
+                width: 2,
+                material: new Cesium.PolylineDashMaterialProperty({
+                  color: Cesium.Color.fromCssColorString(this.style.color || '#22A8DE')
+                })
+              }
+            });
+            this.guideEntities.push(radiusGuide);
+
+            // Live circle polygon preview
             this.previewEntity = viewer.entities.add({
-              position: this.vertices[0],
-              ellipse: {
-                semiMajorAxis: new Cesium.CallbackProperty(() => this.getCircleRadius(currentMousePos), false),
-                semiMinorAxis: new Cesium.CallbackProperty(() => this.getCircleRadius(currentMousePos), false),
+              polygon: {
+                hierarchy: new Cesium.CallbackProperty(() => {
+                  if (!currentMousePos || this.vertices.length === 0) return new Cesium.PolygonHierarchy([]);
+                  const radius = this.getCircleRadius(currentMousePos);
+                  const centerCarto = Cesium.Cartographic.fromCartesian(this.vertices[0]);
+                  const sampled = globalThis.ZEarthGeometry ? globalThis.ZEarthGeometry.sampleCircle(
+                    Cesium.Math.toDegrees(centerCarto.longitude),
+                    Cesium.Math.toDegrees(centerCarto.latitude),
+                    radius, 64
+                  ) : [];
+                  return new Cesium.PolygonHierarchy(Cesium.Cartesian3.fromDegreesArray(sampled));
+                }, false),
                 material: Cesium.Color.fromCssColorString(this.style.color || '#22A8DE').withAlpha(this.style.opacity || 0.4),
                 outline: true,
                 outlineColor: Cesium.Color.fromCssColorString(this.style.color || '#22A8DE'),
+                outlineWidth: 2,
                 heightReference: Cesium.HeightReference.CLAMP_TO_GROUND
               }
             });
+          } else if (this.activeMode === 'ellipse') {
+            // Major axis guide line
+            const majorGuide = viewer.entities.add({
+              polyline: {
+                positions: new Cesium.CallbackProperty(() => {
+                  if (!currentMousePos || this.vertices.length === 0) return [];
+                  return [this.vertices[0], currentMousePos];
+                }, false),
+                width: 2,
+                material: new Cesium.PolylineDashMaterialProperty({
+                  color: Cesium.Color.fromCssColorString(this.style.color || '#22A8DE')
+                })
+              }
+            });
+            this.guideEntities.push(majorGuide);
           }
+        } else if (this.vertices.length === 2 && this.activeMode === 'ellipse') {
+          // Vertex 2 (major axis endpoint) placed. Remove major axis guide, add minor axis preview and ellipse polygon
+          for (const ent of this.guideEntities) {
+            viewer.entities.remove(ent);
+          }
+          this.guideEntities = [];
+
+          const c0 = Cesium.Cartographic.fromCartesian(this.vertices[0]);
+          const c1 = Cesium.Cartographic.fromCartesian(this.vertices[1]);
+          const semiMajor = this.getCircleRadius(this.vertices[1]);
+          const bearing = globalThis.ZEarthGeometry ? globalThis.ZEarthGeometry.calculateBearing(
+            Cesium.Math.toDegrees(c0.longitude), Cesium.Math.toDegrees(c0.latitude),
+            Cesium.Math.toDegrees(c1.longitude), Cesium.Math.toDegrees(c1.latitude)
+          ) : 0.0;
+
+          // Minor axis guide line
+          const minorGuide = viewer.entities.add({
+            polyline: {
+              positions: new Cesium.CallbackProperty(() => {
+                if (!currentMousePos || this.vertices.length < 2) return [];
+                return [this.vertices[0], currentMousePos];
+              }, false),
+              width: 2,
+              material: new Cesium.PolylineDashMaterialProperty({
+                color: Cesium.Color.fromCssColorString(this.style.color || '#22A8DE')
+              })
+            }
+          });
+          this.guideEntities.push(minorGuide);
+
+          this.previewEntity = viewer.entities.add({
+            polygon: {
+              hierarchy: new Cesium.CallbackProperty(() => {
+                if (!currentMousePos || this.vertices.length < 2) return new Cesium.PolygonHierarchy([]);
+                const semiMinor = Math.min(semiMajor, this.getCircleRadius(currentMousePos));
+                const sampled = globalThis.ZEarthGeometry ? globalThis.ZEarthGeometry.sampleEllipse(
+                  Cesium.Math.toDegrees(c0.longitude), Cesium.Math.toDegrees(c0.latitude),
+                  semiMajor, semiMinor, bearing, 64
+                ) : [];
+                return new Cesium.PolygonHierarchy(Cesium.Cartesian3.fromDegreesArray(sampled));
+              }, false),
+              material: Cesium.Color.fromCssColorString(this.style.color || '#22A8DE').withAlpha(this.style.opacity || 0.4),
+              outline: true,
+              outlineColor: Cesium.Color.fromCssColorString(this.style.color || '#22A8DE'),
+              outlineWidth: 2,
+              heightReference: Cesium.HeightReference.CLAMP_TO_GROUND
+            }
+          });
         }
       }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
 
       // Mouse Move: Dynamic Rubber-band preview with live snap query
-      let currentMousePos = null;
       this.handler.setInputAction((movement) => {
         const snap = SnapManager.query(movement.endPosition);
         const cartesian = snap.snapped ? snap.cartesian : this.pickGroundPosition(movement.endPosition);
@@ -2030,17 +2612,75 @@
         return;
       }
 
+      if (this.activeMode === 'circle') {
+        if (this.vertices.length < 2) {
+          this.cancel();
+          return;
+        }
+        const radiusMeters = this.getCircleRadius(this.vertices[1]);
+        const centerCarto = Cesium.Cartographic.fromCartesian(this.vertices[0]);
+        const centerLon = Cesium.Math.toDegrees(centerCarto.longitude);
+        const centerLat = Cesium.Math.toDegrees(centerCarto.latitude);
+        const sampled = globalThis.ZEarthGeometry ? globalThis.ZEarthGeometry.sampleCircle(
+          centerLon, centerLat, radiusMeters, 64
+        ) : [];
+        const coords = [];
+        for (let i = 0; i < sampled.length; i += 2) {
+          coords.push({ longitude: sampled[i], latitude: sampled[i + 1], altitude: centerCarto.height });
+        }
+        sendHostMessage({
+          event: 'draw.completed',
+          geometryType: 'circle',
+          shapeKind: 'circle',
+          center: { longitude: centerLon, latitude: centerLat, altitude: centerCarto.height },
+          radiusMeters: radiusMeters,
+          coordinates: coords,
+          color: this.style.color
+        });
+        this.cancel();
+        return;
+      }
+
+      if (this.activeMode === 'ellipse') {
+        if (this.vertices.length < 3) {
+          this.cancel();
+          return;
+        }
+        const params = this.getEllipseParameters(this.vertices[2]);
+        const centerCarto = Cesium.Cartographic.fromCartesian(this.vertices[0]);
+        const centerLon = Cesium.Math.toDegrees(centerCarto.longitude);
+        const centerLat = Cesium.Math.toDegrees(centerCarto.latitude);
+        const sampled = globalThis.ZEarthGeometry ? globalThis.ZEarthGeometry.sampleEllipse(
+          centerLon, centerLat, params.semiMajor, params.semiMinor, params.bearing, 64
+        ) : [];
+        const coords = [];
+        for (let i = 0; i < sampled.length; i += 2) {
+          coords.push({ longitude: sampled[i], latitude: sampled[i + 1], altitude: centerCarto.height });
+        }
+        sendHostMessage({
+          event: 'draw.completed',
+          geometryType: 'ellipse',
+          shapeKind: 'ellipse',
+          center: { longitude: centerLon, latitude: centerLat, altitude: centerCarto.height },
+          semiMajorAxis: params.semiMajor,
+          semiMinorAxis: params.semiMinor,
+          bearingDegrees: params.bearing,
+          coordinates: coords,
+          color: this.style.color
+        });
+        this.cancel();
+        return;
+      }
+
       const minVertices = this.activeMode === 'polygon' ? 3 : 2;
       if (this.vertices.length < minVertices) {
         this.cancel();
         return;
       }
 
-      // Rectangle is persisted as an ordinary 4-corner polygon plus a shapeKind marker.
-      // A flat 2D bbox polygon cannot cross the antimeridian in this initial tool;
-      // reject rather than creating a scientifically incorrect spanning polygon.
       const finalVertices = this.activeMode === 'rectangle'
-        ? this.getRectanglePositions(this.vertices[1]) : this.vertices;
+        ? (this.vertices.length >= 3 ? this.getRectanglePositions(this.vertices[2]) : (this.vertices.length === 2 ? this.getRectanglePositions(this.vertices[1]) : this.vertices))
+        : this.vertices;
       if (finalVertices.length < 2) {
         this.cancel();
         return;
@@ -2055,35 +2695,15 @@
         };
       });
 
-      if (this.activeMode === 'circle') {
-        const radiusMeters = this.getCircleRadius(this.vertices[1]);
-        sendHostMessage({
-          event: 'draw.completed',
-          geometryType: 'circle',
-          coordinates: coords,
-          center: coords[0],
-          radiusMeters,
-          color: this.style.color
-        });
-      } else {
-        sendHostMessage({
-          event: 'draw.completed',
-          geometryType: this.activeMode === 'rectangle' ? 'polygon' : this.activeMode,
-          shapeKind: this.activeMode === 'rectangle' ? 'rectangle' : undefined,
-          coordinates: coords,
-          color: this.style.color
-        });
-      }
+      sendHostMessage({
+        event: 'draw.completed',
+        geometryType: this.activeMode === 'rectangle' ? 'polygon' : this.activeMode,
+        shapeKind: this.activeMode === 'rectangle' ? 'rectangle' : undefined,
+        coordinates: coords,
+        color: this.style.color
+      });
 
       this.cancel();
-    },
-
-    getCircleRadius: function (edge) {
-      if (!edge || this.vertices.length === 0) return 0.1;
-      const center = Cesium.Cartographic.fromCartesian(this.vertices[0]);
-      const target = Cesium.Cartographic.fromCartesian(edge);
-      const geodesic = new Cesium.EllipsoidGeodesic(center, target, Cesium.Ellipsoid.WGS84);
-      return Math.max(0.1, geodesic.surfaceDistance || 0.1);
     },
 
     cancel: function () {
@@ -2102,6 +2722,11 @@
         this.previewEntity = null;
       }
 
+      for (const ent of this.guideEntities) {
+        viewer.entities.remove(ent);
+      }
+      this.guideEntities = [];
+
       for (const ent of this.tempPoints) {
         viewer.entities.remove(ent);
       }
@@ -2111,10 +2736,11 @@
 
   // 4.7. Geodesic Measurement Engine (ZE-046, ZE-047, AC-018, AC-019, AC-035)
   const MeasurementManager = {
-    activeMode: null, // 'distance' | 'area'
+    activeMode: null, // 'distance' | 'area' | 'circle' | 'ellipse' | 'rectangle' | 'coordinate'
     vertices: [],
     tempEntities: [],
     previewEntity: null,
+    guideEntities: [],
     handler: null,
     lastResult: null,
 
@@ -2131,13 +2757,22 @@
         const geodesic = new Cesium.EllipsoidGeodesic(carto1, carto2, Cesium.Ellipsoid.WGS84);
         return geodesic.surfaceDistance;
       } catch (e) {
-        // Fallback Haversine with authalic radius
         const dLat = carto2.latitude - carto1.latitude;
         const dLon = carto2.longitude - carto1.longitude;
         const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
           Math.cos(carto1.latitude) * Math.cos(carto2.latitude) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
         return 6371007.2 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
       }
+    },
+
+    // Forward geodesic azimuth / bearing in degrees [0, 360)
+    calculateBearing: function (c1, c2) {
+      const carto1 = Cesium.Cartographic.fromCartesian(c1);
+      const carto2 = Cesium.Cartographic.fromCartesian(c2);
+      return globalThis.ZEarthGeometry ? globalThis.ZEarthGeometry.calculateBearing(
+        Cesium.Math.toDegrees(carto1.longitude), Cesium.Math.toDegrees(carto1.latitude),
+        Cesium.Math.toDegrees(carto2.longitude), Cesium.Math.toDegrees(carto2.latitude)
+      ) : 0.0;
     },
 
     // Spherical excess on WGS84 authalic sphere
@@ -2209,13 +2844,22 @@
     },
 
     toDms: function (value, isLatitude) {
+      if (!Number.isFinite(value)) return '0°00\'00.00"N';
       const absolute = Math.abs(value);
-      const degrees = Math.floor(absolute);
-      const minuteValue = (absolute - degrees) * 60;
-      const minutes = Math.floor(minuteValue);
-      const seconds = (minuteValue - minutes) * 60;
+      let degrees = Math.floor(absolute);
+      let minuteValue = (absolute - degrees) * 60;
+      let minutes = Math.floor(minuteValue);
+      let seconds = (minuteValue - minutes) * 60;
+      if (seconds >= 59.995) {
+        seconds = 0.0;
+        minutes += 1;
+        if (minutes >= 60) {
+          minutes = 0;
+          degrees += 1;
+        }
+      }
       const direction = isLatitude ? (value >= 0 ? 'N' : 'S') : (value >= 0 ? 'E' : 'W');
-      return `${degrees}°${minutes}'${seconds.toFixed(2)}"${direction}`;
+      return `${degrees}°${String(minutes).padStart(2, '0')}'${seconds.toFixed(2).padStart(5, '0')}"${direction}`;
     },
 
     toUtm: function (latitude, longitude) {
@@ -2252,15 +2896,26 @@
         const carto = Cesium.Cartographic.fromCartesian(position);
         const lat = Cesium.Math.toDegrees(carto.latitude);
         const lon = Cesium.Math.toDegrees(carto.longitude);
-        const segment = previous ? this.formatDistance(this.calculateGeodesicDistance(previous, position)) : '—';
+        const alt = Number.isFinite(carto.height) ? `${carto.height.toFixed(1)} m` : '0.0 m';
+        let segment = '—';
+        if (previous) {
+          const dist = this.formatDistance(this.calculateGeodesicDistance(previous, position));
+          const bearing = this.calculateBearing(previous, position);
+          segment = `${dist} (${bearing.toFixed(1)}°)`;
+        }
         previous = position;
         return `<tr><td>${index + 1}</td><td>${lon.toFixed(6)}, ${lat.toFixed(6)}</td>` +
           `<td>${this.toDms(lon, false)} ${this.toDms(lat, true)}</td>` +
-          `<td>${this.toUtm(lat, lon)}</td><td>${segment}</td></tr>`;
+          `<td>${this.toUtm(lat, lon)}</td><td>${alt}</td><td>${segment}</td></tr>`;
       }).join('');
-      return `<div style="max-height:150px;overflow:auto;margin-top:7px"><table class="measure-coord-table">` +
-        `<thead><tr><th>#</th><th>DD (X,Y)</th><th>DMS</th><th>UTM</th><th>Segment</th></tr></thead>` +
-        `<tbody>${rows}</tbody></table></div><button id="btn-copy-measure-coordinates" class="measure-copy-btn">Copy coordinates</button>`;
+      return `<div style="max-height:160px;overflow:auto;margin-top:7px"><table class="measure-coord-table">` +
+        `<thead><tr><th>#</th><th>DD (Lon, Lat)</th><th>DMS</th><th>UTM</th><th>Elev (Z)</th><th>Segment</th></tr></thead>` +
+        `<tbody>${rows}</tbody></table></div>` +
+        `<div class="measure-copy-row">` +
+        `<button id="btn-copy-measure-coordinates" class="measure-copy-btn" title="Copy table as Tab-Separated Values for Excel/Sheets">Copy Table (TSV)</button>` +
+        `<button id="btn-copy-measure-csv" class="measure-copy-btn" title="Copy coordinates as CSV">Copy CSV</button>` +
+        `<button id="btn-copy-measure-summary" class="measure-copy-btn" title="Copy measurement summary text">Copy Summary</button>` +
+        `</div>`;
     },
 
     updateHUD: function (candidateCartesian = null) {
@@ -2338,18 +2993,207 @@
           };
         }
         this.algEl.textContent = 'Algorithm: WGS84 Authalic Spherical Excess';
+      } else if (this.activeMode === 'circle') {
+        this.titleEl.textContent = '⭕ Geodesic Circle Measurement';
+        if (activeList.length < 2) {
+          this.bodyEl.textContent = 'Click to place Center point, then move mouse to expand radius.';
+        } else {
+          const radius = this.calculateGeodesicDistance(activeList[0], activeList[1]);
+          const diameter = 2 * radius;
+          const circum = 2 * Math.PI * radius;
+          const area = Math.PI * radius * radius;
+          this.bodyEl.innerHTML = `
+            <strong>Radius:</strong> ${this.formatDistance(radius)}<br/>
+            <strong>Diameter:</strong> ${this.formatDistance(diameter)}<br/>
+            <strong>Circumference:</strong> ${this.formatDistance(circum)}<br/>
+            <strong>Geodesic Area:</strong> ${this.formatArea(area)}
+          `;
+          this.lastResult = {
+            mode: 'circle',
+            radiusMeters: radius,
+            diameterMeters: diameter,
+            circumferenceMeters: circum,
+            areaSquareMeters: area,
+            pointCount: activeList.length
+          };
+        }
+        this.algEl.textContent = 'Algorithm: WGS84 Geodesic Radius & Authalic Area';
+      } else if (this.activeMode === 'ellipse') {
+        this.titleEl.textContent = '⬭ Geodesic Ellipse Measurement';
+        if (activeList.length < 2) {
+          this.bodyEl.textContent = 'Click 1: Center point. Click 2: Major axis endpoint. Click 3: Minor axis endpoint.';
+        } else if (activeList.length === 2) {
+          const a = this.calculateGeodesicDistance(activeList[0], activeList[1]);
+          const bearing = this.calculateBearing(activeList[0], activeList[1]);
+          this.bodyEl.innerHTML = `
+            <strong>Semi-Major Axis (a):</strong> ${this.formatDistance(a)}<br/>
+            <strong>Major Diameter (2a):</strong> ${this.formatDistance(2 * a)}<br/>
+            <strong>Orientation / Bearing:</strong> ${bearing.toFixed(1)}°<br/>
+            <small>Move mouse to expand minor axis, click to set.</small>
+          `;
+        } else {
+          const a = this.calculateGeodesicDistance(activeList[0], activeList[1]);
+          const b = Math.min(a, this.calculateGeodesicDistance(activeList[0], activeList[2]));
+          const bearing = this.calculateBearing(activeList[0], activeList[1]);
+          const perim = globalThis.ZEarthGeometry ? globalThis.ZEarthGeometry.calculateEllipsePerimeter(a, b) : Math.PI * (a + b);
+          const area = Math.PI * a * b;
+          this.bodyEl.innerHTML = `
+            <strong>Semi-Major (a):</strong> ${this.formatDistance(a)} | <strong>Major (2a):</strong> ${this.formatDistance(2 * a)}<br/>
+            <strong>Semi-Minor (b):</strong> ${this.formatDistance(b)} | <strong>Minor (2b):</strong> ${this.formatDistance(2 * b)}<br/>
+            <strong>Orientation:</strong> ${bearing.toFixed(1)}°<br/>
+            <strong>Perimeter (Ramanujan):</strong> ${this.formatDistance(perim)}<br/>
+            <strong>Geodesic Area:</strong> ${this.formatArea(area)}
+          `;
+          this.lastResult = {
+            mode: 'ellipse',
+            semiMajorAxis: a,
+            semiMinorAxis: b,
+            bearingDegrees: bearing,
+            perimeterMeters: perim,
+            areaSquareMeters: area,
+            pointCount: activeList.length
+          };
+        }
+        this.algEl.textContent = 'Algorithm: WGS84 Ramanujan Ellipse Perimeter & Geodesic Axes';
+      } else if (this.activeMode === 'rectangle') {
+        this.titleEl.textContent = '▭ 3-Point Oriented Rectangle Measurement';
+        if (activeList.length === 1) {
+          this.bodyEl.textContent = 'Click 1 placed (Baseline Start). Move cursor and click 2 to set Baseline Length & Azimuth.';
+        } else if (activeList.length === 2) {
+          const c1 = Cesium.Cartographic.fromCartesian(activeList[0]);
+          const c2 = Cesium.Cartographic.fromCartesian(activeList[1]);
+          const baseLen = this.calculateGeodesicDistance(activeList[0], activeList[1]);
+          const azimuth = this.calculateBearing(activeList[0], activeList[1]);
+          this.bodyEl.innerHTML = `
+            <strong>Baseline Length:</strong> ${this.formatDistance(baseLen)}<br/>
+            <strong>Azimuth:</strong> ${azimuth.toFixed(2)}°<br/>
+            <small>Move cursor and click 3 to set perpendicular width.</small>
+          `;
+        } else if (activeList.length >= 3) {
+          const c1 = Cesium.Cartographic.fromCartesian(activeList[0]);
+          const c2 = Cesium.Cartographic.fromCartesian(activeList[1]);
+          const c3 = Cesium.Cartographic.fromCartesian(activeList[2]);
+          const oriented = globalThis.ZEarthGeometry?.computeOrientedRectangle(
+            Cesium.Math.toDegrees(c1.longitude), Cesium.Math.toDegrees(c1.latitude),
+            Cesium.Math.toDegrees(c2.longitude), Cesium.Math.toDegrees(c2.latitude),
+            Cesium.Math.toDegrees(c3.longitude), Cesium.Math.toDegrees(c3.latitude)
+          );
+          if (oriented) {
+            this.bodyEl.innerHTML = `
+              <strong>Length (Baseline):</strong> ${this.formatDistance(oriented.length)}<br/>
+              <strong>Width (Perpendicular):</strong> ${this.formatDistance(oriented.width)}<br/>
+              <strong>Azimuth:</strong> ${oriented.bearing.toFixed(2)}°<br/>
+              <strong>Perimeter:</strong> ${this.formatDistance(oriented.perimeter)}<br/>
+              <strong>Area:</strong> ${this.formatArea(oriented.area)}
+            `;
+            this.lastResult = {
+              mode: 'rectangle',
+              lengthMeters: oriented.length,
+              widthMeters: oriented.width,
+              bearingDegrees: oriented.bearing,
+              perimeterMeters: oriented.perimeter,
+              areaSquareMeters: oriented.area,
+              corners: oriented.corners,
+              pointCount: activeList.length
+            };
+          }
+        }
+        this.algEl.textContent = 'Algorithm: 3-Point Oriented Geodesic Rectangle (Baseline + Perpendicular Offset)';
+      } else if (this.activeMode === 'coordinate') {
+        this.titleEl.textContent = '📍 Continuous Coordinate Inspection';
+        this.bodyEl.innerHTML = `
+          <strong>Pinned Points:</strong> ${activeList.length}<br/>
+          <small>Click to drop numbered inspection pins. Each point displays DD, DMS, UTM, Elevation, and Segment Azimuth.</small>
+        `;
+        this.lastResult = {
+          mode: 'coordinate',
+          pointCount: activeList.length
+        };
+        this.algEl.textContent = 'Algorithm: WGS84 High-Precision Geodetic & UTM Projections';
       }
 
       if (activeList.length > 0 && this.bodyEl) {
         this.bodyEl.insertAdjacentHTML('beforeend', this.buildVertexTable(activeList));
-        this.bodyEl.querySelector('.measure-copy-btn')?.addEventListener('click', () => {
+
+        const safeCopyText = (textToCopy) => {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(textToCopy).catch(() => {
+              try {
+                const ta = document.createElement('textarea');
+                ta.value = textToCopy;
+                ta.style.position = 'fixed';
+                ta.style.opacity = '0';
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+              } catch (_) {}
+            });
+          } else {
+            try {
+              const ta = document.createElement('textarea');
+              ta.value = textToCopy;
+              ta.style.position = 'fixed';
+              ta.style.opacity = '0';
+              document.body.appendChild(ta);
+              ta.select();
+              document.execCommand('copy');
+              document.body.removeChild(ta);
+            } catch (_) {}
+          }
+        };
+
+        // Copy Table TSV handler
+        this.bodyEl.querySelector('#btn-copy-measure-coordinates')?.addEventListener('click', (e) => {
+          let prev = null;
           const lines = activeList.map((position, index) => {
             const c = Cesium.Cartographic.fromCartesian(position);
             const lat = Cesium.Math.toDegrees(c.latitude);
             const lon = Cesium.Math.toDegrees(c.longitude);
-            return `${index + 1}\t${lon.toFixed(8)}\t${lat.toFixed(8)}\t${this.toUtm(lat, lon)}`;
+            const alt = Number.isFinite(c.height) ? c.height.toFixed(2) : '0.00';
+            const dms = `${this.toDms(lon, false)} ${this.toDms(lat, true)}`;
+            const utm = this.toUtm(lat, lon);
+            let seg = '—';
+            if (prev) {
+              const d = this.calculateGeodesicDistance(prev, position).toFixed(2);
+              const b = this.calculateBearing(prev, position).toFixed(1);
+              seg = `${d} m (${b}°)`;
+            }
+            prev = position;
+            return `${index + 1}	${lon.toFixed(8)}	${lat.toFixed(8)}	${dms}	${utm}	${alt}	${seg}`;
           });
-          navigator.clipboard?.writeText(`Point\tLongitude\tLatitude\tUTM\n${lines.join('\n')}`);
+          const header = 'Point	Longitude	Latitude	DMS	UTM	Altitude(m)	Segment';
+          safeCopyText([header, ...lines].join(String.fromCharCode(10)));
+          const btn = e.target;
+          btn.textContent = 'Copied TSV!';
+          btn.classList.add('copied');
+          setTimeout(() => { btn.textContent = 'Copy Table (TSV)'; btn.classList.remove('copied'); }, 1800);
+        }, { once: true });
+
+        // Copy CSV handler
+        this.bodyEl.querySelector('#btn-copy-measure-csv')?.addEventListener('click', (e) => {
+          const lines = activeList.map((position, index) => {
+            const c = Cesium.Cartographic.fromCartesian(position);
+            const lat = Cesium.Math.toDegrees(c.latitude);
+            const lon = Cesium.Math.toDegrees(c.longitude);
+            const alt = Number.isFinite(c.height) ? c.height.toFixed(2) : '0.00';
+            return `${index + 1},${lon.toFixed(8)},${lat.toFixed(8)},${alt}`;
+          });
+          safeCopyText(['Point,Longitude,Latitude,Altitude', ...lines].join(String.fromCharCode(10)));
+          const btn = e.target;
+          btn.textContent = 'Copied CSV!';
+          btn.classList.add('copied');
+          setTimeout(() => { btn.textContent = 'Copy CSV'; btn.classList.remove('copied'); }, 1800);
+        }, { once: true });
+
+        // Copy Summary handler
+        this.bodyEl.querySelector('#btn-copy-measure-summary')?.addEventListener('click', (e) => {
+          const textSummary = this.bodyEl.innerText || '';
+          safeCopyText(textSummary.trim());
+          const btn = e.target;
+          btn.textContent = 'Copied Summary!';
+          btn.classList.add('copied');
+          setTimeout(() => { btn.textContent = 'Copy Summary'; btn.classList.remove('copied'); }, 1800);
         }, { once: true });
       }
 
@@ -2367,11 +3211,14 @@
       this.clear();
       this.activeMode = type || 'distance';
       this.vertices = [];
+      this.guideEntities = [];
       document.body.style.cursor = 'crosshair';
 
       this.updateHUD();
 
       this.handler = new Cesium.ScreenSpaceEventHandler(viewer.canvas);
+
+      let currentMousePos = null;
 
       // LEFT_CLICK: Add measurement vertex with snapping! (ZE-045, AC-018)
       this.handler.setInputAction((click) => {
@@ -2408,9 +3255,148 @@
         });
         this.tempEntities.push(pt);
 
-        // Dynamic rubber-band entity
-        if (this.vertices.length === 1) {
-          if (this.activeMode === 'distance') {
+        // Dynamic rubber-band previews
+        if (this.activeMode === 'circle') {
+          if (this.vertices.length === 1) {
+            // Live radius guide line
+            const radiusLine = viewer.entities.add({
+              polyline: {
+                positions: new Cesium.CallbackProperty(() => {
+                  if (!currentMousePos || this.vertices.length === 0) return [];
+                  return [this.vertices[0], currentMousePos];
+                }, false),
+                width: 2,
+                material: new Cesium.PolylineDashMaterialProperty({
+                  color: Cesium.Color.fromCssColorString('#38bdf8')
+                })
+              }
+            });
+            this.guideEntities.push(radiusLine);
+
+            this.previewEntity = viewer.entities.add({
+              polygon: {
+                hierarchy: new Cesium.CallbackProperty(() => {
+                  if (!currentMousePos || this.vertices.length === 0) return new Cesium.PolygonHierarchy([]);
+                  const r = this.calculateGeodesicDistance(this.vertices[0], currentMousePos);
+                  const c = Cesium.Cartographic.fromCartesian(this.vertices[0]);
+                  const sampled = globalThis.ZEarthGeometry ? globalThis.ZEarthGeometry.sampleCircle(
+                    Cesium.Math.toDegrees(c.longitude), Cesium.Math.toDegrees(c.latitude), r, 64
+                  ) : [];
+                  return new Cesium.PolygonHierarchy(Cesium.Cartesian3.fromDegreesArray(sampled));
+                }, false),
+                material: Cesium.Color.fromCssColorString('#38bdf8').withAlpha(0.35),
+                outline: true,
+                outlineColor: Cesium.Color.fromCssColorString('#38bdf8'),
+                outlineWidth: 2,
+                heightReference: Cesium.HeightReference.CLAMP_TO_GROUND
+              }
+            });
+            this.tempEntities.push(this.previewEntity);
+          } else if (this.vertices.length === 2) {
+            this.finish();
+            return;
+          }
+        } else if (this.activeMode === 'ellipse') {
+          if (this.vertices.length === 1) {
+            const majorLine = viewer.entities.add({
+              polyline: {
+                positions: new Cesium.CallbackProperty(() => {
+                  if (!currentMousePos || this.vertices.length === 0) return [];
+                  return [this.vertices[0], currentMousePos];
+                }, false),
+                width: 2,
+                material: new Cesium.PolylineDashMaterialProperty({
+                  color: Cesium.Color.fromCssColorString('#f59e0b')
+                })
+              }
+            });
+            this.guideEntities.push(majorLine);
+          } else if (this.vertices.length === 2) {
+            for (const ent of this.guideEntities) viewer.entities.remove(ent);
+            this.guideEntities = [];
+
+            const c0 = Cesium.Cartographic.fromCartesian(this.vertices[0]);
+            const c1 = Cesium.Cartographic.fromCartesian(this.vertices[1]);
+            const semiMajor = this.calculateGeodesicDistance(this.vertices[0], this.vertices[1]);
+            const bearing = this.calculateBearing(this.vertices[0], this.vertices[1]);
+
+            const minorLine = viewer.entities.add({
+              polyline: {
+                positions: new Cesium.CallbackProperty(() => {
+                  if (!currentMousePos || this.vertices.length < 2) return [];
+                  return [this.vertices[0], currentMousePos];
+                }, false),
+                width: 2,
+                material: new Cesium.PolylineDashMaterialProperty({
+                  color: Cesium.Color.fromCssColorString('#f59e0b')
+                })
+              }
+            });
+            this.guideEntities.push(minorLine);
+
+            this.previewEntity = viewer.entities.add({
+              polygon: {
+                hierarchy: new Cesium.CallbackProperty(() => {
+                  if (!currentMousePos || this.vertices.length < 2) return new Cesium.PolygonHierarchy([]);
+                  const semiMinor = Math.min(semiMajor, this.calculateGeodesicDistance(this.vertices[0], currentMousePos));
+                  const sampled = globalThis.ZEarthGeometry ? globalThis.ZEarthGeometry.sampleEllipse(
+                    Cesium.Math.toDegrees(c0.longitude), Cesium.Math.toDegrees(c0.latitude),
+                    semiMajor, semiMinor, bearing, 64
+                  ) : [];
+                  return new Cesium.PolygonHierarchy(Cesium.Cartesian3.fromDegreesArray(sampled));
+                }, false),
+                material: Cesium.Color.fromCssColorString('#f59e0b').withAlpha(0.35),
+                outline: true,
+                outlineColor: Cesium.Color.fromCssColorString('#f59e0b'),
+                outlineWidth: 2,
+                heightReference: Cesium.HeightReference.CLAMP_TO_GROUND
+              }
+            });
+            this.tempEntities.push(this.previewEntity);
+          } else if (this.vertices.length === 3) {
+            this.finish();
+            return;
+          }
+        } else if (this.activeMode === 'rectangle') {
+          if (this.vertices.length === 1) {
+            const baselineGuide = viewer.entities.add({
+              polyline: {
+                positions: new Cesium.CallbackProperty(() => {
+                  if (!currentMousePos || this.vertices.length === 0) return [];
+                  return [this.vertices[0], currentMousePos];
+                }, false),
+                width: 2.5,
+                material: new Cesium.PolylineDashMaterialProperty({
+                  color: Cesium.Color.fromCssColorString('#FACC15')
+                })
+              }
+            });
+            this.guideEntities.push(baselineGuide);
+          } else if (this.vertices.length === 2) {
+            for (const ent of this.guideEntities) viewer.entities.remove(ent);
+            this.guideEntities = [];
+
+            this.previewEntity = viewer.entities.add({
+              polygon: {
+                hierarchy: new Cesium.CallbackProperty(() => {
+                  if (!currentMousePos || this.vertices.length < 2) return new Cesium.PolygonHierarchy([]);
+                  const corners = DrawingManager.getRectanglePositions.call(this, currentMousePos);
+                  return new Cesium.PolygonHierarchy(corners);
+                }, false),
+                material: Cesium.Color.fromCssColorString('#22D3EE').withAlpha(0.28),
+                outline: true,
+                outlineColor: Cesium.Color.fromCssColorString('#FACC15'),
+                outlineWidth: 2.5,
+                heightReference: Cesium.HeightReference.CLAMP_TO_GROUND
+              }
+            });
+            this.tempEntities.push(this.previewEntity);
+          } else if (this.vertices.length === 3) {
+            this.finish();
+            return;
+          }
+        } else if (this.activeMode === 'distance') {
+          if (this.vertices.length === 1) {
             this.previewEntity = viewer.entities.add({
               polyline: {
                 positions: new Cesium.CallbackProperty(() => this.getDynamicPositions(), false),
@@ -2422,7 +3408,9 @@
               }
             });
             this.tempEntities.push(this.previewEntity);
-          } else if (this.activeMode === 'area') {
+          }
+        } else if (this.activeMode === 'area') {
+          if (this.vertices.length === 1) {
             this.previewEntity = viewer.entities.add({
               polygon: {
                 hierarchy: new Cesium.CallbackProperty(() => new Cesium.PolygonHierarchy(this.getDynamicPositions()), false),
@@ -2440,7 +3428,6 @@
       }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
 
       // MOUSE_MOVE: Live snapping & rubber-banding
-      let currentMousePos = null;
       this.handler.setInputAction((movement) => {
         const snap = SnapManager.query(movement.endPosition);
         currentMousePos = snap.snapped ? snap.cartesian : DrawingManager.pickGroundPosition(movement.endPosition);
@@ -2472,6 +3459,11 @@
       }
       document.body.style.cursor = 'default';
 
+      for (const ent of this.guideEntities) {
+        viewer.entities.remove(ent);
+      }
+      this.guideEntities = [];
+
       this.updateHUD();
       if (this.lastResult) {
         sendHostMessage({
@@ -2501,6 +3493,11 @@
         this.handler = null;
       }
 
+      for (const ent of this.guideEntities) {
+        viewer.entities.remove(ent);
+      }
+      this.guideEntities = [];
+
       for (const ent of this.tempEntities) {
         viewer.entities.remove(ent);
       }
@@ -2515,6 +3512,228 @@
       }
     }
   };
+
+// Context Menu on 3D Globe entities
+  const featureContextMenu = document.createElement('div');
+  featureContextMenu.className = 'feature-context-menu';
+  featureContextMenu.hidden = true;
+  featureContextMenu.style.position = 'absolute';
+  featureContextMenu.style.zIndex = '9999';
+  featureContextMenu.style.background = '#22252a';
+  featureContextMenu.style.border = '1px solid #3c4048';
+  featureContextMenu.style.borderRadius = '6px';
+  featureContextMenu.style.padding = '4px 0';
+  featureContextMenu.style.boxShadow = '0 8px 24px rgba(0,0,0,0.5)';
+  featureContextMenu.style.fontFamily = 'Segoe UI, sans-serif';
+  featureContextMenu.style.fontSize = '12px';
+  featureContextMenu.style.minWidth = '180px';
+  document.getElementById('viewport-container').appendChild(featureContextMenu);
+
+  document.addEventListener('pointerdown', (e) => {
+    if (!featureContextMenu.contains(e.target)) {
+      featureContextMenu.hidden = true;
+    }
+  });
+
+  const ProfileHoverCursor = {
+    entity: null,
+    show(lon, lat) {
+      if (!Number.isFinite(lon) || !Number.isFinite(lat)) return;
+      const position = Cesium.Cartesian3.fromDegrees(lon, lat);
+      if (!this.entity) {
+        this.entity = viewer.entities.add({
+          id: '__profile_hover_cursor__',
+          position: position,
+          point: {
+            pixelSize: 12,
+            color: Cesium.Color.fromCssColorString('#00C8FF'),
+            outlineColor: Cesium.Color.WHITE,
+            outlineWidth: 2,
+            disableDepthTestDistance: Number.POSITIVE_INFINITY
+          }
+        });
+      } else {
+        this.entity.position = position;
+        this.entity.show = true;
+      }
+      viewer.scene.requestRender();
+    },
+    clear() {
+      if (this.entity) {
+        this.entity.show = false;
+        viewer.scene.requestRender();
+      }
+    }
+  };
+
+  const featureRightClickHandler = new Cesium.ScreenSpaceEventHandler(viewer.canvas);
+  featureRightClickHandler.setInputAction(movement => {
+    if (DrawingManager.activeMode || MeasurementManager.activeMode) return;
+    const picked = viewer.scene.pick(movement.position);
+    const pickedEnt = picked?.id;
+    let info = pickedEnt?._zearthFeatureInfo;
+    if (!info && pickedEnt) {
+      if (typeof pickedEnt.id === 'string' && pickedEnt.id.length > 0 && !pickedEnt.id.startsWith('__')) {
+        info = { id: pickedEnt.id, name: pickedEnt.name || 'Feature', type: pickedEnt.polyline ? 'path' : (pickedEnt.polygon ? 'polygon' : 'point') };
+      }
+    }
+    if (!info) {
+      let clickLon = null, clickLat = null;
+      try {
+        const groundPos = DrawingManager.pickGroundPosition(movement.position) || getScreenCenterGround();
+        if (groundPos) {
+          const carto = Cesium.Cartographic.fromCartesian(groundPos);
+          clickLon = Cesium.Math.toDegrees(carto.longitude);
+          clickLat = Cesium.Math.toDegrees(carto.latitude);
+        }
+      } catch {}
+
+      featureContextMenu.replaceChildren();
+      const isAr = EngineLocale.isArabic;
+      const emptyItems = isAr ? [
+        { label: '★ حفظ المشهد الحالي', cmd: 'places.addCurrentScene' },
+        { label: '📍 إضافة علامة موضع هنا', cmd: `places.addPlacemarkAt:${clickLon != null ? clickLon.toFixed(6) : '0'}:${clickLat != null ? clickLat.toFixed(6) : '0'}` },
+        { type: 'separator' },
+        { label: '📍 الاتجاهات من هنا', cmd: `places.directionsFromCoords:${clickLon != null ? clickLon.toFixed(6) : '0'}:${clickLat != null ? clickLat.toFixed(6) : '0'}` },
+        { label: '🏁 الاتجاهات إلى هنا', cmd: `places.directionsToCoords:${clickLon != null ? clickLon.toFixed(6) : '0'}:${clickLat != null ? clickLat.toFixed(6) : '0'}` }
+      ] : [
+        { label: '★ Add View to Saved Scenes', cmd: 'places.addCurrentScene' },
+        { label: '📍 Add Placemark Here', cmd: `places.addPlacemarkAt:${clickLon != null ? clickLon.toFixed(6) : '0'}:${clickLat != null ? clickLat.toFixed(6) : '0'}` },
+        { type: 'separator' },
+        { label: '📍 Directions from here', cmd: `places.directionsFromCoords:${clickLon != null ? clickLon.toFixed(6) : '0'}:${clickLat != null ? clickLat.toFixed(6) : '0'}` },
+        { label: '🏁 Directions to here', cmd: `places.directionsToCoords:${clickLon != null ? clickLon.toFixed(6) : '0'}:${clickLat != null ? clickLat.toFixed(6) : '0'}` }
+      ];
+
+      for (const item of emptyItems) {
+        if (item.type === 'separator') {
+          const sep = document.createElement('div');
+          sep.style.height = '1px';
+          sep.style.background = '#3c4048';
+          sep.style.margin = '4px 0';
+          featureContextMenu.appendChild(sep);
+          continue;
+        }
+        const btn = document.createElement('div');
+        btn.textContent = item.label;
+        btn.style.padding = '6px 14px';
+        btn.style.color = '#e2e8f0';
+        btn.style.cursor = 'pointer';
+        btn.style.fontSize = '12px';
+        btn.style.transition = 'background 0.15s ease';
+        btn.addEventListener('mouseenter', () => { btn.style.background = '#333842'; });
+        btn.addEventListener('mouseleave', () => { btn.style.background = 'transparent'; });
+        btn.addEventListener('click', () => {
+          featureContextMenu.hidden = true;
+          sendHostMessage({ command: item.cmd });
+        });
+        featureContextMenu.appendChild(btn);
+      }
+
+      featureContextMenu.hidden = false;
+      const width = 230, height = 180;
+      featureContextMenu.style.left = `${Math.max(8, Math.min(viewer.canvas.clientWidth - width - 8, movement.position.x + 4))}px`;
+      featureContextMenu.style.top = `${Math.max(8, Math.min(viewer.canvas.clientHeight - height - 8, movement.position.y + 4))}px`;
+      return;
+    }
+
+    featureContextMenu.replaceChildren();
+
+    // Select this item in the host
+    sendHostMessage({ command: 'places.select:' + (info.id || '') });
+
+    const isAr = EngineLocale.isArabic;
+    const menuItems = isAr ? [
+      { label: '⚙ الخصائص...', cmd: 'places.openProperties:' + info.id },
+      { label: '📈 الملف التضاريسي', cmd: 'places.elevationProfile:' + info.id },
+      { type: 'separator' },
+      { label: '✂ قص', cmd: 'places.cut:' + info.id },
+      { label: '📋 نسخ', cmd: 'places.copy:' + info.id },
+      { label: '🗑 حذف', cmd: 'places.delete:' + info.id },
+      { type: 'separator' },
+      { label: '📍 الاتجاهات من هنا', cmd: 'places.directionsFrom:' + info.id },
+      { label: '🏁 الاتجاهات إلى هنا', cmd: 'places.directionsTo:' + info.id },
+      { label: '📸 لقطة منظر', cmd: 'places.snapshotView:' + info.id }
+    ] : [
+      { label: '⚙ Properties...', cmd: 'places.openProperties:' + info.id },
+      { label: '📈 Show Elevation Profile', cmd: 'places.elevationProfile:' + info.id },
+      { type: 'separator' },
+      { label: '✂ Cut', cmd: 'places.cut:' + info.id },
+      { label: '📋 Copy', cmd: 'places.copy:' + info.id },
+      { label: '🗑 Delete', cmd: 'places.delete:' + info.id },
+      { type: 'separator' },
+      { label: '📍 Directions from here', cmd: 'places.directionsFrom:' + info.id },
+      { label: '🏁 Directions to here', cmd: 'places.directionsTo:' + info.id },
+      { label: '📸 Snapshot View', cmd: 'places.snapshotView:' + info.id }
+    ];
+
+    for (const item of menuItems) {
+      if (item.type === 'separator') {
+        const sep = document.createElement('div');
+        sep.style.height = '1px';
+        sep.style.background = '#3c4048';
+        sep.style.margin = '4px 0';
+        featureContextMenu.appendChild(sep);
+        continue;
+      }
+      const btn = document.createElement('div');
+      btn.textContent = item.label;
+      btn.style.padding = '6px 14px';
+      btn.style.color = '#e2e8f0';
+      btn.style.cursor = 'pointer';
+      btn.style.transition = 'background 0.15s ease';
+      btn.addEventListener('mouseenter', () => { btn.style.background = '#333842'; });
+      btn.addEventListener('mouseleave', () => { btn.style.background = 'transparent'; });
+      btn.addEventListener('click', () => {
+        featureContextMenu.hidden = true;
+        sendHostMessage({ command: item.cmd });
+      });
+      featureContextMenu.appendChild(btn);
+    }
+
+    featureContextMenu.hidden = false;
+    const width = 190, height = 210;
+    featureContextMenu.style.left = `${Math.max(8, Math.min(viewer.canvas.clientWidth - width - 8, movement.position.x + 4))}px`;
+    featureContextMenu.style.top = `${Math.max(8, Math.min(viewer.canvas.clientHeight - height - 8, movement.position.y + 4))}px`;
+  }, Cesium.ScreenSpaceEventType.RIGHT_CLICK);
+
+const featureInfoPanel = document.createElement('section');
+  featureInfoPanel.className = 'feature-info-panel';
+  featureInfoPanel.hidden = true;
+  featureInfoPanel.setAttribute('role', 'region');
+  featureInfoPanel.setAttribute('aria-label', 'Feature attributes');
+  document.getElementById('viewport-container').appendChild(featureInfoPanel);
+  const featureClickHandler = new Cesium.ScreenSpaceEventHandler(viewer.canvas);
+  featureClickHandler.setInputAction(movement => {
+    if (DrawingManager.activeMode || MeasurementManager.activeMode) return;
+    const picked = viewer.scene.pick(movement.position);
+    const info = picked?.id?._zearthFeatureInfo;
+    if (!info) { featureInfoPanel.hidden = true; return; }
+    featureInfoPanel.replaceChildren();
+    const heading = document.createElement('div');
+    heading.className = 'feature-info-heading';
+    const title = document.createElement('strong');
+    title.textContent = String(info.name || 'Feature');
+    title.dir = 'auto';
+    const close = document.createElement('button');
+    close.type = 'button'; close.textContent = '×'; close.setAttribute('aria-label', 'Close feature attributes');
+    close.addEventListener('click', () => { featureInfoPanel.hidden = true; });
+    heading.append(title, close);
+    featureInfoPanel.appendChild(heading);
+    const table = document.createElement('table');
+    const body = document.createElement('tbody');
+    const rows = [['Type', info.type || 'Feature'], ...Object.entries(info.attributes || {})];
+    for (const [key, value] of rows) {
+      const tr = document.createElement('tr');
+      const th = document.createElement('th'); th.scope = 'row'; th.textContent = String(key); th.dir = 'auto';
+      const td = document.createElement('td'); td.textContent = String(value ?? ''); td.dir = 'auto';
+      tr.append(th, td); body.appendChild(tr);
+    }
+    table.appendChild(body); featureInfoPanel.appendChild(table);
+    featureInfoPanel.hidden = false;
+    const width = featureInfoPanel.offsetWidth, height = featureInfoPanel.offsetHeight;
+    featureInfoPanel.style.left = `${Math.max(8, Math.min(viewer.canvas.clientWidth - width - 8, movement.position.x + 14))}px`;
+    featureInfoPanel.style.top = `${Math.max(8, Math.min(viewer.canvas.clientHeight - height - 8, movement.position.y + 14))}px`;
+  }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
 
   function pickGroundAtScreenPosition(screenPosition) {
     if (!screenPosition) return null;
@@ -2713,9 +3932,9 @@
           show: visibleFromCamera,
           text: text,
           font: (settings.bold === false ? '' : 'bold ') + pixels + "px 'Segoe UI', sans-serif",
-          fillColor: settings.color || this.cssColor(this.config.gridLabelColor, '#E8E8E8'),
-          outlineColor: Cesium.Color.fromCssColorString('#0B1220'),
-          outlineWidth: Math.max(2, Math.round(pixels / 6)),
+          fillColor: settings.color || this.cssColor(this.config.gridLabelColor, '#FFFFFF'),
+          outlineColor: Cesium.Color.fromCssColorString('#000000'),
+          outlineWidth: Math.max(3, Math.round(pixels / 4)),
           style: Cesium.LabelStyle.FILL_AND_OUTLINE,
           showBackground: false,
           heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
@@ -2817,50 +4036,42 @@
         return Math.max(-89, Math.min(89, lat));
       };
 
-      // Independent key geographic reference lines and points. Their coordinate
-      // text uses the same formatter as every other grid label, so choosing DM,
-      // DMS or Degrees changes the reference labels too instead of leaving a
-      // hardcoded "23.44°" that contradicts the configured format.
+      // Independent key geographic reference lines and points.
+      // Displays the official feature name only (no degree coordinates appended)
+      // with bilingual Arabic/English support.
       if (this.config.showKeyParallels) {
-        const format = this.config.gridLabelFormat;
-        const coordinate = (value, axis) =>
-          window.ZEarthGraticuleLabels.formatDegrees(value, axis, format);
-        this.addParallel(0, majorColor, 2.6,
-          'Equator ' + coordinate(0, 'lat'), true, spreadLon(1), -18);
-        this.addParallel(23.4365, majorColor, 2,
-          'Tropic of Cancer ' + coordinate(23.4365, 'lat'), true, spreadLon(0), -16);
-        this.addParallel(-23.4365, majorColor, 2,
-          'Tropic of Capricorn ' + coordinate(-23.4365, 'lat'), true, spreadLon(2), -16);
-        this.addParallel(66.5635, majorColor, 1.8,
-          'Arctic Circle ' + coordinate(66.5635, 'lat'), true, spreadLon(1), -16);
-        this.addParallel(-66.5635, majorColor, 1.8,
-          'Antarctic Circle ' + coordinate(-66.5635, 'lat'), true, spreadLon(0), -16);
-        this.addMeridian(0, majorColor, 2.6,
-          'Greenwich / Prime Meridian ' + coordinate(0, 'lon'), true, spreadLat(0), -90, 90, -18);
-        this.addMeridian(180, majorColor, 2,
-          'International Date Line ' + coordinate(180, 'lon'), true, spreadLat(1), -90, 90, -18);
-        // In 2D the poles sit exactly on the top and bottom frame edges, so the
-        // label offset must point inward or it is clipped outside the map.
-        this.addKeyPoint(0, 89.999, 'North Pole ' + coordinate(90, 'lat'), majorColor,
-          { offsetY: is2D ? 16 : -20 });
-        this.addKeyPoint(0, -89.999, 'South Pole ' + coordinate(-90, 'lat'), majorColor,
-          { offsetY: is2D ? -16 : -20 });
-        // The origin label is offset to the lower-right so it can never sit on
-        // top of the Equator or Prime Meridian label at the same coordinates.
-        this.addKeyPoint(0, 0,
-          'Grid Origin ' + coordinate(0, 'lon') + ', ' + coordinate(0, 'lat'), majorColor,
-          { offsetX: 14, offsetY: 12, horizontalOrigin: Cesium.HorizontalOrigin.LEFT });
+        const isAr = EngineLocale.isArabic;
+        const nameEquator = isAr ? 'خط الاستواء' : 'Equator';
+        const nameCancer = isAr ? 'مدار السرطان' : 'Tropic of Cancer';
+        const nameCapricorn = isAr ? 'مدار الجدي' : 'Tropic of Capricorn';
+        const nameArctic = isAr ? 'الدائرة القطبية الشمالية' : 'Arctic Circle';
+        const nameAntarctic = isAr ? 'الدائرة القطبية الجنوبية' : 'Antarctic Circle';
+        const namePrimeMeridian = isAr ? 'خط جرينتش' : 'Prime Meridian';
+        const nameDateLine = isAr ? 'خط التاريخ الدولي' : 'International Date Line';
+        const nameNorthPole = isAr ? 'القطب الشمالي' : 'North Pole';
+        const nameSouthPole = isAr ? 'القطب الجنوبي' : 'South Pole';
+        const nameOrigin = isAr ? 'نقطة الأصل (0, 0)' : 'Grid Origin (0, 0)';
+
+        this.addParallel(0, majorColor, 2.6, nameEquator, true, spreadLon(1), -18);
+        this.addParallel(23.4365, majorColor, 2, nameCancer, true, spreadLon(0), -16);
+        this.addParallel(-23.4365, majorColor, 2, nameCapricorn, true, spreadLon(2), -16);
+        this.addParallel(66.5635, majorColor, 1.8, nameArctic, true, spreadLon(1), -16);
+        this.addParallel(-66.5635, majorColor, 1.8, nameAntarctic, true, spreadLon(0), -16);
+        this.addMeridian(0, majorColor, 2.6, namePrimeMeridian, true, spreadLat(0), -90, 90, -18);
+        this.addMeridian(180, majorColor, 2, nameDateLine, true, spreadLat(1), -90, 90, -18);
+
+        this.addKeyPoint(0, 89.999, nameNorthPole, majorColor, { offsetY: is2D ? 16 : -20 });
+        this.addKeyPoint(0, -89.999, nameSouthPole, majorColor, { offsetY: is2D ? -16 : -20 });
+        this.addKeyPoint(0, 0, nameOrigin, majorColor, { offsetX: 14, offsetY: 12, horizontalOrigin: Cesium.HorizontalOrigin.LEFT });
       }
 
-      // Labels are spaced in pixels, not in line counts, so the same rule works
-      // at 12,000 km and at 200 m. Anything hugging a viewport edge is skipped
-      // because the floating compass and projection controls would cover it.
-      const edgePadLat = Math.max(latInterval, latSpan * 0.09);
-      const edgePadLon = Math.max(lonInterval, lonSpan * 0.14);
+      // Responsive label spacing: relaxed margins so coordinate labels stay visible and clear
+      const edgePadLat = Math.min(latInterval * 0.3, latSpan * 0.04);
+      const edgePadLon = Math.min(lonInterval * 0.3, lonSpan * 0.05);
       const latLabelStep = Math.max(1,
-        Math.ceil(((latSpan / canvasHeight) * 40) / latInterval));
+        Math.ceil(((latSpan / canvasHeight) * 28) / latInterval));
       const lonLabelStep = Math.max(1,
-        Math.ceil(((lonSpan / canvasWidth) * 90) / lonInterval));
+        Math.ceil(((lonSpan / canvasWidth) * 60) / lonInterval));
 
       if (this.config.showLatitudeLines) {
         const startLat = Math.ceil(lineBounds.south / latInterval) * latInterval;
@@ -3707,18 +4918,19 @@
 
       // Update solar phase indicator
       if (phaseIcon && phaseText) {
+        const isAr = EngineLocale.isArabic;
         if (hours >= 5.0 && hours < 7.0) {
           phaseIcon.textContent = '🌅';
-          phaseText.textContent = 'Dawn (شروق)';
+          phaseText.textContent = isAr ? 'شروق' : 'Dawn';
         } else if (hours >= 7.0 && hours < 17.5) {
           phaseIcon.textContent = '☀️';
-          phaseText.textContent = 'Daylight (نهار)';
+          phaseText.textContent = isAr ? 'نهار' : 'Daylight';
         } else if (hours >= 17.5 && hours < 19.5) {
           phaseIcon.textContent = '🌇';
-          phaseText.textContent = 'Dusk (غروب)';
+          phaseText.textContent = isAr ? 'غروب' : 'Dusk';
         } else {
           phaseIcon.textContent = '🌙';
-          phaseText.textContent = 'Night (ليل)';
+          phaseText.textContent = isAr ? 'ليل' : 'Night';
         }
       }
 
@@ -3873,6 +5085,21 @@
     onChange: details => sendHostMessage({ event: 'gps.playbackChanged', ...details })
   });
 
+  if (window.ZEarthWeatherStations) {
+    WeatherStationsManager = window.ZEarthWeatherStations.create({
+      Cesium, viewer,
+      onStatus: details => sendHostMessage(details)
+    });
+  }
+
+  if (window.ZEarthWorldGazetteer) {
+    WorldGazetteerManager = window.ZEarthWorldGazetteer.create({
+      Cesium, viewer,
+      isArabic: false,
+      onStatus: details => sendHostMessage(details)
+    });
+  }
+
   const SwipeManager = {
     active: false,
     leftId: null,
@@ -3917,6 +5144,222 @@
       if (restore && wasActive) ImageryManager.setBasemap(this.previousBasemap || 'esri-hybrid');
       viewer.scene.requestRender();
       return wasActive;
+    }
+  };
+
+  const OverviewMapController = {
+    container: null,
+    canvas: null,
+    box: null,
+    ctx: null,
+    visible: false,
+    initialized: false,
+
+    init() {
+      if (this.initialized) return;
+      this.container = document.getElementById('overview-map-container');
+      this.canvas = document.getElementById('overview-map-canvas');
+      this.box = document.getElementById('overview-viewport-box');
+      const btnClose = document.getElementById('btn-overview-close');
+      if (btnClose) {
+        btnClose.addEventListener('click', () => this.setVisible(false));
+      }
+      if (this.canvas) {
+        this.ctx = this.canvas.getContext('2d');
+        this.drawWorldMap();
+        this.canvas.addEventListener('click', (e) => {
+          const rect = this.canvas.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+          const lon = (x / this.canvas.width) * 360 - 180;
+          const lat = 90 - (y / this.canvas.height) * 180;
+          viewer.camera.flyTo({
+            destination: Cesium.Cartesian3.fromDegrees(lon, lat, Math.max(1000000, viewer.camera.positionCartographic.height)),
+            duration: 1.2
+          });
+        });
+      }
+      this.initialized = true;
+    },
+
+    drawWorldMap() {
+      if (!this.ctx || !this.canvas) return;
+      const w = this.canvas.width;
+      const h = this.canvas.height;
+      const ctx = this.ctx;
+
+      // Ocean background
+      ctx.fillStyle = '#0c4a6e';
+      ctx.fillRect(0, 0, w, h);
+
+      // Equator and central meridian lines
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+      ctx.lineWidth = 0.5;
+      ctx.beginPath();
+      ctx.moveTo(0, h / 2);
+      ctx.lineTo(w, h / 2);
+      ctx.moveTo(w / 2, 0);
+      ctx.lineTo(w / 2, h);
+      ctx.stroke();
+
+      // Simplified equirectangular continents polygons
+      ctx.fillStyle = '#1e3a5f';
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 0.75;
+
+      const toX = lon => ((lon + 180) / 360) * w;
+      const toY = lat => ((90 - lat) / 180) * h;
+
+      const continents = [
+        // North America
+        [[-168,66], [-160,71], [-130,70], [-80,70], [-60,50], [-70,42], [-80,25], [-97,20], [-105,25], [-120,35], [-125,50], [-140,60], [-168,66]],
+        // South America
+        [[-80,10], [-50,-5], [-35,-5], [-40,-22], [-55,-40], [-70,-55], [-75,-40], [-80,-5], [-80,10]],
+        // Europe
+        [[-10,36], [0,44], [10,45], [30,40], [35,60], [25,71], [10,60], [-5,55], [-10,36]],
+        // Africa
+        [[-15,35], [30,32], [50,12], [40,-10], [30,-34], [18,-34], [10,-5], [-15,12], [-15,35]],
+        // Asia
+        [[35,60], [60,65], [100,75], [170,68], [140,40], [120,25], [105,10], [80,10], [60,25], [45,35], [35,60]],
+        // Australia
+        [[115,-20], [135,-12], [150,-24], [150,-38], [135,-35], [115,-32], [115,-20]],
+        // Antarctica
+        [[-180,-75], [180,-75], [180,-90], [-180,-90]]
+      ];
+
+      for (const poly of continents) {
+        ctx.beginPath();
+        for (let i = 0; i < poly.length; i++) {
+          const pt = poly[i];
+          const px = toX(pt[0]);
+          const py = toY(pt[1]);
+          if (i === 0) ctx.moveTo(px, py);
+          else ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+      }
+    },
+
+    updateViewport() {
+      if (!this.visible || !this.box || !this.canvas) return;
+      const rect = viewer.camera.computeViewRectangle(viewer.scene.globe.ellipsoid);
+      let west = -180, east = 180, south = -90, north = 90;
+      if (rect) {
+        west = Cesium.Math.toDegrees(rect.west);
+        east = Cesium.Math.toDegrees(rect.east);
+        south = Cesium.Math.toDegrees(rect.south);
+        north = Cesium.Math.toDegrees(rect.north);
+      } else {
+        const carto = viewer.camera.positionCartographic;
+        if (carto) {
+          const clat = Cesium.Math.toDegrees(carto.latitude);
+          const clon = Cesium.Math.toDegrees(carto.longitude);
+          const span = Math.min(60, Math.max(5, (carto.height / 20000000) * 80));
+          west = clon - span;
+          east = clon + span;
+          south = clat - span / 2;
+          north = clat + span / 2;
+        }
+      }
+
+      south = Math.max(-90, Math.min(90, south));
+      north = Math.max(-90, Math.min(90, north));
+      const w = this.canvas.width;
+      const h = this.canvas.height;
+      let x1 = ((west + 180) / 360) * w;
+      let x2 = ((east + 180) / 360) * w;
+      let y1 = ((90 - north) / 180) * h;
+      let y2 = ((90 - south) / 180) * h;
+
+      if (x2 < x1) x2 += w;
+      const boxW = Math.max(8, Math.min(w, x2 - x1));
+      const boxH = Math.max(6, Math.min(h, y2 - y1));
+      const boxLeft = Math.max(0, Math.min(w - boxW, x1 % w));
+      const boxTop = Math.max(0, Math.min(h - boxH, y1));
+
+      this.box.style.left = `${boxLeft}px`;
+      this.box.style.top = `${boxTop}px`;
+      this.box.style.width = `${boxW}px`;
+      this.box.style.height = `${boxH}px`;
+    },
+
+    setVisible(show) {
+      this.init();
+      this.visible = Boolean(show);
+      if (this.container) {
+        this.container.style.display = this.visible ? 'block' : 'none';
+      }
+      if (this.visible) {
+        this.updateViewport();
+      }
+      sendHostMessage({ event: 'overviewMap.changed', visible: this.visible });
+    }
+  };
+
+  const CelestialBodyManager = {
+    currentBody: 'earth',
+    priorEarthBasemap: 'esri-hybrid',
+
+    setBody(name) {
+      const target = String(name || 'earth').toLowerCase();
+      if (target === this.currentBody) return;
+
+      if (target === 'moon') {
+        if (this.currentBody === 'earth') {
+          this.priorEarthBasemap = ImageryManager.activeBasemap;
+        }
+        this.currentBody = 'moon';
+        if (viewer.scene.globe) {
+          viewer.scene.globe._ellipsoid = Cesium.Ellipsoid.MOON;
+        }
+        ImageryManager.registerDynamicBasemap({
+          id: 'celestial-moon',
+          name: 'Moon Global (LRO/WAC)',
+          url: 'https://trek.nasa.gov/tiles/Moon/EQ/LRO_WAC_Mosaic_Global_303ppd_v02/1.0.0//default/default028mm/{z}/{y}/{x}.jpg',
+          attribution: 'NASA / GSFC / ASU (LRO WAC Global)',
+          maximumLevel: 8,
+          setActive: true
+        });
+        viewer.camera.flyTo({
+          destination: Cesium.Cartesian3.fromDegrees(0, 0, 5000000, Cesium.Ellipsoid.MOON),
+          duration: 1.5
+        });
+      } else if (target === 'mars') {
+        if (this.currentBody === 'earth') {
+          this.priorEarthBasemap = ImageryManager.activeBasemap;
+        }
+        this.currentBody = 'mars';
+        const marsEllipsoid = new Cesium.Ellipsoid(3396190.0, 3396190.0, 3376200.0);
+        if (viewer.scene.globe) {
+          viewer.scene.globe._ellipsoid = marsEllipsoid;
+        }
+        ImageryManager.registerDynamicBasemap({
+          id: 'celestial-mars',
+          name: 'Mars Global (Viking MDIM2.1)',
+          url: 'https://trek.nasa.gov/tiles/Mars/EQ/Mars_Viking_MDIM21_ClrMosaic_global_232m/1.0.0//default/default028mm/{z}/{y}/{x}.jpg',
+          attribution: 'NASA / USGS Astrogeology (Mars Viking)',
+          maximumLevel: 7,
+          setActive: true
+        });
+        viewer.camera.flyTo({
+          destination: Cesium.Cartesian3.fromDegrees(0, 0, 9000000, marsEllipsoid),
+          duration: 1.5
+        });
+      } else {
+        this.currentBody = 'earth';
+        if (viewer.scene.globe) {
+          viewer.scene.globe._ellipsoid = Cesium.Ellipsoid.WGS84;
+        }
+        ImageryManager.setBasemap(this.priorEarthBasemap || 'esri-hybrid');
+        viewer.camera.flyTo({
+          destination: Cesium.Cartesian3.fromDegrees(25.0, 25.0, 15000000, Cesium.Ellipsoid.WGS84),
+          duration: 1.5
+        });
+      }
+      sendHostMessage({ event: 'celestialBody.changed', body: this.currentBody });
+      viewer.scene.requestRender();
     }
   };
 
@@ -4048,6 +5491,24 @@
   // Bind HUD measurement action buttons
   // Keep measurement results visible without covering the area the user is tracing.
   // Header-only pointer dragging; ignore controls and clamp inside the WebView viewport.
+  
+  // Wire measurement HUD unit dropdown
+  const measureUnitSelect = document.getElementById('measure-unit-select');
+  if (measureUnitSelect) {
+    measureUnitSelect.addEventListener('change', () => {
+      const val = measureUnitSelect.value;
+      if (['AutoMetric', 'Meters', 'Kilometers', 'AutoImperial', 'Feet', 'Miles', 'NauticalMiles'].includes(val)) {
+        UnitSettings.distanceUnit = val;
+      }
+      if (['AutoMetric', 'AutoImperial', 'Hectares', 'Acres', 'EgyptianFeddan'].includes(val)) {
+        UnitSettings.areaUnit = val;
+      }
+      if (MeasurementManager.activeMode) {
+        MeasurementManager.updateHUD();
+      }
+    });
+  }
+
   (function enableMovableMeasurementHud() {
     const hud = document.getElementById('measurement-hud');
     const handle = document.getElementById('measure-drag-handle');
@@ -4111,13 +5572,65 @@
     });
   });
 
-  function updateCoordUI(lat, lon, alt, heading) {
+  function getCameraAltitudeAndZoom() {
+    const is2D = viewer.scene.mode === Cesium.SceneMode.SCENE2D;
+    let alt = 0;
+    const canvas = viewer.canvas;
+    const canvasWidth = (canvas && canvas.clientWidth > 0) ? canvas.clientWidth : 1024;
+
+    if (is2D && viewer.camera.frustum && typeof viewer.camera.frustum.width === 'number') {
+      const frustumWidth = Math.max(1.0, viewer.camera.frustum.width);
+      // In 2D orthographic, equivalent eye altitude matching standard 60 deg horizontal FOV:
+      alt = frustumWidth / (2.0 * Math.tan(Cesium.Math.toRadians(30.0)));
+    } else {
+      const carto = viewer.camera.positionCartographic;
+      if (carto && !isNaN(carto.height)) {
+        alt = carto.height;
+      } else if (viewer.camera.position) {
+        alt = Math.max(0.1, Cesium.Cartesian3.magnitude(viewer.camera.position) - 6378137.0);
+      }
+    }
+
+    alt = Math.max(0.1, alt);
+
+    // Visible ground width across the viewport
+    const visibleWidth = (is2D && viewer.camera.frustum && typeof viewer.camera.frustum.width === 'number')
+      ? viewer.camera.frustum.width
+      : alt * 2.0 * Math.tan(Cesium.Math.toRadians(30.0));
+
+    // Nominal Web Mercator zoom level:
+    let cartoCenter = viewer.camera.positionCartographic;
+    if (is2D && viewer.scene.mapProjection) {
+      cartoCenter = viewer.scene.mapProjection.unproject(viewer.camera.position);
+    }
+    const centerLatRad = cartoCenter ? cartoCenter.latitude : 0.0;
+    const cosLat = Math.max(0.01, Math.cos(centerLatRad));
+    const groundRes = Math.max(0.0001, visibleWidth / canvasWidth);
+    const nominalZoom = Math.log2((40075016.686 * cosLat) / (256.0 * groundRes));
+    const zoomLevel = Math.max(0.0, Math.min(24.0, nominalZoom));
+
+    return { altitude: alt, zoomLevel: zoomLevel };
+  }
+
+  function updateCoordUI(lat, lon, alt, heading, zoomLevel) {
     if (!statusEl) return;
     const latStr = `${Math.abs(lat).toFixed(4)}° ${lat >= 0 ? 'N' : 'S'}`;
     const lonStr = `${Math.abs(lon).toFixed(4)}° ${lon >= 0 ? 'E' : 'W'}`;
-    const altStr = alt >= 1000 ? `${(alt / 1000).toLocaleString(undefined, { maximumFractionDigits: 0 })} km` : `${alt.toFixed(0)} m`;
+    let altStr = '';
+    if (alt < 100) {
+      altStr = `${alt.toFixed(1)} m`;
+    } else if (alt < 1000) {
+      altStr = `${alt.toFixed(0)} m`;
+    } else if (alt < 10000) {
+      altStr = `${(alt / 1000).toFixed(2)} km (${alt.toFixed(0)} m)`;
+    } else if (alt < 100000) {
+      altStr = `${(alt / 1000).toFixed(1)} km`;
+    } else {
+      altStr = `${(alt / 1000).toLocaleString(undefined, { maximumFractionDigits: 0 })} km`;
+    }
+    const zoomStr = zoomLevel !== undefined ? ` | Z${zoomLevel.toFixed(1)}` : '';
     const modeStr = viewer.scene.mode === Cesium.SceneMode.SCENE3D ? 'Scene3D' : 'Scene2D';
-    statusEl.textContent = `${latStr} | ${lonStr} | Eye: ${altStr} | Head: ${heading.toFixed(1)}° | ${modeStr}`;
+    statusEl.textContent = `${latStr} | ${lonStr} | Eye: ${altStr}${zoomStr} | Head: ${heading.toFixed(1)}° | ${modeStr}`;
   }
 
   // 6. Real-Time Camera Telemetry & Compass (CRS-01, CRS-02, CRS-03)
@@ -4132,13 +5645,16 @@
 
     const lat = Cesium.Math.toDegrees(carto.latitude);
     const lon = Cesium.Math.toDegrees(carto.longitude);
-    const alt = carto.height;
+    const telemetry = getCameraAltitudeAndZoom();
+    const alt = telemetry.altitude;
+    const zoom = telemetry.zoomLevel;
     let heading = ((Cesium.Math.toDegrees(viewer.camera.heading) % 360) + 360) % 360;
     if (Math.abs(heading - 360) < 0.001) heading = 0.0;
     const pitch = Cesium.Math.toDegrees(viewer.camera.pitch);
     const roll = Cesium.Math.toDegrees(viewer.camera.roll);
 
-    updateCoordUI(lat, lon, alt, heading);
+    updateCoordUI(lat, lon, alt, heading, zoom);
+    OverviewMapController.updateViewport();
 
     if (compassRing) {
       compassRing.style.transform = `rotate(${-heading}deg)`;
@@ -4156,6 +5672,7 @@
           latitude: lat,
           longitude: lon,
           altitude: alt,
+          zoomLevel: zoom,
           heading: heading,
           pitch: pitch,
           roll: roll
@@ -4180,6 +5697,9 @@
     }
     if (!carto) return;
 
+    const telemetry = getCameraAltitudeAndZoom();
+    const alt = telemetry.altitude;
+    const zoom = telemetry.zoomLevel;
     let heading = ((Cesium.Math.toDegrees(viewer.camera.heading) % 360) + 360) % 360;
     if (Math.abs(heading - 360) < 0.001) heading = 0.0;
 
@@ -4188,7 +5708,8 @@
       camera: {
         latitude: Cesium.Math.toDegrees(carto.latitude),
         longitude: Cesium.Math.toDegrees(carto.longitude),
-        altitude: carto.height,
+        altitude: alt,
+        zoomLevel: zoom,
         heading: heading,
         pitch: Cesium.Math.toDegrees(viewer.camera.pitch),
         roll: Cesium.Math.toDegrees(viewer.camera.roll)
@@ -4198,6 +5719,7 @@
     const centerEnd = getScreenCenterGround();
     CompassManager.update(centerEnd, heading);
     GraticuleManager.refreshForCamera();
+    ImageryManager.onCameraMoveEnd();
     sendHostMessage({
       event: 'map.centerChanged',
       center: centerEnd
@@ -4815,6 +6337,18 @@
           respondSuccess({ mode });
           break;
         }
+        case 'view.setOverviewMap': {
+          const visible = Boolean(data.payload?.visible);
+          OverviewMapController.setVisible(visible);
+          respondSuccess({ visible });
+          break;
+        }
+        case 'scene.setCelestialBody': {
+          const body = data.payload?.body || 'earth';
+          CelestialBodyManager.setBody(body);
+          respondSuccess({ body: CelestialBodyManager.currentBody });
+          break;
+        }
         case 'layers.setBasemap': {
           const mode = data.payload?.mode || data.payload?.id || 'esri-hybrid';
           if (ImageryManager.setBasemap(mode)) respondSuccess({ basemap: ImageryManager.activeBasemap });
@@ -4986,6 +6520,30 @@
           respondSuccess({ updated, id: data.payload?.id, opacity: data.payload?.opacity });
           break;
         }
+        case 'weather.setMetric': {
+          if (WeatherStationsManager) {
+            WeatherStationsManager.setMetric(data.payload?.metric || 'temperature');
+            respondSuccess({ metric: data.payload?.metric });
+          } else {
+            respond('failed', null, 'WeatherStationsManager not available');
+          }
+          break;
+        }
+        case 'locale.set': {
+          updateEngineLocale(Boolean(data.payload?.isArabic));
+          respondSuccess({ isArabic: EngineLocale.isArabic });
+          break;
+        }
+        case 'gazetteer.setLocale': {
+          updateEngineLocale(Boolean(data.payload?.isArabic));
+          if (WorldGazetteerManager) {
+            WorldGazetteerManager.setLocale(Boolean(data.payload?.isArabic));
+            respondSuccess({ isArabic: Boolean(data.payload?.isArabic) });
+          } else {
+            respondSuccess({ isArabic: Boolean(data.payload?.isArabic) });
+          }
+          break;
+        }
         case 'swipe.start': {
           const started = SwipeManager.start(data.payload?.left, data.payload?.right);
           if (started) respondSuccess({ started: true });
@@ -5057,9 +6615,18 @@
           respondSuccess(state);
           break;
         }
+        case 'environment.setCenterReticle': {
+          const enabled = data.payload?.enabled !== false;
+          const reticleEl = document.getElementById('center-reticle');
+          if (reticleEl) {
+            reticleEl.style.display = enabled ? 'block' : 'none';
+          }
+          respondSuccess({ enabled });
+          break;
+        }
         case 'flight.setActive': {
           if (data.payload?.enabled === true) GpsPlayback.stop();
-          const state = FlightSimulator.setActive(data.payload?.enabled === true);
+          const state = FlightSimulator.setActive(data.payload?.enabled === true, data.payload);
           if (state.error) respond('failed', state, state.error);
           else respondSuccess(state);
           break;
@@ -5152,6 +6719,18 @@
           respondSuccess({ cleared: true });
           break;
         }
+        case 'profile.showHover': {
+          const lon = data.payload?.longitude;
+          const lat = data.payload?.latitude;
+          ProfileHoverCursor.show(lon, lat);
+          respondSuccess({ hovered: true });
+          break;
+        }
+        case 'profile.clearHover': {
+          ProfileHoverCursor.clear();
+          respondSuccess({ cleared: true });
+          break;
+        }
         case 'terrain.samplePath': {
           const points = data.payload?.points;
           const provider = viewer.terrainProvider;
@@ -5162,16 +6741,16 @@
             respond('failed', null, 'Terrain profile requires 2–256 valid geographic points.');
             break;
           }
-          if (TerrainManager.currentType === 'ellipsoid' ||
-              provider instanceof Cesium.EllipsoidTerrainProvider) {
-            respond('failed', null, 'No elevation DEM active; ellipsoid heights are not terrain measurements.');
-            break;
-          }
+          const isEllipsoid = terrainSource === 'ellipsoid' ||
+              provider instanceof Cesium.EllipsoidTerrainProvider;
+          const effectiveSource = isEllipsoid ? '30m DEM (AWS Terrarium / SRTM)' : terrainSource;
           const cartographics = points.map(p =>
             Cesium.Cartographic.fromDegrees(p.longitude, p.latitude));
-          respondAccepted({ started: true, source: terrainSource });
+          respondAccepted({ started: true, source: effectiveSource });
           const terrainSampling = async () => {
-            // The render-only ellipsoid background is not a DEM measurement.
+            if (isEllipsoid) {
+              return TerrainManager.sampleBackground30mDem(points);
+            }
             if (terrainSource === 'localDem') {
               return TerrainManager.sampleLocalRasterPoints(points);
             }
@@ -5187,7 +6766,7 @@
             return await Cesium.sampleTerrain(provider, 11, cartographics);
           };
           terrainSampling().then(sampled => {
-            if (viewer.terrainProvider !== provider || TerrainManager.currentType !== terrainSource) {
+            if (!isEllipsoid && (viewer.terrainProvider !== provider || TerrainManager.currentType !== terrainSource)) {
               respond('failed', null, 'Terrain source changed during the elevation request.');
               return;
             }
@@ -5197,7 +6776,7 @@
               return;
             }
             respondSuccess({
-              source: terrainSource,
+              source: effectiveSource,
               verticalUnits: 'metres (source terrain elevation datum)',
               samples: sampled.map((p,i) => ({
                 longitude: points[i].longitude,

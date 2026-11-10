@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
@@ -81,6 +81,7 @@ namespace ZEarth.Globe
         public event EventHandler<MapCenterInfo>? MapCenterChanged;
         public event EventHandler<CursorPositionInfo>? CursorPositionChanged;
         public event EventHandler<SceneMode>? SceneModeChanged;
+        public event EventHandler<bool>? OverviewMapChanged;
         public event EventHandler<string>? EngineReady;
         public event EventHandler<string>? WebError;
         public event EventHandler<string>? CommandRequested;
@@ -394,6 +395,14 @@ namespace ZEarth.Globe
                     MeasurementUpdated?.Invoke(this, json);
                     return;
                 }
+                if (ev == "overviewMap.changed")
+                {
+                    if (root.TryGetProperty("visible", out var vProp))
+                    {
+                        OverviewMapChanged?.Invoke(this, vProp.GetBoolean());
+                    }
+                    return;
+                }
                 if (ev == "measurement.completed")
                 {
                     MeasurementCompleted?.Invoke(this, json);
@@ -647,6 +656,16 @@ namespace ZEarth.Globe
         /// Missing/ellipsoid/failed coverage yields null, never fabricated altitudes.
         /// Limited to 256 geographic points; JS does the actual sampling.
         /// </summary>
+        public Task ShowProfileHoverPointAsync(double longitude, double latitude)
+        {
+            return NotifyAsync("profile.showHover", new { longitude, latitude });
+        }
+
+        public Task ClearProfileHoverPointAsync()
+        {
+            return NotifyAsync("profile.clearHover");
+        }
+
         public async Task<IReadOnlyList<TerrainHeightSample>?> SampleTerrainHeightsAsync(
             IReadOnlyList<CoordinatePoint> coordinates,
             CancellationToken cancellationToken = default)
@@ -781,6 +800,9 @@ namespace ZEarth.Globe
             return success;
         }
 
+        public Task<bool> SetOverviewMapAsync(bool visible) => SendRequestAsync("view.setOverviewMap", new { visible });
+        public Task<bool> SetCelestialBodyAsync(string body) => SendRequestAsync("scene.setCelestialBody", new { body });
+
         public Task<bool> ZoomInAsync(double factor = 1.5) => SendRequestAsync("camera.zoomIn");
         public Task<bool> ZoomOutAsync(double factor = 1.5) => SendRequestAsync("camera.zoomOut");
         public Task<bool> SetZoomFactorAsync(double factor) => SendRequestAsync("camera.setZoomFactor", new { factor });
@@ -875,6 +897,12 @@ namespace ZEarth.Globe
         public Task<bool> SetReferenceLayerOpacityAsync(string id, double opacity) =>
             SendRequestAsync("reference.setOpacity", new { id, opacity });
 
+        public Task<bool> SetWeatherMetricAsync(string metric) =>
+            SendRequestAsync("weather.setMetric", new { metric });
+
+        public Task<bool> SetGazetteerLocaleAsync(bool isArabic) =>
+            SendRequestAsync("gazetteer.setLocale", new { isArabic });
+
         public Task<bool> SetSearchPinAsync(double longitude, double latitude, string title, bool show = true) =>
             SendRequestAsync("search.setPin", new { longitude, latitude, title, show });
 
@@ -894,7 +922,10 @@ namespace ZEarth.Globe
             SendRequestAsync("environment.setAtmosphere", new { enabled });
 
         public Task<bool> SetCloudsAsync(bool enabled) =>
-            SendRequestAsync("environment.setClouds", new { enabled });
+            SendRequestAsync("environment.setClouds", new { enabled });
+
+        public Task<bool> SetCenterReticleAsync(bool enabled) =>
+            SendRequestAsync("environment.setCenterReticle", new { enabled });
 
         public Task<bool> ToggleSaveImageAsync(bool? show = null) =>
             SendRequestAsync("saveImage.toggle", new { show });
@@ -905,8 +936,8 @@ namespace ZEarth.Globe
         public Task<bool> HideSaveImageAsync() =>
             SendRequestAsync("saveImage.hide", new { });
 
-        public Task<bool> SetFlightModeAsync(bool enabled) =>
-            SendRequestAsync("flight.setActive", new { enabled });
+        public Task<bool> SetFlightModeAsync(bool enabled, bool mouseSteering = false) =>
+            SendRequestAsync("flight.setActive", new { enabled, mouseSteering });
 
         public Task<bool> SetNasaGibsImageryAsync(string layer, string date) =>
             SendRequestAsync("historical.nasaSet", new { layer, date }, timeoutMs: 18000);

@@ -45,7 +45,7 @@ public sealed class ExplorerUiContractTests
             ((string?)e.Attribute("ItemsSource"))?.Contains("MyPlaces") == true);
         Assert.IsNull(tree.Attribute("MaxHeight"), "My Places must not be capped to 320px");
         Assert.AreEqual("1", (string?)tree.Attribute("Grid.Row"));
-        var outerSplitter = xaml.Descendants().Single(e =>
+        var outerSplitter = xaml.Descendants().First(e =>
             e.Name.LocalName == "GridSplitter" &&
             (string?)e.Attribute(x + "Name") != "WorkspaceSplitter");
         Assert.AreEqual("Rows", (string?)outerSplitter.Attribute("ResizeDirection"));

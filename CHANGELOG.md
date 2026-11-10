@@ -5,7 +5,29 @@ This project adheres to Semantic Versioning and the **Single Canonical Project P
 
 ---
 
-## [2.2.4] - Z EARTH Brand Name Standardization - 2026-10-25
+## [2.2.5] - Explorer Layout, Smart Search, Flight Controls & Layers Reliability - 2026-11-10
+
+### Added
+- **Smart Coordinate Auto-Detection:** Automatically detects whether input coordinates are WGS 84 geographic degrees (DD / DMS) or UTM metric coordinates (meters), automatically calculating the UTM zone from view center and converting via PROJ.
+- **My Device Location as Placemark:** Saves acquired GPS device location directly into `Explorer Places` (`My Places`) as a persistent `PlaceItem` with full properties editing, custom iconography, and deletion support.
+- **Save Coordinates to Places:** Added `Save to Places` button in the coordinate search panel.
+- **Modern Save Confirmation Dialog:** Added custom branded dark GIS dialog (`ModernSaveConfirmationDialog.cs`) with bilingual Arabic/English strings, replacing legacy Win32 message boxes.
+- **Automatic Adaptive Grid Mode:** Added dynamic grid subdivision mode in Options Dialog that recalculates and subdivides meridian and parallel intervals progressively as the camera zooms in.
+- **Independent UTM Zone Toggle:** Decoupled UTM zone boundaries visibility from Major Geographic Reference lines in Options Dialog.
+- **Multi-Language Flight Simulator:** Full keyboard control support for Arabic keyboard layouts (`ص`, `س`, `ش`, `ي`, `ث`, `ض`, `ح`, `ة`), plus Shift turbo boost and altitude-scaled flight velocity.
+
+### Changed
+- **Explorer Resizing & Splitters:** Restored bidirectional grid splitters between Places/Layers and Explorer/Globe Viewport.
+- **Dark Theme Styling:** Completely overhauled dark mode styles for search textboxes, layer filters, and segmented tab pills to guarantee high contrast and crisp white text readability.
+- **Flight Simulator Controls:** Reversed pitch controls to user-intuitive conventions: Up Arrow, W, and forward mouse pitch camera UP; Down Arrow, S, and backward mouse pitch camera DOWN.
+- **Major Geographic Reference Labels:** Removed numerical coordinate degrees from labels, showing clean official feature names (Equator, Tropic of Cancer, Prime Meridian, etc.) with Arabic localized names.
+- **Reference Layers Reliability:**
+  - Extended World Gazetteer visibility to 35,000 km.
+  - Extended NOAA METAR Weather Stations visibility to 25,000 km.
+  - Dynamic OpenStreetMap Overpass layer querying on `camera.moveEnd` without bounding-box aborts.
+  - NASA GIBS fallback date to completed imagery (avoiding 404s).
+  - Labeled USGS Earthquakes with titles and magnitudes up to 15,000 km.
+  - Layer fly-to buttons (`✈`) now navigate directly to 65 km altitude over visible features.
 
 ### Changed
 - Standardized the user-facing product name to `Z EARTH` across the application UI, metadata, documentation, and maintained scripts.

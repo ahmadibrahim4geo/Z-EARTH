@@ -34,3 +34,7 @@ compatibility: Design reviews and static checks are cross-platform; visual and n
 ## OS/device consent and failure UX
 
 For [System Capabilities & Permissions](../system-capabilities-and-permissions/SKILL.md), design accessible, bilingual permission rationale, allow/deny/revoke/timeout/missing-hardware states, user-invoked retry and manual/offline alternatives. Never fake a native OS permission prompt with a site dialog. Verify keyboard and RTL behavior; pass native proof to Desktop E2E.
+
+## Visual assets (conditional)
+
+When the reviewed project needs thumbnails, official logos, photographs, illustrations or screenshots, compose [Visual Asset Discovery & Integration](../visual-asset-discovery-integration/SKILL.md). It owns internet/source discovery, asset suitability, source credits and prepared local variants; keep layout, target resource binding, packaging and actual UI acceptance with this platform/UX owner. Do not silently replace requested images with generic icons or claim a source URL proves local integration.

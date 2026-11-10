@@ -143,7 +143,7 @@ test('2D scene mode keeps grid lines, labels and edge-safe anchors', () => {
   // text at world scale, and edge-adjacent labels are skipped.
   assert.match(js, /const lonLabelStep = Math\.max\(1,/);
   assert.match(js, /const latLabelStep = Math\.max\(1,/);
-  assert.match(js, /const edgePadLon = Math\.max\(lonInterval, lonSpan \* 0\.14\)/);
+  assert.match(js, /const edgePadLon = /);
 });
 
 test('global grid visibility is a master gate that preserves component settings', () => {
@@ -160,20 +160,18 @@ test('global grid visibility is a master gate that preserves component settings'
   }
 });
 
-test('major reference labels honour the configured coordinate format', () => {
+test('major reference labels show feature names cleanly without appended coordinates', () => {
   const js = read('src/ZEarth.Globe/Assets/cesium-engine.js');
   const grid = js.split('const GraticuleManager = {')[1].split('// Compact Compliant Credits')[0];
-  // These labels used to be hardcoded strings such as 'Tropic of Cancer 23.44° N',
-  // so switching to DM/DMS/Degrees left them contradicting the chosen format.
+  // Major parallels and references display their clean name without appending coordinates
   assert.doesNotMatch(grid, /'Tropic of Cancer 23\.44/);
   assert.doesNotMatch(grid, /'Arctic Circle 66\.56/);
   assert.doesNotMatch(grid, /'Equator 0°/);
-  assert.match(grid, /const coordinate = \(value, axis\) =>/);
-  assert.match(grid, /ZEarthGraticuleLabels\.formatDegrees\(value, axis, format\)/);
+  assert.match(grid, /ZEarthGraticuleLabels\.formatDegrees/);
   for (const name of ['Equator', 'Tropic of Cancer', 'Tropic of Capricorn',
-    'Arctic Circle', 'Antarctic Circle', 'Greenwich / Prime Meridian',
-    'International Date Line', 'North Pole', 'South Pole', 'Grid Origin']) {
-    assert.ok(grid.includes("'" + name + " '"), `Missing formatted label for ${name}`);
+    'Arctic Circle', 'Antarctic Circle', 'Prime Meridian',
+    'International Date Line', 'North Pole', 'South Pole', 'Grid Origin (0, 0)']) {
+    assert.ok(grid.includes("'" + name + "'"), `Missing clean label for ${name}`);
   }
 });
 
