@@ -1,0 +1,1371 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Z EARTH — Modern Desktop GIS & 3D Globe</title>
+  <meta name="description" content="Open-source Windows desktop GIS and 3D globe application powered by .NET 10 WPF and CesiumJS. A Google Earth Pro alternative featuring 3D terrain, KML/KMZ, coordinate grids, and bilingual support.">
+  <meta name="keywords" content="GIS, CesiumJS, 3D Globe, Google Earth Pro alternative, WPF, .NET 10, KML, KMZ, UTM, WGS84, Desktop GIS">
+  <meta name="author" content="Ahmed Ibrahim">
+
+  <!-- Open Graph / Social Sharing -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Z EARTH — Modern Desktop GIS & 3D Globe">
+  <meta property="og:description" content="Open-source Windows desktop GIS and 3D globe application powered by .NET 10 WPF and CesiumJS. Google Earth Pro alternative with 3D terrain, KML/KMZ, and full bilingual (EN/AR) support.">
+  <meta property="og:image" content="assets/branding/zearth-repo-header.webp">
+  <meta property="og:url" content="https://ahmadibrahim4geo.github.io/Z-EARTH/">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="assets/branding/zearth_approved_icon.png">
+
+  <!-- Google Fonts: Inter & Cairo -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-primary: #121417;
+      --bg-secondary: #1a1d22;
+      --bg-card: rgba(28, 32, 38, 0.75);
+      --bg-card-hover: rgba(36, 42, 50, 0.85);
+      --border-color: #2e343d;
+      --border-highlight: rgba(34, 168, 222, 0.35);
+      --accent-blue: #22A8DE;
+      --accent-blue-hover: #1b8fc0;
+      --accent-glow: rgba(34, 168, 222, 0.25);
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+      --text-dim: #6b7280;
+      --font-en: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --font-ar: 'Cairo', 'Segoe UI', Tahoma, sans-serif;
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+      --transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      background-color: var(--bg-primary);
+      color: var(--text-main);
+      font-family: var(--font-en);
+      line-height: 1.6;
+      overflow-x: hidden;
+      min-height: 100vh;
+    }
+
+    html[dir="rtl"] body {
+      font-family: var(--font-ar);
+    }
+
+    /* Subtle background grid pattern */
+    body::before {
+      content: "";
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: 
+        radial-gradient(circle at 50% 0%, rgba(34, 168, 222, 0.08) 0%, transparent 60%),
+        linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+      background-size: 100% 100%, 48px 48px, 48px 48px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 0 24px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ==========================================================================
+       Navigation Bar
+       ========================================================================== */
+    .navbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      background: rgba(18, 20, 23, 0.85);
+      border-bottom: 1px solid var(--border-color);
+      transition: var(--transition);
+    }
+
+    .nav-container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 74px;
+    }
+
+    .brand-link {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: var(--text-main);
+    }
+
+    .brand-logo {
+      height: 42px;
+      width: 42px;
+      object-fit: contain;
+      border-radius: var(--radius-sm);
+      filter: drop-shadow(0 0 10px rgba(34, 168, 222, 0.35));
+    }
+
+    .brand-text {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .brand-title {
+      font-weight: 800;
+      font-size: 1.25rem;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .brand-badge {
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: rgba(34, 168, 222, 0.15);
+      color: var(--accent-blue);
+      border: 1px solid rgba(34, 168, 222, 0.3);
+      letter-spacing: 0.05em;
+    }
+
+    .brand-subtitle {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      letter-spacing: 0.02em;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 28px;
+      list-style: none;
+    }
+
+    .nav-link {
+      text-decoration: none;
+      color: var(--text-muted);
+      font-size: 0.92rem;
+      font-weight: 500;
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .nav-link:hover {
+      color: var(--accent-blue);
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    /* Language Switch Button */
+    .lang-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 14px;
+      border-radius: var(--radius-sm);
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 600;
+      font-family: inherit;
+      transition: var(--transition);
+    }
+
+    .lang-btn:hover {
+      border-color: var(--accent-blue);
+      color: var(--accent-blue);
+      background: rgba(34, 168, 222, 0.1);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      padding: 11px 22px;
+      border-radius: var(--radius-sm);
+      text-decoration: none;
+      transition: var(--transition);
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #22A8DE 0%, #1681ad 100%);
+      color: #ffffff;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: 0 4px 18px rgba(34, 168, 222, 0.35);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 24px rgba(34, 168, 222, 0.5);
+      background: linear-gradient(135deg, #28b8f2 0%, #1b8fc0 100%);
+    }
+
+    .btn-secondary {
+      background: var(--bg-secondary);
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+    }
+
+    .btn-secondary:hover {
+      transform: translateY(-2px);
+      background: rgba(255, 255, 255, 0.05);
+      border-color: var(--text-muted);
+    }
+
+    /* ==========================================================================
+       Hero Section
+       ========================================================================== */
+    .hero {
+      padding: 70px 0 50px;
+      text-align: center;
+      position: relative;
+    }
+
+    .hero-badge-wrap {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 16px;
+      border-radius: 999px;
+      background: rgba(34, 168, 222, 0.1);
+      border: 1px solid rgba(34, 168, 222, 0.25);
+      margin-bottom: 24px;
+      font-size: 0.85rem;
+      color: var(--accent-blue);
+      font-weight: 600;
+    }
+
+    .hero-title {
+      font-size: clamp(2.2rem, 5vw, 3.8rem);
+      font-weight: 800;
+      line-height: 1.15;
+      letter-spacing: -0.03em;
+      margin-bottom: 20px;
+      max-width: 980px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .hero-title .gradient-text {
+      background: linear-gradient(135deg, #ffffff 30%, #22A8DE 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-desc {
+      font-size: clamp(1.05rem, 2vw, 1.25rem);
+      color: var(--text-muted);
+      max-width: 780px;
+      margin: 0 auto 36px;
+      line-height: 1.65;
+    }
+
+    .hero-cta {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      margin-bottom: 50px;
+    }
+
+    .hero-banner-card {
+      position: relative;
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      border: 1px solid var(--border-color);
+      background: var(--bg-card);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 40px rgba(34, 168, 222, 0.15);
+      transition: var(--transition);
+    }
+
+    .hero-banner-card:hover {
+      border-color: var(--border-highlight);
+    }
+
+    .hero-banner-img {
+      width: 100%;
+      height: auto;
+      display: block;
+      transition: transform 0.6s ease;
+    }
+
+    /* Key Metrics Highlights */
+    .highlights-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 20px;
+      margin-top: 40px;
+    }
+
+    .highlight-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 24px 20px;
+      text-align: center;
+      backdrop-filter: blur(12px);
+      transition: var(--transition);
+    }
+
+    .highlight-card:hover {
+      border-color: var(--border-highlight);
+      transform: translateY(-4px);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+
+    .highlight-icon {
+      font-size: 1.8rem;
+      margin-bottom: 12px;
+      display: inline-block;
+      color: var(--accent-blue);
+    }
+
+    .highlight-card h4 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .highlight-card p {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    /* ==========================================================================
+       Features Section
+       ========================================================================== */
+    .section {
+      padding: 90px 0;
+      position: relative;
+    }
+
+    .section-header {
+      text-align: center;
+      max-width: 720px;
+      margin: 0 auto 54px;
+    }
+
+    .section-tag {
+      text-transform: uppercase;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      color: var(--accent-blue);
+      margin-bottom: 12px;
+      display: block;
+    }
+
+    .section-title {
+      font-size: clamp(1.8rem, 3.5vw, 2.6rem);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 16px;
+    }
+
+    .section-desc {
+      color: var(--text-muted);
+      font-size: 1.02rem;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 24px;
+    }
+
+    .feature-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 32px 28px;
+      transition: var(--transition);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .feature-card:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--border-highlight);
+      transform: translateY(-4px);
+      box-shadow: 0 14px 40px rgba(0, 0, 0, 0.35);
+    }
+
+    .feature-card::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, var(--accent-blue), transparent);
+      opacity: 0;
+      transition: var(--transition);
+    }
+
+    .feature-card:hover::before {
+      opacity: 1;
+    }
+
+    .feature-icon-box {
+      width: 52px;
+      height: 52px;
+      border-radius: var(--radius-sm);
+      background: rgba(34, 168, 222, 0.12);
+      border: 1px solid rgba(34, 168, 222, 0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      margin-bottom: 22px;
+      color: var(--accent-blue);
+    }
+
+    .feature-title {
+      font-size: 1.22rem;
+      font-weight: 700;
+      margin-bottom: 12px;
+      letter-spacing: -0.01em;
+    }
+
+    .feature-desc {
+      color: var(--text-muted);
+      font-size: 0.94rem;
+      line-height: 1.6;
+      flex-grow: 1;
+    }
+
+    .feature-badge-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 20px;
+    }
+
+    .feature-badge {
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-muted);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    /* ==========================================================================
+       Architecture & Tech Stack
+       ========================================================================== */
+    .tech-stack-section {
+      background: var(--bg-secondary);
+      border-top: 1px solid var(--border-color);
+      border-bottom: 1px solid var(--border-color);
+      padding: 70px 0;
+    }
+
+    .tech-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin-top: 36px;
+    }
+
+    .tech-item {
+      padding: 24px;
+      border-radius: var(--radius-md);
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      text-align: center;
+      transition: var(--transition);
+    }
+
+    .tech-item:hover {
+      border-color: var(--accent-blue);
+      transform: translateY(-3px);
+    }
+
+    .tech-name {
+      font-weight: 700;
+      font-size: 1.1rem;
+      margin-bottom: 6px;
+      color: var(--text-main);
+    }
+
+    .tech-role {
+      font-size: 0.82rem;
+      color: var(--accent-blue);
+      font-weight: 500;
+    }
+
+    /* ==========================================================================
+       Comparison Matrix
+       ========================================================================== */
+    .table-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      overflow-x: auto;
+      margin-top: 40px;
+    }
+
+    .comp-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.95rem;
+    }
+
+    html[dir="rtl"] .comp-table {
+      text-align: right;
+    }
+
+    .comp-table th,
+    .comp-table td {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .comp-table th {
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .comp-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .comp-table .feature-col {
+      font-weight: 600;
+      color: var(--text-main);
+      width: 40%;
+    }
+
+    .check-icon {
+      color: #10b981;
+      font-weight: bold;
+    }
+
+    .cross-icon {
+      color: #ef4444;
+      font-weight: bold;
+    }
+
+    /* ==========================================================================
+       Developer Section (Spotlight)
+       ========================================================================== */
+    .developer-section {
+      padding: 90px 0;
+      position: relative;
+    }
+
+    .developer-card {
+      background: linear-gradient(145deg, rgba(28, 32, 38, 0.9) 0%, rgba(18, 20, 23, 0.9) 100%);
+      border: 1px solid var(--border-highlight);
+      border-radius: var(--radius-lg);
+      padding: 48px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 40px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4), 0 0 30px rgba(34, 168, 222, 0.1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .developer-card::after {
+      content: "";
+      position: absolute;
+      top: -100px;
+      right: -100px;
+      width: 300px;
+      height: 300px;
+      background: radial-gradient(circle, rgba(34, 168, 222, 0.15) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .developer-badge-logo-container {
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    .developer-logo-box {
+      width: 130px;
+      height: 130px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #ffffff 0%, #edf4f8 100%);
+      border: 3px solid var(--accent-blue);
+      box-shadow: 0 0 30px rgba(34, 168, 222, 0.45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 14px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .developer-logo-img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.25));
+    }
+
+    .developer-info {
+      flex: 1;
+      min-width: 280px;
+    }
+
+    .developer-tag {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--accent-blue);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 8px;
+      display: block;
+    }
+
+    .developer-name {
+      font-size: 2rem;
+      font-weight: 800;
+      margin-bottom: 8px;
+      letter-spacing: -0.02em;
+    }
+
+    .developer-bio {
+      color: var(--text-muted);
+      font-size: 1rem;
+      line-height: 1.6;
+      margin-bottom: 24px;
+      max-width: 620px;
+    }
+
+    .developer-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+    }
+
+    /* ==========================================================================
+       Download / Call to Action
+       ========================================================================== */
+    .cta-banner {
+      background: linear-gradient(135deg, rgba(34, 168, 222, 0.15) 0%, rgba(18, 20, 23, 0.95) 100%);
+      border: 1px solid var(--border-highlight);
+      border-radius: var(--radius-lg);
+      padding: 60px 40px;
+      text-align: center;
+      margin-bottom: 90px;
+    }
+
+    .cta-banner h2 {
+      font-size: clamp(1.8rem, 3.5vw, 2.5rem);
+      font-weight: 800;
+      margin-bottom: 16px;
+    }
+
+    .cta-banner p {
+      color: var(--text-muted);
+      font-size: 1.05rem;
+      max-width: 600px;
+      margin: 0 auto 32px;
+    }
+
+    /* ==========================================================================
+       Footer
+       ========================================================================== */
+    .footer {
+      border-top: 1px solid var(--border-color);
+      background: #0d0f12;
+      padding: 60px 0 36px;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    .footer-top {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 40px;
+      margin-bottom: 40px;
+    }
+
+    .footer-brand {
+      max-width: 360px;
+    }
+
+    .footer-logos {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+
+    .footer-logo-item {
+      height: 38px;
+      width: auto;
+      object-fit: contain;
+    }
+
+    .footer-dev-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 10px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-color);
+      border-radius: 999px;
+      font-size: 0.78rem;
+      color: var(--text-main);
+    }
+
+    .footer-links-col h5 {
+      color: var(--text-main);
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin-bottom: 16px;
+    }
+
+    .footer-links-col ul {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .footer-links-col a {
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: var(--transition);
+    }
+
+    .footer-links-col a:hover {
+      color: var(--accent-blue);
+    }
+
+    .footer-bottom {
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      padding-top: 24px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      font-size: 0.82rem;
+      color: var(--text-dim);
+    }
+
+    /* ==========================================================================
+       Responsive Rules
+       ========================================================================== */
+    @media (max-width: 860px) {
+      .nav-links {
+        display: none;
+      }
+      .developer-card {
+        padding: 32px 24px;
+        text-align: center;
+        justify-content: center;
+      }
+      .developer-bio {
+        margin-left: auto;
+        margin-right: auto;
+      }
+      .developer-links {
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <header class="navbar">
+    <div class="container nav-container">
+      <a href="#" class="brand-link">
+        <img src="assets/branding/zearth_approved_icon.png" alt="Z EARTH Logo" class="brand-logo">
+        <div class="brand-text">
+          <span class="brand-title">
+            Z EARTH
+            <span class="brand-badge">v2.2.4</span>
+          </span>
+          <span class="brand-subtitle" data-i18n="nav.subtitle">Desktop GIS & 3D Globe</span>
+        </div>
+      </a>
+
+      <ul class="nav-links">
+        <li><a href="#features" class="nav-link" data-i18n="nav.features">Features</a></li>
+        <li><a href="#architecture" class="nav-link" data-i18n="nav.architecture">Architecture</a></li>
+        <li><a href="#comparison" class="nav-link" data-i18n="nav.comparison">Parity</a></li>
+        <li><a href="#developer" class="nav-link" data-i18n="nav.developer">Developer</a></li>
+      </ul>
+
+      <div class="nav-actions">
+        <!-- Language Switcher -->
+        <button id="langToggle" class="lang-btn" onclick="toggleLanguage()">
+          <span id="langIcon">🌐</span>
+          <span id="langText">العربية</span>
+        </button>
+
+        <a href="https://github.com/ahmadibrahim4geo/Z-EARTH/releases" class="btn btn-primary" target="_blank" rel="noopener">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          <span data-i18n="nav.download">Download</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-badge-wrap">
+        <span>🚀</span>
+        <span data-i18n="hero.badge">Open-Source Desktop GIS Alternative to Google Earth Pro</span>
+      </div>
+
+      <h1 class="hero-title">
+        <span data-i18n="hero.title_part1">Next-Generation 3D Globe &</span>
+        <br>
+        <span class="gradient-text" data-i18n="hero.title_part2">Professional Desktop GIS</span>
+      </h1>
+
+      <p class="hero-desc" data-i18n="hero.desc">
+        A fast, independent Windows desktop GIS application engineered with .NET 10 WPF and CesiumJS in WebView2. Complete with high-precision 3D terrain, WGS84 & UTM coordinate grids, KML/KMZ fidelity, GPX track replay, and bilingual Arabic/English experience.
+      </p>
+
+      <div class="hero-cta">
+        <a href="https://github.com/ahmadibrahim4geo/Z-EARTH/releases" class="btn btn-primary" target="_blank" rel="noopener">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          <span data-i18n="hero.btn_download">Download Windows Preview (.zip)</span>
+        </a>
+
+        <a href="https://github.com/ahmadibrahim4geo/Z-EARTH" class="btn btn-secondary" target="_blank" rel="noopener">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+          </svg>
+          <span data-i18n="hero.btn_repo">Explore Source on GitHub</span>
+        </a>
+      </div>
+
+      <!-- App Preview Graphic -->
+      <div class="hero-banner-card">
+        <img src="assets/branding/zearth-repo-header.webp" alt="Z EARTH Application Showcase" class="hero-banner-img">
+      </div>
+
+      <!-- Key Metrics Row -->
+      <div class="highlights-row">
+        <div class="highlight-card">
+          <div class="highlight-icon">🔒</div>
+          <h4 data-i18n="highlight.p1_title">100% Offline & Private</h4>
+          <p data-i18n="highlight.p1_desc">No user tracking, no telemetry, all spatial data stays in your local SQLite store.</p>
+        </div>
+        <div class="highlight-card">
+          <div class="highlight-icon">🌐</div>
+          <h4 data-i18n="highlight.p2_title">Dual WGS84 & UTM</h4>
+          <p data-i18n="highlight.p2_desc">Automatic coordinate detection, metric UTM Zone 36N/36R calculations via PROJ.</p>
+        </div>
+        <div class="highlight-card">
+          <div class="highlight-icon">⛰️</div>
+          <h4 data-i18n="highlight.p3_title">True Elevation Profiles</h4>
+          <p data-i18n="highlight.p3_desc">Genuine numeric Cesium terrain DEM sampling with verifiable vertex heights.</p>
+        </div>
+        <div class="highlight-card">
+          <div class="highlight-icon">🌍</div>
+          <h4 data-i18n="highlight.p4_title">Bilingual Arabic & English</h4>
+          <p data-i18n="highlight.p4_desc">First-class Arabic UI, RTL layouts, and Arabic keyboard flight navigation.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features Section -->
+  <section id="features" class="section">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag" data-i18n="features.tag">Capabilities</span>
+        <h2 class="section-title" data-i18n="features.title">Engineered for Geospatial Professionals</h2>
+        <p class="section-desc" data-i18n="features.desc">
+          Z EARTH bridges the power of native desktop performance with modern high-fidelity 3D web mapping engines.
+        </p>
+      </div>
+
+      <div class="features-grid">
+        <!-- Feature 1 -->
+        <div class="feature-card">
+          <div class="feature-icon-box">🧭</div>
+          <h3 class="feature-title" data-i18n="f1.title">3D Globe & Camera Navigation</h3>
+          <p class="feature-desc" data-i18n="f1.desc">
+            Smooth hardware-accelerated globe rendering via CesiumJS. Features Home, North lock, pitch/tilt inspection, high-accuracy zoom, and fluid camera transitions.
+          </p>
+          <div class="feature-badge-row">
+            <span class="feature-badge">WebGL</span>
+            <span class="feature-badge">CesiumJS</span>
+            <span class="feature-badge">WebView2</span>
+          </div>
+        </div>
+
+        <!-- Feature 2 -->
+        <div class="feature-card">
+          <div class="feature-icon-box">📐</div>
+          <h3 class="feature-title" data-i18n="f2.title">Smart Coordinate Search & Grid</h3>
+          <p class="feature-desc" data-i18n="f2.desc">
+            Instantly recognizes Decimal Degrees (DD), DMS, and UTM metric coordinates. Automatically deduces UTM zones and transforms coordinates seamlessly.
+          </p>
+          <div class="feature-badge-row">
+            <span class="feature-badge">PROJ Engine</span>
+            <span class="feature-badge">UTM 36N</span>
+            <span class="feature-badge">Graticule</span>
+          </div>
+        </div>
+
+        <!-- Feature 3 -->
+        <div class="feature-card">
+          <div class="feature-icon-box">📁</div>
+          <h3 class="feature-title" data-i18n="f3.title">Lossless KML / KMZ Fidelity</h3>
+          <p class="feature-desc" data-i18n="f3.desc">
+            Import, edit, and export complex KML/KMZ hierarchies with styles, custom icons, polygon extrusions, and gx:Track data fully preserved.
+          </p>
+          <div class="feature-badge-row">
+            <span class="feature-badge">KML 2.2</span>
+            <span class="feature-badge">KMZ Zip</span>
+            <span class="feature-badge">SQLite Places</span>
+          </div>
+        </div>
+
+        <!-- Feature 4 -->
+        <div class="feature-card">
+          <div class="feature-icon-box">📈</div>
+          <h3 class="feature-title" data-i18n="f4.title">Elevation Profiler & DEM Sampling</h3>
+          <p class="feature-desc" data-i18n="f4.desc">
+            Samples real numeric heights from the active Cesium terrain provider along any path, graphing authentic measured elevation curves without synthetic mockups.
+          </p>
+          <div class="feature-badge-row">
+            <span class="feature-badge">Terrain DEM</span>
+            <span class="feature-badge">Vertical Exaggeration</span>
+            <span class="feature-badge">Slope Profile</span>
+          </div>
+        </div>
+
+        <!-- Feature 5 -->
+        <div class="feature-card">
+          <div class="feature-icon-box">🛰️</div>
+          <h3 class="feature-title" data-i18n="f5.title">Historical Imagery & NASA GIBS</h3>
+          <p class="feature-desc" data-i18n="f5.desc">
+            Travel back in time with inline Esri Wayback release timeline or inspect daily global observation imagery via NASA GIBS MODIS Terra & Aqua layers.
+          </p>
+          <div class="feature-badge-row">
+            <span class="feature-badge">Esri Wayback</span>
+            <span class="feature-badge">NASA GIBS</span>
+            <span class="feature-badge">Time Slider</span>
+          </div>
+        </div>
+
+        <!-- Feature 6 -->
+        <div class="feature-card">
+          <div class="feature-icon-box">✈️</div>
+          <h3 class="feature-title" data-i18n="f6.title">Flight Navigation & Arabic Layout</h3>
+          <p class="feature-desc" data-i18n="f6.desc">
+            Independent 3D flight mode with HUD display, altitude-scaled throttle, 2.5x turbo boost, and full native support for Arabic keyboard layouts (ض، ص، ث، ق...).
+          </p>
+          <div class="feature-badge-row">
+            <span class="feature-badge">Flight HUD</span>
+            <span class="feature-badge">Turbo Boost</span>
+            <span class="feature-badge">AR Keyboard</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Architecture & Stack -->
+  <section id="architecture" class="tech-stack-section">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag" data-i18n="arch.tag">Under the Hood</span>
+        <h2 class="section-title" data-i18n="arch.title">Modern Architecture & Engineering</h2>
+        <p class="section-desc" data-i18n="arch.desc">
+          Designed with strict separation of concerns, native high performance, and standard geospatial libraries.
+        </p>
+      </div>
+
+      <div class="tech-grid">
+        <div class="tech-item">
+          <div class="tech-name">.NET 10 WPF</div>
+          <div class="tech-role">Desktop UI & MVVM</div>
+        </div>
+        <div class="tech-item">
+          <div class="tech-name">WebView2</div>
+          <div class="tech-role">Chromium Runtime Bridge</div>
+        </div>
+        <div class="tech-item">
+          <div class="tech-name">CesiumJS</div>
+          <div class="tech-role">Hardware 3D Globe Engine</div>
+        </div>
+        <div class="tech-item">
+          <div class="tech-name">GDAL & PROJ</div>
+          <div class="tech-role">Geodetic Transformations</div>
+        </div>
+        <div class="tech-item">
+          <div class="tech-name">SQLite</div>
+          <div class="tech-role">Local Project Store</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Comparison Matrix -->
+  <section id="comparison" class="section">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag" data-i18n="comp.tag">Parity Overview</span>
+        <h2 class="section-title" data-i18n="comp.title">Z EARTH vs. Google Earth Pro</h2>
+        <p class="section-desc" data-i18n="comp.desc">
+          How Z EARTH delivers an open, independent desktop GIS experience.
+        </p>
+      </div>
+
+      <div class="table-card">
+        <table class="comp-table">
+          <thead>
+            <tr>
+              <th data-i18n="table.feature">Feature / Requirement</th>
+              <th>Z EARTH</th>
+              <th>Google Earth Pro</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="feature-col" data-i18n="table.f1">Open Source & Extensible Codebase</td>
+              <td><span class="check-icon">✓ Yes</span> (.NET 10 & CesiumJS)</td>
+              <td><span class="cross-icon">✗ No</span> (Proprietary Closed Source)</td>
+            </tr>
+            <tr>
+              <td class="feature-col" data-i18n="table.f2">User Privacy & Local Storage</td>
+              <td><span class="check-icon">✓ 100% Local</span> (No Account Required)</td>
+              <td><span class="cross-icon">✗ Telemetry & Account Bound</span></td>
+            </tr>
+            <tr>
+              <td class="feature-col" data-i18n="table.f3">Bilingual Arabic & English UI</td>
+              <td><span class="check-icon">✓ Complete Native Support</span> (AR/EN)</td>
+              <td><span class="cross-icon">✗ Limited RTL / Arabic UX</span></td>
+            </tr>
+            <tr>
+              <td class="feature-col" data-i18n="table.f4">KML / KMZ Places & Hierarchy</td>
+              <td><span class="check-icon">✓ Complete Round-trip Support</span></td>
+              <td><span class="check-icon">✓ Supported</span></td>
+            </tr>
+            <tr>
+              <td class="feature-col" data-i18n="table.f5">Automatic UTM & Metric Coordinates</td>
+              <td><span class="check-icon">✓ Smart Zone Calculation</span></td>
+              <td><span>Partial (Manual config)</span></td>
+            </tr>
+            <tr>
+              <td class="feature-col" data-i18n="table.f6">NASA Daily Satellite Observations</td>
+              <td><span class="check-icon">✓ NASA GIBS MODIS Layers</span></td>
+              <td><span class="cross-icon">✗ No Direct GIBS Feed</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- Developer Spotlight Section -->
+  <section id="developer" class="developer-section">
+    <div class="container">
+      <div class="developer-card">
+        <div class="developer-badge-logo-container">
+          <div class="developer-logo-box">
+            <!-- Developer's Personal Logo from D:\Logo.svg -->
+            <img src="assets/branding/developer_logo.svg" alt="Ahmed Ibrahim - Developer Logo" class="developer-logo-img">
+          </div>
+        </div>
+
+        <div class="developer-info">
+          <span class="developer-tag" data-i18n="dev.tag">Lead Developer & Architect</span>
+          <h3 class="developer-name">Ahmed Ibrahim</h3>
+          <p class="developer-bio" data-i18n="dev.bio">
+            Geospatial Systems Developer specialized in modern GIS desktop architectures, 3D cartography, spatial coordinate reference engines, and high-performance WebGL mapping. Leading the development and vision of Z EARTH.
+          </p>
+
+          <div class="developer-links">
+            <a href="https://github.com/ahmadibrahim4geo" class="btn btn-secondary" target="_blank" rel="noopener">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+              </svg>
+              <span>GitHub Profile</span>
+            </a>
+
+            <a href="https://github.com/ahmadibrahim4geo/Z-EARTH" class="btn btn-primary" target="_blank" rel="noopener">
+              <span>Z EARTH Repository</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Download Call To Action -->
+  <section class="container">
+    <div class="cta-banner">
+      <h2 data-i18n="cta.title">Ready to Experience Z EARTH?</h2>
+      <p data-i18n="cta.desc">Download the Windows x64 portable package today and start exploring your GIS data on an open 3D globe.</p>
+      <a href="https://github.com/ahmadibrahim4geo/Z-EARTH/releases" class="btn btn-primary" style="font-size: 1.05rem; padding: 14px 32px;" target="_blank" rel="noopener">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="7 10 12 15 17 10"></polyline>
+          <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+        <span data-i18n="cta.btn">Download Z EARTH (Windows x64)</span>
+      </a>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-top">
+        <div class="footer-brand">
+          <div class="footer-logos">
+            <img src="assets/branding/zearth_approved_logo_dark_theme.png" alt="Z EARTH Logo" class="footer-logo-item">
+          </div>
+          <p style="margin-bottom: 14px;" data-i18n="footer.desc">
+            Independent open-source desktop GIS and 3D globe platform engineered for Windows x64.
+          </p>
+          <div class="footer-dev-pill">
+            <span style="display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:50%; background:#ffffff; padding:2px;">
+              <img src="assets/branding/developer_logo.svg" alt="Dev" style="height:16px; width:16px; object-fit:contain;">
+            </span>
+            <span>Developed by Ahmed Ibrahim</span>
+          </div>
+        </div>
+
+        <div class="footer-links-col">
+          <h5 data-i18n="footer.resources">Resources</h5>
+          <ul>
+            <li><a href="https://github.com/ahmadibrahim4geo/Z-EARTH/releases" target="_blank" rel="noopener">Releases & Builds</a></li>
+            <li><a href="docs/USER_MANUAL_EN.md" target="_blank">User Manual (EN)</a></li>
+            <li><a href="docs/USER_MANUAL_AR.md" target="_blank">دليل الاستخدام (عربي)</a></li>
+            <li><a href="CHANGELOG.md" target="_blank">Changelog</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-links-col">
+          <h5 data-i18n="footer.project">Project</h5>
+          <ul>
+            <li><a href="https://github.com/ahmadibrahim4geo/Z-EARTH" target="_blank" rel="noopener">GitHub Repository</a></li>
+            <li><a href="https://github.com/ahmadibrahim4geo/Z-EARTH/issues" target="_blank" rel="noopener">Issue Tracker</a></li>
+            <li><a href="LEGAL_AND_PRIVACY_NOTICES.md" target="_blank">Licensing & Privacy</a></li>
+            <li><a href="AGENTS.md" target="_blank">Engineering Specs</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <div>© 2026 Z EARTH. Created by Ahmed Ibrahim (@ahmadibrahim4geo).</div>
+        <div>Built with .NET 10, CesiumJS & WebView2.</div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Bilingual Content Engine -->
+  <script>
+    const translations = {
+      en: {
+        "nav.subtitle": "Desktop GIS & 3D Globe",
+        "nav.features": "Features",
+        "nav.architecture": "Architecture",
+        "nav.comparison": "Parity",
+        "nav.developer": "Developer",
+        "nav.download": "Download",
+        "hero.badge": "Open-Source Desktop GIS Alternative to Google Earth Pro",
+        "hero.title_part1": "Next-Generation 3D Globe &",
+        "hero.title_part2": "Professional Desktop GIS",
+        "hero.desc": "A fast, independent Windows desktop GIS application engineered with .NET 10 WPF and CesiumJS in WebView2. Complete with high-precision 3D terrain, WGS84 & UTM coordinate grids, KML/KMZ fidelity, GPX track replay, and bilingual Arabic/English experience.",
+        "hero.btn_download": "Download Windows Preview (.zip)",
+        "hero.btn_repo": "Explore Source on GitHub",
+        "highlight.p1_title": "100% Offline & Private",
+        "highlight.p1_desc": "No user tracking, no telemetry, all spatial data stays in your local SQLite store.",
+        "highlight.p2_title": "Dual WGS84 & UTM",
+        "highlight.p2_desc": "Automatic coordinate detection, metric UTM Zone 36N/36R calculations via PROJ.",
+        "highlight.p3_title": "True Elevation Profiles",
+        "highlight.p3_desc": "Genuine numeric Cesium terrain DEM sampling with verifiable vertex heights.",
+        "highlight.p4_title": "Bilingual Arabic & English",
+        "highlight.p4_desc": "First-class Arabic UI, RTL layouts, and Arabic keyboard flight navigation.",
+        "features.tag": "Capabilities",
+        "features.title": "Engineered for Geospatial Professionals",
+        "features.desc": "Z EARTH bridges the power of native desktop performance with modern high-fidelity 3D web mapping engines.",
+        "f1.title": "3D Globe & Camera Navigation",
+        "f1.desc": "Smooth hardware-accelerated globe rendering via CesiumJS. Features Home, North lock, pitch/tilt inspection, high-accuracy zoom, and fluid camera transitions.",
+        "f2.title": "Smart Coordinate Search & Grid",
+        "f2.desc": "Instantly recognizes Decimal Degrees (DD), DMS, and UTM metric coordinates. Automatically deduces UTM zones and transforms coordinates seamlessly.",
+        "f3.title": "Lossless KML / KMZ Fidelity",
+        "f3.desc": "Import, edit, and export complex KML/KMZ hierarchies with styles, custom icons, polygon extrusions, and gx:Track data fully preserved.",
+        "f4.title": "Elevation Profiler & DEM Sampling",
+        "f4.desc": "Samples real numeric heights from the active Cesium terrain provider along any path, graphing authentic measured elevation curves without synthetic mockups.",
+        "f5.title": "Historical Imagery & NASA GIBS",
+        "f5.desc": "Travel back in time with inline Esri Wayback release timeline or inspect daily global observation imagery via NASA GIBS MODIS Terra & Aqua layers.",
+        "f6.title": "Flight Navigation & Arabic Layout",
+        "f6.desc": "Independent 3D flight mode with HUD display, altitude-scaled throttle, 2.5x turbo boost, and full native support for Arabic keyboard layouts (ض، ص، ث، ق...).",
+        "arch.tag": "Under the Hood",
+        "arch.title": "Modern Architecture & Engineering",
+        "arch.desc": "Designed with strict separation of concerns, native high performance, and standard geospatial libraries.",
+        "comp.tag": "Parity Overview",
+        "comp.title": "Z EARTH vs. Google Earth Pro",
+        "comp.desc": "How Z EARTH delivers an open, independent desktop GIS experience.",
+        "table.feature": "Feature / Requirement",
+        "table.f1": "Open Source & Extensible Codebase",
+        "table.f2": "User Privacy & Local Storage",
+        "table.f3": "Bilingual Arabic & English UI",
+        "table.f4": "KML / KMZ Places & Hierarchy",
+        "table.f5": "Automatic UTM & Metric Coordinates",
+        "table.f6": "NASA Daily Satellite Observations",
+        "dev.tag": "Lead Developer & Architect",
+        "dev.bio": "Geospatial Systems Developer specialized in modern GIS desktop architectures, 3D cartography, spatial coordinate reference engines, and high-performance WebGL mapping. Leading the development and vision of Z EARTH.",
+        "cta.title": "Ready to Experience Z EARTH?",
+        "cta.desc": "Download the Windows x64 portable package today and start exploring your GIS data on an open 3D globe.",
+        "cta.btn": "Download Z EARTH (Windows x64)",
+        "footer.desc": "Independent open-source desktop GIS and 3D globe platform engineered for Windows x64.",
+        "footer.resources": "Resources",
+        "footer.project": "Project"
+      },
+      ar: {
+        "nav.subtitle": "نظم معلومات جغرافية ومجسم 3D",
+        "nav.features": "المميزات",
+        "nav.architecture": "البنية البرمجية",
+        "nav.comparison": "المقارنة مع إيرث",
+        "nav.developer": "المطور",
+        "nav.download": "تحميل البرنامج",
+        "hero.badge": "بديل مجاني ومفتوح المصدر لبرنامج Google Earth Pro",
+        "hero.title_part1": "الجيل الجديد للكرة الأرضية ثلاثية الأبعاد",
+        "hero.title_part2": "ونظم المعلومات الجغرافية لسطح المكتب",
+        "hero.desc": "تطبيق مكتبي متقدم لنظام ويندوز يجمع بين قوة أداء .NET 10 ومحرك CesiumJS ثلاثي الأبعاد عبر WebView2. يدعم التضاريس ثلاثية الأبعاد بدقة حقيقية، شبكات إحداثيات WGS84 و UTM، وتوافقية تامة مع ملفات KML/KMZ وتجربة عربية أصلية متكاملة.",
+        "hero.btn_download": "تحميل النسخة المحمولة لويندوز (.zip)",
+        "hero.btn_repo": "استعراض الكود على GitHub",
+        "highlight.p1_title": "محلي 100% وحماية كاملة للخصوصية",
+        "highlight.p1_desc": "بدون أي تتبع أو حسابات إلزامية، جميع بياناتك الجغرافية ومشاريعك محفوظة محلياً في قاعدة SQLite.",
+        "highlight.p2_title": "نظام إحداثيات مزدوج WGS84 و UTM",
+        "highlight.p2_desc": "التعرف الذكي التلقائي على الدرجات العشرية والمتري وتحويلات نطاقات UTM 36N/36R عبر PROJ.",
+        "highlight.p3_title": "مقاطع ارتفاعات وتضاريس حقيقية",
+        "highlight.p3_desc": "أخذ عينات ارتفاع رقمية فعلية من بيانات Cesium DEM بدون توليد قيَم وهمية أو تقريبية.",
+        "highlight.p4_title": "واجهة ثنائية اللغة عربية كاملة",
+        "highlight.p4_desc": "دعم كامل للغة العربية واتجاه RTL مع تحكم كامل بمحاكي الطيران عبر لوحة المفاتيح العربية.",
+        "features.tag": "قدرات البرنامج",
+        "features.title": "مُصمم وموجّه لمهندسي وخبراء الـ GIS",
+        "features.desc": "يجمع Z EARTH بين سرعة تطبيقات سطح المكتب الأصلية وأحدث محركات الخرائط الرقمية ثلاثية الأبعاد.",
+        "f1.title": "تصفح وملاحة ثلاثية الأبعاد ذكية",
+        "f1.desc": "أداء سريع مدعوم بمعالجات الرسوميات عبر CesiumJS. يتضمن إعادة ضبط الاتجاه للشمال، التحكم في زاوية الإمالة والارتفاع، وتكبير سلس بدون تقطيع.",
+        "f2.title": "بحث ذكي وشبكة إحداثيات متطورة",
+        "f2.desc": "التعرف الفوري على صيغ الدرجات العشرية (DD)، الدرجات والدقائق والثواني (DMS)، والإحداثيات المترية (UTM) مع استنتاج النطاق الجغرافي تلقائياً.",
+        "f3.title": "توافق فائق مع KML و KMZ",
+        "f3.desc": "استيراد وتحرير وتصدير كامل لهياكل المجلدات، الرموز المخصصة، والمضلعات ثلاثية الأبعاد ومسارات gx:Track دون فقدان البيانات.",
+        "f4.title": "مخطط قطاع الارتفاعات والتضاريس",
+        "f4.desc": "رسم قطاع تضاريسي واقعي بناءً على نماذج الارتفاع الرقمية الفعلية (DEM) على طول أي مسار مع إمكانية المبالغة الرأسية.",
+        "f5.title": "صور الأقمار التاريخية ومرئيات ناسا",
+        "f5.desc": "العودة بالزمن مع الأرشيف الزمني لصور Esri Wayback أو استعراض الصور اليومية الحقيقية للأقمار الصناعية عبر مرئيات NASA GIBS MODIS.",
+        "f6.title": "محاكي الطيران ولوحة المفاتيح العربية",
+        "f6.desc": "وضع طيران ثلاثي الأبعاد مستقل مع شاشة ملاحة (HUD)، وتحكم مرن في السرعة ومضاعف السرعة (Turbo)، مع دعم كامل للحروف العربية (ض، ص، ث، ق...).",
+        "arch.tag": "البنية الهندسية",
+        "arch.title": "معمارية برمجية حديثة ونظيفة",
+        "arch.desc": "مبني وفق معايير فصل المسؤوليات البرمجية واستخدام المكتبات الجيومكانية العالمية الموثوقة.",
+        "comp.tag": "مقارنة التكافؤ",
+        "comp.title": "مقارنة بين Z EARTH و Google Earth Pro",
+        "comp.desc": "كيف يوفر Z EARTH بديلاً مفتوحاً، مستقلاً وخالياً من القيود لسطح المكتب.",
+        "table.feature": "الخاصية / المتطلب",
+        "table.f1": "كود برمجي مفتوح وقابل للتطوير",
+        "table.f2": "خصوصية المستخدم وحفظ البيانات محلياً",
+        "table.f3": "واجهة مستخدم عربية أصلية بالكامل",
+        "table.f4": "توافقية مجلدات وملفات KML / KMZ",
+        "table.f5": "الاستنتاج التلقائي لإحداثيات UTM المترية",
+        "table.f6": "مرئيات يومية مباشرة من وكالة ناسا",
+        "dev.tag": "المطور الرئيسي ومهندس النظام",
+        "dev.bio": "مهندس ومطور نظم معلومات جغرافية (GIS)، متخصص في تطوير تطبيقات سطح المكتب الجيومكانية والخرائط ثلاثية الأبعاد ومحركات الإسناد المكاني والتحويلات الإحداثية. يقود تطوير وبناء مشروع Z EARTH.",
+        "cta.title": "جاهز لتجربة Z EARTH على جهازك؟",
+        "cta.desc": "حمّل النسخة المحمولة لنظام ويندوز 64-بت الآن واستمتع بمجسم أرضي ثلاثي الأبعاد متكامل لبياناتك.",
+        "cta.btn": "تحميل Z EARTH لويندوز (Portable ZIP)",
+        "footer.desc": "منصة نظم معلومات جغرافية ومجسم ثلاثي الأبعاد مفتوح المصدر ومستقل لنظام ويندوز.",
+        "footer.resources": "المصادر والدعم",
+        "footer.project": "المشروع والمطور"
+      }
+    };
+
+    let currentLang = 'en';
+
+    function toggleLanguage() {
+      currentLang = currentLang === 'en' ? 'ar' : 'en';
+      applyLanguage(currentLang);
+    }
+
+    function applyLanguage(lang) {
+      document.documentElement.lang = lang;
+      document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+
+      const langText = document.getElementById('langText');
+      if (langText) {
+        langText.textContent = lang === 'en' ? 'العربية' : 'English';
+      }
+
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (translations[lang] && translations[lang][key]) {
+          el.textContent = translations[lang][key];
+        }
+      });
+    }
+  </script>
+</body>
+</html>
